@@ -159,7 +159,7 @@
         <!-- Atendimentos do Dia -->
         <div class="mt-8 bg-white p-6 rounded-2xl shadow-md">
             <h3 class="text-2xl text-gray-800 mb-4">Atendimentos do Dia</h3>
-            <div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="border-b"><th class="p-2">Senha</th><th class="p-2">Cliente</th><th class="p-2">Horário</th><th class="p-2">Valor</th><th class="p-2">Pagamento</th></tr></thead><tbody id="daily-sales-table"></tbody></table></div>
+            <div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="border-b"><th class="p-2">Senha</th><th class="p-2">Cliente</th><th class="p-2">Horário</th><th class="p-2">Valor</th><th class="p-2">Pagamento</th><th class="p-2">Ações</th></tr></thead><tbody id="daily-sales-table"></tbody></table></div>
         </div>
     </main>
 
@@ -202,6 +202,7 @@
         let selectedClient = null;
         let allClients = [];
         let allProducts = [];
+        let editingSaleId = null;
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -409,10 +410,11 @@
             discountEl.addEventListener('input', calculateTotal);
         }
         
-        // --- LÓGICA PARA SALVAR A VENDA E GERAR SENHA ---
+        // --- LÓGICA PARA SALVAR, EDITAR E EXCLUIR VENDAS ---
         const saveSaleBtn = document.getElementById('save-sale-btn');
         const passwordDisplay = document.getElementById('password-display');
         const generatedPasswordEl = document.getElementById('generated-password');
+        const dailySalesTable = document.getElementById('daily-sales-table');
 
         async function getNextPassword() {
             const today = new Date().toISOString().split('T')[0];
@@ -426,34 +428,105 @@
         saveSaleBtn.addEventListener('click', async () => {
             const totalString = totalEl.textContent.replace(/\D/g, '');
             const totalValue = totalString ? parseInt(totalString, 10) / 100 : 0;
-            if (totalValue <= 0) { alert("Nenhum item selecionado para a venda."); return; }
-            const password = await getNextPassword();
+            if (totalValue <= 0 && !editingSaleId) { alert("Nenhum item selecionado para a venda."); return; }
+
+            const subtotalString = subtotalEl.textContent.replace(/\D/g, '');
+            const subtotalValue = subtotalString ? parseInt(subtotalString, 10) / 100 : 0;
+            const discountString = discountEl.value.replace(/\D/g, '');
+            const discountValue = discountString ? parseInt(discountString, 10) / 100 : 0;
             const saleItems = Array.from(document.querySelectorAll('.service-item input:checked')).map(i => ({ name: i.dataset.name, price: parseFloat(i.dataset.price) }));
+            
+            const salePayload = {
+                clientName: selectedClient ? selectedClient.name : "Cliente Avulso",
+                clientId: selectedClient ? selectedClient.id : null,
+                subtotal: subtotalValue,
+                discount: discountValue,
+                total: totalValue,
+                paymentMethod: document.getElementById('payment-method').value,
+                items: saleItems,
+                createdAt: Timestamp.now()
+            };
+
             try {
-                await addDoc(collection(db, "sales"), {
-                    clientName: selectedClient ? selectedClient.name : "Cliente Avulso",
-                    clientId: selectedClient ? selectedClient.id : null,
-                    total: totalValue,
-                    paymentMethod: document.getElementById('payment-method').value,
-                    items: saleItems,
-                    password: password,
-                    createdAt: Timestamp.now()
-                });
-                generatedPasswordEl.textContent = password;
-                passwordDisplay.classList.remove('hidden');
-                alert(`Venda salva! Senha do cliente: ${password}`);
+                if (editingSaleId) {
+                    await updateDoc(doc(db, "sales", editingSaleId), salePayload);
+                    alert('Venda atualizada com sucesso!');
+                } else {
+                    const password = await getNextPassword();
+                    salePayload.password = password;
+                    await addDoc(collection(db, "sales"), salePayload);
+                    generatedPasswordEl.textContent = password;
+                    passwordDisplay.classList.remove('hidden');
+                    alert(`Venda salva! Senha do cliente: ${password}`);
+                }
                 loadDailySales();
                 resetSaleForm();
             } catch (error) { console.error("Erro ao salvar venda:", error); alert("Ocorreu um erro ao salvar a venda."); }
         });
+        
+        dailySalesTable.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.edit-sale-btn');
+            const deleteBtn = e.target.closest('.delete-sale-btn');
+            if (editBtn) handleEditSale(editBtn.dataset.id);
+            if (deleteBtn) handleDeleteSale(deleteBtn.dataset.id);
+        });
+
+        async function handleEditSale(id) {
+            try {
+                const saleDoc = await getDoc(doc(db, "sales", id));
+                if (!saleDoc.exists()) { alert('Venda não encontrada.'); return; }
+                const saleData = saleDoc.data();
+                
+                resetSaleForm();
+                editingSaleId = id;
+
+                if (saleData.clientId) {
+                    const client = allClients.find(c => c.id === saleData.clientId);
+                    if (client) selectClient(client);
+                } else {
+                    clientSearchInput.value = saleData.clientName;
+                }
+
+                document.querySelectorAll('.service-item input[type="checkbox"]').forEach(cb => cb.checked = false);
+                saleData.items.forEach(saleItem => {
+                    const checkbox = Array.from(document.querySelectorAll('.service-item input[type="checkbox"]')).find(cb => cb.dataset.name === saleItem.name);
+                    if (checkbox) checkbox.checked = true;
+                });
+
+                discountEl.value = (saleData.discount || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                document.getElementById('payment-method').value = saleData.paymentMethod;
+
+                calculateTotal();
+                saveSaleBtn.textContent = 'Atualizar Venda';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (error) {
+                console.error("Erro ao carregar venda para edição:", error);
+                alert('Erro ao carregar venda.');
+            }
+        }
+
+        async function handleDeleteSale(id) {
+            if (!confirm('Tem certeza que deseja excluir esta venda?')) return;
+            try {
+                await deleteDoc(doc(db, "sales", id));
+                alert('Venda excluída com sucesso!');
+                loadDailySales();
+            } catch (error) {
+                console.error("Erro ao excluir venda:", error);
+                alert('Erro ao excluir venda.');
+            }
+        }
 
         function resetSaleForm() {
+            editingSaleId = null;
             selectedClient = null;
+            itemForm.reset();
             clientSearchInput.value = '';
             selectedClientDisplay.style.display = 'none';
             document.querySelectorAll('.service-item input:checked').forEach(cb => cb.checked = false);
             discountEl.value = '';
             calculateTotal();
+            saveSaleBtn.textContent = 'Salvar Venda';
             setTimeout(() => passwordDisplay.classList.add('hidden'), 5000);
         }
 
@@ -464,10 +537,23 @@
             const q = query(collection(db, "sales"), where("createdAt", ">=", Timestamp.fromDate(todayStart)), orderBy("createdAt", "desc"));
             const querySnapshot = await getDocs(q);
             querySnapshot.forEach(doc => {
-                const sale = doc.data();
+                const sale = {id: doc.id, ...doc.data()};
                 const saleTime = sale.createdAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                tableBody.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="p-2 font-mono">${sale.password}</td><td class="p-2 font-semibold">${sale.clientName}</td><td class="p-2">${saleTime}</td><td class="p-2">${sale.total.toLocaleString('pt-BR', {style:'currency', currency: 'BRL'})}</td><td class="p-2">${sale.paymentMethod}</td></tr>`;
+                const row = `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="p-2 font-mono">${sale.password}</td>
+                        <td class="p-2 font-semibold">${sale.clientName}</td>
+                        <td class="p-2">${saleTime}</td>
+                        <td class="p-2">${(sale.total || 0).toLocaleString('pt-BR', {style:'currency', currency: 'BRL'})}</td>
+                        <td class="p-2">${sale.paymentMethod}</td>
+                        <td class="p-2 flex items-center gap-2">
+                            <button class="edit-sale-btn p-1 text-gray-500 hover:text-blue-600" data-id="${sale.id}"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                            <button class="delete-sale-btn p-1 text-gray-500 hover:text-red-600" data-id="${sale.id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </td>
+                    </tr>`;
+                tableBody.innerHTML += row;
             });
+            lucide.createIcons();
         }
     </script>
 </body>
