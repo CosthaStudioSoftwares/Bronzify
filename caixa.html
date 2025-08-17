@@ -444,12 +444,21 @@
                 total: totalValue,
                 paymentMethod: document.getElementById('payment-method').value,
                 items: saleItems,
-                createdAt: Timestamp.now()
+                createdAt: Timestamp.now(),
+                status: 'waiting' // Adicionado para a Ordem de Chegada
             };
 
             try {
                 if (editingSaleId) {
-                    await updateDoc(doc(db, "sales", editingSaleId), salePayload);
+                    // Ao editar, não alteramos o status ou a senha
+                    const saleRef = doc(db, "sales", editingSaleId);
+                    const existingDoc = await getDoc(saleRef);
+                    const existingData = existingDoc.data();
+                    salePayload.status = existingData.status; // Mantém o status original
+                    salePayload.password = existingData.password; // Mantém a senha original
+                    salePayload.createdAt = existingData.createdAt; // Mantém a data original
+
+                    await updateDoc(saleRef, salePayload);
                     alert('Venda atualizada com sucesso!');
                 } else {
                     const password = await getNextPassword();
