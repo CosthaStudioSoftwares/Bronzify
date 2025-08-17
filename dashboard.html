@@ -61,19 +61,19 @@
             <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
         </div>
         <nav class="mt-6 px-4">
-            <a href="dashboard.html" class="sidebar-link active">
+            <a href="./dashboard.html" class="sidebar-link active">
                 <i data-lucide="layout-dashboard"></i> Dashboard
             </a>
-            <a href="clientes.html" class="sidebar-link">
+            <a href="./clientes.html" class="sidebar-link">
                 <i data-lucide="users"></i> Clientes
             </a>
-            <a href="caixa.html" class="sidebar-link">
+            <a href="./caixa.html" class="sidebar-link">
                 <i data-lucide="dollar-sign"></i> Caixa
             </a>
-            <a href="ordem-chegada.html" class="sidebar-link">
+            <a href="./ordem-chegada.html" class="sidebar-link">
                 <i data-lucide="list-ordered"></i> Ordem de Chegada
             </a>
-            <a href="patio.html" class="sidebar-link">
+            <a href="./patio.html" class="sidebar-link">
                 <i data-lucide="sun"></i> Pátio
             </a>
         </nav>
@@ -122,15 +122,15 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div class="bg-white p-6 rounded-2xl shadow-md">
                     <h3 class="text-lg font-semibold text-gray-500">Faturamento Mensal</h3>
-                    <p class="text-4xl font-bold text-[#B76E79] mt-2">R$ 7.850,00</p>
+                    <p id="monthly-revenue" class="text-4xl font-bold text-[#B76E79] mt-2">R$ 0,00</p>
                 </div>
                 <div class="bg-white p-6 rounded-2xl shadow-md">
                     <h3 class="text-lg font-semibold text-gray-500">Faturamento Diário</h3>
-                    <p class="text-4xl font-bold text-[#B76E79] mt-2">R$ 450,00</p>
+                    <p id="daily-revenue" class="text-4xl font-bold text-[#B76E79] mt-2">R$ 0,00</p>
                 </div>
                 <div class="bg-white p-6 rounded-2xl shadow-md">
                     <h3 class="text-lg font-semibold text-gray-500">Atendimentos no Dia</h3>
-                    <p class="text-4xl font-bold text-[#B76E79] mt-2">5</p>
+                    <p id="daily-appointments" class="text-4xl font-bold text-[#B76E79] mt-2">0</p>
                 </div>
             </div>
 
@@ -139,19 +139,9 @@
                 <!-- Faturamento por Forma de Pagamento -->
                 <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md">
                     <h3 class="text-2xl text-gray-800 mb-4">Faturamento Diário por Pagamento</h3>
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-600">PIX</span>
-                            <span class="font-bold text-gray-800">R$ 250,00</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-600">Cartão de Crédito</span>
-                            <span class="font-bold text-gray-800">R$ 120,00</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-600">Dinheiro</span>
-                            <span class="font-bold text-gray-800">R$ 80,00</span>
-                        </div>
+                    <div id="payment-methods-details" class="space-y-4">
+                        <!-- Conteúdo dinâmico aqui -->
+                        <p class="text-gray-500">Nenhum dado para hoje.</p>
                     </div>
                 </div>
 
@@ -175,96 +165,159 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, query, where, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // TODO: Adicione a configuração do seu projeto Firebase aqui
         const firebaseConfig = {
-            apiKey: "SUA_API_KEY",
-            authDomain: "SEU_AUTH_DOMAIN",
-            projectId: "SEU_PROJECT_ID",
-            storageBucket: "SEU_STORAGE_BUCKET",
-            messagingSenderId: "SEU_MESSAGING_SENDER_ID",
-            appId: "SEU_APP_ID"
+            apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
+            authDomain: "bronzify-b2491.firebaseapp.com",
+            projectId: "bronzify-b2491",
+            storageBucket: "bronzify-b2491.appspot.com",
+            messagingSenderId: "399230151633",
+            appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
         };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
 
         // --- LÓGICA DE AUTENTICAÇÃO ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 document.getElementById('user-email').textContent = user.email;
+                // Carregar dados iniciais ao autenticar
+                fetchDashboardData();
             } else {
-                window.location.href = 'login.html';
+                window.location.href = './login.html';
             }
         });
 
         document.getElementById('logout-btn').addEventListener('click', () => {
-            signOut(auth).then(() => window.location.href = 'login.html');
+            signOut(auth).then(() => window.location.href = './login.html');
         });
 
         // --- LÓGICA DO DASHBOARD ---
-
-        // 1. Popular Filtros
         const monthSelect = document.getElementById('filter-month');
         const yearSelect = document.getElementById('filter-year');
         const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
         const currentYear = new Date().getFullYear();
         
         months.forEach((month, index) => {
-            const option = new Option(month, index + 1);
-            monthSelect.add(option);
+            monthSelect.add(new Option(month, index));
         });
         
         for (let i = currentYear; i >= 2020; i--) {
-            const option = new Option(i, i);
-            yearSelect.add(option);
+            yearSelect.add(new Option(i, i));
         }
-        // Selecionar mês e ano atuais por padrão
-        monthSelect.value = new Date().getMonth() + 1;
+        monthSelect.value = new Date().getMonth();
         yearSelect.value = currentYear;
 
-        // 2. Lógica para buscar dados (exemplo)
-        document.getElementById('filter-apply').addEventListener('click', () => {
-            const selectedMonth = monthSelect.value;
-            const selectedYear = yearSelect.value;
-            alert(`Buscando dados para ${months[selectedMonth-1]} de ${selectedYear}...`);
-            // TODO: Aqui você deve chamar sua função para buscar os dados do Firebase
-            // com base no mês e ano selecionados e atualizar os cards e o gráfico.
-        });
-
-
-        // 3. Gráfico de Pizza (Chart.js)
+        // Gráfico de Pizza (Chart.js)
         const ctx = document.getElementById('servicesChart').getContext('2d');
         const servicesChart = new Chart(ctx, {
             type: 'pie',
             data: {
-                labels: ['Bronze Simples', 'Bronze com Biquíni', 'Banho de Lua', 'Manutenção'],
+                labels: [],
                 datasets: [{
                     label: 'Atendimentos',
-                    // TODO: Substituir por dados reais do Firebase
-                    data: [12, 19, 5, 8], 
-                    backgroundColor: [
-                        '#B76E79', // Tom principal
-                        '#D49A9A',
-                        '#FADADD', // Tom mais claro
-                        '#A9606C',
-                    ],
+                    data: [], 
+                    backgroundColor: ['#B76E79', '#D49A9A', '#FADADD', '#A9606C', '#C98B8B'],
                     borderColor: '#FFF9F9',
                     borderWidth: 3
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'right',
-                    }
-                }
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'right' } }
             }
         });
-        
-        // 4. Lógica de Download e Compartilhamento
+
+        // Função para buscar e renderizar os dados
+        async function fetchDashboardData() {
+            const selectedMonth = parseInt(monthSelect.value);
+            const selectedYear = parseInt(yearSelect.value);
+
+            // Definir o intervalo de datas para o filtro mensal
+            const startDate = new Date(selectedYear, selectedMonth, 1);
+            const endDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
+
+            // Definir o intervalo para o filtro diário
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+            const todayEnd = new Date();
+            todayEnd.setHours(23, 59, 59, 999);
+
+            // TODO: Substitua 'appointments' pelo nome real da sua coleção de agendamentos/vendas
+            const appointmentsRef = collection(db, "appointments"); 
+            
+            // Query para dados mensais
+            const monthlyQuery = query(appointmentsRef, 
+                where("date", ">=", Timestamp.fromDate(startDate)), 
+                where("date", "<=", Timestamp.fromDate(endDate))
+            );
+
+            // Query para dados diários
+            const dailyQuery = query(appointmentsRef, 
+                where("date", ">=", Timestamp.fromDate(todayStart)), 
+                where("date", "<=", Timestamp.fromDate(todayEnd))
+            );
+
+            try {
+                const [monthlySnapshot, dailySnapshot] = await Promise.all([getDocs(monthlyQuery), getDocs(dailyQuery)]);
+                
+                let monthlyRevenue = 0;
+                const serviceCounts = {};
+                monthlySnapshot.forEach(doc => {
+                    const data = doc.data();
+                    monthlyRevenue += data.price || 0;
+                    const serviceName = data.serviceName || 'Não especificado';
+                    serviceCounts[serviceName] = (serviceCounts[serviceName] || 0) + 1;
+                });
+
+                let dailyRevenue = 0;
+                let dailyAppointments = 0;
+                const paymentMethodTotals = {};
+                dailySnapshot.forEach(doc => {
+                    const data = doc.data();
+                    dailyAppointments++;
+                    dailyRevenue += data.price || 0;
+                    const paymentMethod = data.paymentMethod || 'Não especificado';
+                    paymentMethodTotals[paymentMethod] = (paymentMethodTotals[paymentMethod] || 0) + data.price;
+                });
+
+                // Atualizar a UI
+                document.getElementById('monthly-revenue').textContent = `R$ ${monthlyRevenue.toFixed(2)}`;
+                document.getElementById('daily-revenue').textContent = `R$ ${dailyRevenue.toFixed(2)}`;
+                document.getElementById('daily-appointments').textContent = dailyAppointments;
+
+                // Atualizar detalhes de pagamento
+                const paymentDetailsContainer = document.getElementById('payment-methods-details');
+                paymentDetailsContainer.innerHTML = '';
+                if (Object.keys(paymentMethodTotals).length > 0) {
+                    for (const method in paymentMethodTotals) {
+                        paymentDetailsContainer.innerHTML += `
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">${method}</span>
+                                <span class="font-bold text-gray-800">R$ ${paymentMethodTotals[method].toFixed(2)}</span>
+                            </div>`;
+                    }
+                } else {
+                    paymentDetailsContainer.innerHTML = '<p class="text-gray-500">Nenhum dado para hoje.</p>';
+                }
+
+                // Atualizar gráfico
+                servicesChart.data.labels = Object.keys(serviceCounts);
+                servicesChart.data.datasets[0].data = Object.values(serviceCounts);
+                servicesChart.update();
+
+            } catch (error) {
+                console.error("Erro ao buscar dados do dashboard: ", error);
+                alert("Não foi possível carregar os dados do dashboard.");
+            }
+        }
+
+        document.getElementById('filter-apply').addEventListener('click', fetchDashboardData);
+
+        // Lógica de Download e Compartilhamento
         const downloadBtn = document.getElementById('download-btn');
         const shareBtn = document.getElementById('share-btn');
         const reportContent = document.getElementById('report-content');
@@ -279,32 +332,24 @@
                     format: [canvas.width, canvas.height]
                 });
                 pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-                pdf.save(`relatorio_bronzify_${yearSelect.value}_${monthSelect.value}.pdf`);
+                pdf.save(`relatorio_bronzify_${yearSelect.value}_${monthSelect.options[monthSelect.selectedIndex].text}.pdf`);
                 downloadBtn.innerHTML = '<i data-lucide="download"></i> Baixar PDF';
                 lucide.createIcons();
             });
         });
         
         shareBtn.addEventListener('click', async () => {
-            const title = `Relatório Bronzify - ${months[monthSelect.value-1]}/${yearSelect.value}`;
+            const title = `Relatório Bronzify - ${monthSelect.options[monthSelect.selectedIndex].text}/${yearSelect.value}`;
             const text = `Confira o resumo de faturamento e atendimentos.`;
             
             if (navigator.share) {
                 try {
-                    await navigator.share({
-                        title: title,
-                        text: text,
-                        url: window.location.href,
-                    });
-                } catch (err) {
-                    console.error("Erro ao compartilhar:", err);
-                }
+                    await navigator.share({ title, text, url: window.location.href });
+                } catch (err) { console.error("Erro ao compartilhar:", err); }
             } else {
-                // Fallback para desktops
-                alert("Função de compartilhamento não suportada neste navegador. Tente copiar a URL.");
+                alert("Função de compartilhamento não suportada neste navegador.");
             }
         });
-
     </script>
 </body>
 </html>
