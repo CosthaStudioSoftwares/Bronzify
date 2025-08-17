@@ -190,7 +190,7 @@
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
             authDomain: "bronzify-b2491.firebaseapp.com",
             projectId: "bronzify-b2491",
-            storageBucket: "bronzify-b2491.appspot.com",
+            storageBucket: "bronzify-b2491.firebasestorage.app",
             messagingSenderId: "399230151633",
             appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
         };
@@ -445,19 +445,17 @@
                 paymentMethod: document.getElementById('payment-method').value,
                 items: saleItems,
                 createdAt: Timestamp.now(),
-                status: 'waiting' // Adicionado para a Ordem de Chegada
+                status: 'waiting' // ** IMPORTANTE: Adiciona o status para a Ordem de Chegada **
             };
 
             try {
                 if (editingSaleId) {
-                    // Ao editar, não alteramos o status ou a senha
                     const saleRef = doc(db, "sales", editingSaleId);
                     const existingDoc = await getDoc(saleRef);
                     const existingData = existingDoc.data();
-                    salePayload.status = existingData.status; // Mantém o status original
-                    salePayload.password = existingData.password; // Mantém a senha original
-                    salePayload.createdAt = existingData.createdAt; // Mantém a data original
-
+                    salePayload.status = existingData.status;
+                    salePayload.password = existingData.password;
+                    salePayload.createdAt = existingData.createdAt;
                     await updateDoc(saleRef, salePayload);
                     alert('Venda atualizada com sucesso!');
                 } else {
