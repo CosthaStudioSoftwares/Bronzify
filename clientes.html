@@ -33,6 +33,13 @@
         .sidebar-link svg {
             margin-right: 0.75rem;
         }
+        /* Estilos para o Modal */
+        .modal-backdrop {
+            transition: opacity 0.3s ease;
+        }
+        .modal-content {
+            transition: transform 0.3s ease;
+        }
     </style>
 </head>
 <body class="flex h-screen">
@@ -69,93 +76,211 @@
     <!-- Main Content -->
     <main class="flex-1 p-8 overflow-y-auto">
         <header class="flex justify-between items-center mb-8">
-            <h2 class="text-4xl text-gray-800">Gerenciar Clientes</h2>
-            <button class="bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center gap-2">
-                <i data-lucide="plus-circle" class="w-5 h-5"></i> Adicionar Cliente
+            <h2 class="text-4xl text-gray-800">Gestão de Clientes</h2>
+            <button id="add-client-btn" class="bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center gap-2">
+                <i data-lucide="user-plus"></i> Cadastrar Novo Cliente
             </button>
         </header>
 
-        <!-- Conteúdo da Página -->
-        <div class="bg-white p-6 rounded-2xl shadow-md">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left">
-                    <thead>
-                        <tr class="border-b">
-                            <th class="p-4">Nome</th>
-                            <th class="p-4">Email</th>
-                            <th class="p-4">Plano</th>
-                            <th class="p-4">Status</th>
-                            <th class="p-4">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Exemplo de linha de cliente -->
-                        <tr class="border-b hover:bg-gray-50">
-                            <td class="p-4 font-medium text-gray-800">Ana Clara Souza</td>
-                            <td class="p-4 text-gray-600">ana.souza@email.com</td>
-                            <td class="p-4 text-gray-600">30 Dias</td>
-                            <td class="p-4"><span class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-sm">Ativo</span></td>
-                            <td class="p-4">
-                                <button class="text-[#B76E79] hover:underline">Detalhes</button>
-                            </td>
-                        </tr>
-                        <tr class="border-b hover:bg-gray-50">
-                            <td class="p-4 font-medium text-gray-800">Beatriz Lima</td>
-                            <td class="p-4 text-gray-600">beatriz.lima@email.com</td>
-                            <td class="p-4 text-gray-600">1 Ano</td>
-                            <td class="p-4"><span class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-sm">Ativo</span></td>
-                            <td class="p-4">
-                                <button class="text-[#B76E79] hover:underline">Detalhes</button>
-                            </td>
-                        </tr>
-                        <tr class="hover:bg-gray-50">
-                            <td class="p-4 font-medium text-gray-800">Carla Mendes</td>
-                            <td class="p-4 text-gray-600">carla.mendes@email.com</td>
-                            <td class="p-4 text-gray-600">N/A</td>
-                            <td class="p-4"><span class="bg-red-100 text-red-700 px-2 py-1 rounded-full text-sm">Inativo</span></td>
-                            <td class="p-4">
-                                <button class="text-[#B76E79] hover:underline">Detalhes</button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Coluna Principal (Esquerda) -->
+            <div class="lg:col-span-2 space-y-8">
+                <!-- Pesquisa -->
+                <div class="bg-white p-6 rounded-2xl shadow-md">
+                    <h3 class="text-2xl text-gray-800 mb-4">Pesquisar Clientes</h3>
+                    <div class="flex flex-wrap gap-4">
+                        <input type="text" id="search-input" placeholder="Digite nome ou telefone..." class="flex-grow p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]">
+                        <button id="birthday-filter-btn" class="bg-pink-100 text-[#B76E79] px-4 py-2 rounded-lg hover:bg-pink-200 flex items-center gap-2">
+                            <i data-lucide="cake"></i> Aniversariantes do Mês
+                        </button>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-2">Busque por nome, telefone ou filtre pelos aniversariantes do mês atual.</p>
+                </div>
+
+                <!-- Clientes Recentes -->
+                <div class="bg-white p-6 rounded-2xl shadow-md">
+                    <h3 class="text-2xl text-gray-800 mb-4">Clientes Recentes</h3>
+                    <div id="recent-clients-list" class="space-y-4">
+                        <!-- Exemplo de cliente, será populado via JS -->
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div>
+                                <p class="font-semibold text-gray-700">Juliana Paes</p>
+                                <p class="text-sm text-gray-500">(79) 99988-7766</p>
+                            </div>
+                            <span class="text-sm text-gray-600">15/08/2025, 10:30</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div>
+                                <p class="font-semibold text-gray-700">Mariana Rios</p>
+                                <p class="text-sm text-gray-500">(79) 98877-6655</p>
+                            </div>
+                            <span class="text-sm text-gray-600">15/08/2025, 09:15</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coluna Lateral (Direita) -->
+            <div class="lg:col-span-1">
+                <div class="bg-white p-6 rounded-2xl shadow-md">
+                    <h3 class="text-2xl text-gray-800 mb-4">Sorteio de Clientes</h3>
+                    <label for="raffle-months" class="block text-gray-600 mb-2">Selecione os meses:</label>
+                    <select id="raffle-months" multiple class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79] h-32">
+                        <!-- Meses populados via JS -->
+                    </select>
+                    <button id="raffle-btn" class="w-full mt-4 bg-gradient-to-r from-pink-400 to-rose-400 text-white py-2 rounded-lg hover:opacity-90">
+                        Sortear Cliente
+                    </button>
+                    <div id="raffle-result" class="mt-4 text-center hidden">
+                        <p class="text-gray-600">A cliente sorteada é:</p>
+                        <p id="winner-name" class="text-xl font-bold text-[#B76E79]"></p>
+                        <p id="winner-phone" class="text-gray-700"></p>
+                        <p id="winner-date" class="text-sm text-gray-500"></p>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
+    
+    <!-- Modal de Cadastro de Cliente -->
+    <div id="client-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 modal-content transform scale-95">
+            <h3 class="text-2xl text-gray-800 mb-6">Cadastrar Nova Cliente</h3>
+            <form id="new-client-form">
+                <div class="mb-4">
+                    <label for="client-name" class="block text-gray-600 mb-2">Nome Completo</label>
+                    <input type="text" id="client-name" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
+                </div>
+                <div class="mb-4">
+                    <label for="client-phone" class="block text-gray-600 mb-2">Telefone</label>
+                    <input type="tel" id="client-phone" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
+                </div>
+                <div class="mb-6">
+                    <label for="client-birthdate" class="block text-gray-600 mb-2">Data de Nascimento</label>
+                    <input type="date" id="client-birthdate" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
+                </div>
+                <div class="flex justify-end gap-4">
+                    <button type="button" id="cancel-btn" class="px-4 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-[#B76E79] text-white rounded-lg hover:opacity-90">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 
     <script>
       lucide.createIcons();
     </script>
     
-    <!-- Firebase e Script de Autenticação -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, where, getDocs, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+        // TODO: Adicione a configuração do seu projeto Firebase aqui
         const firebaseConfig = {
-            apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
-            authDomain: "bronzify-b2491.firebaseapp.com",
-            projectId: "bronzify-b2491",
-            storageBucket: "bronzify-b2491.appspot.com",
-            messagingSenderId: "399230151633",
-            appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
+            apiKey: "SUA_API_KEY",
+            authDomain: "SEU_AUTH_DOMAIN",
+            projectId: "SEU_PROJECT_ID",
+            storageBucket: "SEU_STORAGE_BUCKET",
+            messagingSenderId: "SEU_MESSAGING_SENDER_ID",
+            appId: "SEU_APP_ID"
         };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
 
+        // --- LÓGICA DE AUTENTICAÇÃO ---
         onAuthStateChanged(auth, (user) => {
             if (!user) {
                 window.location.href = 'login.html';
             }
         });
-
-        const logoutBtn = document.getElementById('logout-btn');
-        logoutBtn.addEventListener('click', () => {
-            signOut(auth).then(() => {
-                window.location.href = 'login.html';
-            });
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            signOut(auth).then(() => window.location.href = 'login.html');
         });
+
+        // --- LÓGICA DO MODAL ---
+        const modal = document.getElementById('client-modal');
+        const addClientBtn = document.getElementById('add-client-btn');
+        const cancelBtn = document.getElementById('cancel-btn');
+
+        addClientBtn.addEventListener('click', () => {
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.querySelector('.modal-backdrop').classList.remove('opacity-0');
+                modal.querySelector('.modal-content').classList.remove('scale-95');
+            }, 10);
+        });
+
+        const closeModal = () => {
+            modal.querySelector('.modal-backdrop').classList.add('opacity-0');
+            modal.querySelector('.modal-content').classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        };
+
+        cancelBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        // --- LÓGICA DE CADASTRO DE CLIENTE ---
+        const newClientForm = document.getElementById('new-client-form');
+        newClientForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('client-name').value;
+            const phone = document.getElementById('client-phone').value;
+            const birthdate = document.getElementById('client-birthdate').value;
+
+            try {
+                const docRef = await addDoc(collection(db, "clients"), {
+                    name: name,
+                    phone: phone,
+                    birthdate: birthdate,
+                    createdAt: new Date()
+                });
+                console.log("Cliente salvo com ID: ", docRef.id);
+                alert("Cliente cadastrada com sucesso!");
+                newClientForm.reset();
+                closeModal();
+                // TODO: Atualizar a lista de clientes na tela
+            } catch (error) {
+                console.error("Erro ao adicionar cliente: ", error);
+                alert("Erro ao cadastrar cliente. Tente novamente.");
+            }
+        });
+
+        // --- LÓGICA DO SORTEIO ---
+        const raffleMonthsSelect = document.getElementById('raffle-months');
+        const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+        months.forEach((month, index) => {
+            const option = new Option(month, index + 1);
+            raffleMonthsSelect.add(option);
+        });
+
+        document.getElementById('raffle-btn').addEventListener('click', async () => {
+            const selectedMonths = Array.from(raffleMonthsSelect.selectedOptions).map(opt => parseInt(opt.value));
+            if (selectedMonths.length === 0) {
+                alert("Por favor, selecione pelo menos um mês para o sorteio.");
+                return;
+            }
+            
+            alert(`Sorteando entre clientes que fizeram serviços nos meses: ${selectedMonths.join(', ')}...`);
+            // TODO: Implementar a busca no Firestore
+            // 1. Buscar todas as vendas/serviços nos meses selecionados.
+            // 2. Pegar os IDs dos clientes dessas vendas.
+            // 3. Escolher um ID de cliente aleatoriamente.
+            // 4. Buscar os dados do cliente sorteado e exibir.
+
+            // Exemplo de resultado (simulado):
+            const raffleResultDiv = document.getElementById('raffle-result');
+            document.getElementById('winner-name').textContent = "Cliente Sorteada Exemplo";
+            document.getElementById('winner-phone').textContent = "(79) 91234-5678";
+            document.getElementById('winner-date').textContent = "Serviço realizado em: 10/07/2025, 14:00";
+            raffleResultDiv.classList.remove('hidden');
+        });
+
     </script>
 </body>
 </html>
