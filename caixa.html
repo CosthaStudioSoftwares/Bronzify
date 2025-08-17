@@ -42,6 +42,13 @@
             background-color: #FFF9F9;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
+        /* Estilos para o Modal */
+        .modal-backdrop {
+            transition: opacity 0.3s ease;
+        }
+        .modal-content {
+            transition: transform 0.3s ease;
+        }
     </style>
 </head>
 <body class="flex h-screen">
@@ -104,28 +111,25 @@
                 <div class="bg-white p-6 rounded-2xl shadow-md">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-2xl text-gray-800">2. Serviços e Produtos</h3>
-                        <button class="text-sm text-[#B76E79] hover:underline">Adicionar novo</button>
+                        <button id="add-new-item-btn" class="text-sm text-[#B76E79] hover:underline font-semibold flex items-center gap-1"><i data-lucide="plus-circle" class="w-4 h-4"></i> Adicionar novo</button>
                     </div>
                     
                     <!-- Tipos de Bronze -->
                     <h4 class="font-semibold text-gray-600 mb-2">Tipos de Bronze</h4>
-                    <div id="bronze-services" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div class="service-item"><input type="checkbox" id="bronze1" class="hidden"><label for="bronze1" class="block border rounded-lg p-3 cursor-pointer">Sol Azul <span class="font-bold float-right">R$ 80,00</span></label></div>
-                        <div class="service-item"><input type="checkbox" id="bronze2" class="hidden"><label for="bronze2" class="block border rounded-lg p-3 cursor-pointer">Bronze Natural <span class="font-bold float-right">R$ 70,00</span></label></div>
+                    <div id="bronze-services" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 min-h-[50px]">
+                        <!-- Itens carregados dinamicamente -->
                     </div>
 
                     <!-- Consumo -->
                     <h4 class="font-semibold text-gray-600 mb-2">Consumo</h4>
-                    <div id="consumables" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div class="service-item"><input type="checkbox" id="consumo1" class="hidden"><label for="consumo1" class="block border rounded-lg p-3 cursor-pointer">Água Mineral <span class="font-bold float-right">R$ 3,00</span></label></div>
-                        <div class="service-item"><input type="checkbox" id="consumo2" class="hidden"><label for="consumo2" class="block border rounded-lg p-3 cursor-pointer">Cerveja Lata <span class="font-bold float-right">R$ 6,00</span></label></div>
+                    <div id="consumables" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 min-h-[50px]">
+                        <!-- Itens carregados dinamicamente -->
                     </div>
 
                     <!-- Adicionais -->
                     <h4 class="font-semibold text-gray-600 mb-2">Adicionais</h4>
-                    <div id="extras" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                         <div class="service-item"><input type="checkbox" id="extra1" class="hidden"><label for="extra1" class="block border rounded-lg p-3 cursor-pointer">Banho de Lua <span class="font-bold float-right">R$ 25,00</span></label></div>
-                         <div class="service-item"><input type="checkbox" id="extra2" class="hidden"><label for="extra2" class="block border rounded-lg p-3 cursor-pointer">Esfoliação <span class="font-bold float-right">R$ 15,00</span></label></div>
+                    <div id="extras" class="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[50px]">
+                         <!-- Itens carregados dinamicamente -->
                     </div>
                 </div>
             </div>
@@ -181,19 +185,41 @@
                         </tr>
                     </thead>
                     <tbody id="daily-sales-table">
-                        <!-- Exemplo de linha, será populado via JS -->
-                        <tr class="border-b hover:bg-gray-50">
-                            <td class="p-2 font-mono">001</td>
-                            <td class="p-2 font-semibold">Juliana Paes</td>
-                            <td class="p-2">10:30</td>
-                            <td class="p-2">R$ 98,00</td>
-                            <td class="p-2">PIX</td>
-                        </tr>
+                        <!-- Linhas populadas via JS -->
                     </tbody>
                 </table>
             </div>
         </div>
     </main>
+
+    <!-- Modal de Novo Item -->
+    <div id="new-item-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 modal-content transform scale-95">
+            <h3 class="text-2xl text-gray-800 mb-6">Cadastrar Novo Item</h3>
+            <form id="new-item-form">
+                <div class="mb-4">
+                    <label for="item-name" class="block text-gray-600 mb-2">Nome do Item</label>
+                    <input type="text" id="item-name" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
+                </div>
+                <div class="mb-4">
+                    <label for="item-price" class="block text-gray-600 mb-2">Valor (R$)</label>
+                    <input type="number" id="item-price" step="0.01" placeholder="25.00" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
+                </div>
+                <div class="mb-6">
+                    <label for="item-category" class="block text-gray-600 mb-2">Categoria</label>
+                    <select id="item-category" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
+                        <option value="bronze">Tipo de Bronze</option>
+                        <option value="consumable">Consumo</option>
+                        <option value="extra">Adicional</option>
+                    </select>
+                </div>
+                <div class="flex justify-end gap-4">
+                    <button type="button" id="cancel-item-btn" class="px-4 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-[#B76E79] text-white rounded-lg hover:opacity-90">Salvar Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script>
       lucide.createIcons();
@@ -202,9 +228,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, where, getDocs, Timestamp, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, where, getDocs, Timestamp, increment, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // Configuração do seu projeto Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
             authDomain: "bronzify-b2491.firebaseapp.com",
@@ -219,12 +244,14 @@
         const db = getFirestore(app);
 
         let selectedClient = null;
-        let allClients = []; // Array para armazenar todos os clientes
+        let allClients = [];
 
         // --- LÓGICA DE AUTENTICAÇÃO E CARREGAMENTO INICIAL ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                loadAllClients(); // Carrega os clientes assim que o usuário estiver autenticado
+                loadAllClients();
+                loadServicesAndProducts();
+                loadDailySales();
             } else {
                 window.location.href = './index.html';
             }
@@ -234,19 +261,17 @@
             signOut(auth).then(() => window.location.href = './index.html');
         });
 
-        // --- LÓGICA DE BUSCA DE CLIENTE (CORRIGIDA) ---
+        // --- LÓGICA DE BUSCA DE CLIENTE ---
         const clientSearchInput = document.getElementById('client-search');
         const searchResultsContainer = document.getElementById('search-results');
         const selectedClientDisplay = document.getElementById('selected-client-display');
         const selectedClientNameEl = document.getElementById('selected-client-name');
         const birthdayAlertEl = document.getElementById('birthday-alert');
 
-        // Função para carregar todos os clientes do Firestore para a memória
         async function loadAllClients() {
             try {
                 const querySnapshot = await getDocs(collection(db, "clients"));
                 allClients = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                console.log("Clientes carregados:", allClients.length);
             } catch (error) {
                 console.error("Erro ao carregar clientes:", error);
             }
@@ -254,29 +279,20 @@
 
         clientSearchInput.addEventListener('input', (e) => {
             const searchTerm = e.target.value.trim().toLowerCase();
-            
             if (searchTerm.length < 2) {
-                searchResultsContainer.innerHTML = '';
-                searchResultsContainer.classList.add('hidden');
-                return;
+                searchResultsContainer.classList.add('hidden'); return;
             }
-
-            // Filtra o array 'allClients' localmente
-            const filteredClients = allClients.filter(client => 
-                client.name.toLowerCase().includes(searchTerm) || 
-                (client.phone && client.phone.includes(searchTerm))
-            );
-
+            const filteredClients = allClients.filter(c => c.name.toLowerCase().includes(searchTerm) || (c.phone && c.phone.includes(searchTerm)));
             searchResultsContainer.innerHTML = '';
             if (filteredClients.length === 0) {
                 searchResultsContainer.innerHTML = '<div class="p-3 text-gray-500">Nenhum cliente encontrado.</div>';
             } else {
                 filteredClients.forEach(client => {
-                    const resultItem = document.createElement('div');
-                    resultItem.className = 'p-3 hover:bg-gray-100 cursor-pointer';
-                    resultItem.textContent = `${client.name} - ${client.phone}`;
-                    resultItem.addEventListener('click', () => selectClient(client));
-                    searchResultsContainer.appendChild(resultItem);
+                    const item = document.createElement('div');
+                    item.className = 'p-3 hover:bg-gray-100 cursor-pointer';
+                    item.textContent = `${client.name} - ${client.phone}`;
+                    item.onclick = () => selectClient(client);
+                    searchResultsContainer.appendChild(item);
                 });
             }
             searchResultsContainer.classList.remove('hidden');
@@ -286,51 +302,86 @@
             selectedClient = client;
             clientSearchInput.value = client.name;
             searchResultsContainer.classList.add('hidden');
-            
             selectedClientNameEl.textContent = client.name;
             selectedClientDisplay.style.display = 'flex';
-
-            // Checar aniversário
             if (client.birthdate) {
-                // Adiciona 1 dia para corrigir problemas de fuso horário (UTC vs local)
                 const birthDate = new Date(client.birthdate);
                 birthDate.setDate(birthDate.getDate() + 1);
-                const birthMonth = birthDate.getMonth();
-                const currentMonth = new Date().getMonth();
-                
-                if (birthMonth === currentMonth) {
-                    birthdayAlertEl.style.display = 'flex';
-                } else {
-                    birthdayAlertEl.style.display = 'none';
-                }
+                const isBirthdayMonth = birthDate.getMonth() === new Date().getMonth();
+                birthdayAlertEl.style.display = isBirthdayMonth ? 'flex' : 'none';
             } else {
-                 birthdayAlertEl.style.display = 'none';
+                birthdayAlertEl.style.display = 'none';
             }
             lucide.createIcons();
         }
+        document.addEventListener('click', (e) => { if (!clientSearchInput.contains(e.target)) searchResultsContainer.classList.add('hidden'); });
 
-        // Esconde a lista de resultados se clicar fora
-        document.addEventListener('click', function(event) {
-            if (!clientSearchInput.contains(event.target)) {
-                searchResultsContainer.classList.add('hidden');
+        // --- LÓGICA DE SERVIÇOS E PRODUTOS ---
+        const bronzeContainer = document.getElementById('bronze-services');
+        const consumablesContainer = document.getElementById('consumables');
+        const extrasContainer = document.getElementById('extras');
+
+        async function loadServicesAndProducts() {
+            bronzeContainer.innerHTML = '';
+            consumablesContainer.innerHTML = '';
+            extrasContainer.innerHTML = '';
+
+            try {
+                const q = query(collection(db, "products"), orderBy("name"));
+                const querySnapshot = await getDocs(q);
+                querySnapshot.forEach((doc) => {
+                    const item = { id: doc.id, ...doc.data() };
+                    const priceFormatted = `R$ ${item.price.toFixed(2).replace('.', ',')}`;
+                    const itemHtml = `
+                        <div class="service-item">
+                            <input type="checkbox" id="${item.id}" data-price="${item.price}" data-name="${item.name}" class="hidden">
+                            <label for="${item.id}" class="block border rounded-lg p-3 cursor-pointer">${item.name} <span class="font-bold float-right">${priceFormatted}</span></label>
+                        </div>`;
+                    
+                    if (item.category === 'bronze') bronzeContainer.innerHTML += itemHtml;
+                    else if (item.category === 'consumable') consumablesContainer.innerHTML += itemHtml;
+                    else if (item.category === 'extra') extrasContainer.innerHTML += itemHtml;
+                });
+                rebindCalculationEvents();
+            } catch (error) {
+                console.error("Erro ao carregar produtos:", error);
+            }
+        }
+
+        // --- LÓGICA DO MODAL DE NOVO ITEM ---
+        const newItemModal = document.getElementById('new-item-modal');
+        const newItemForm = document.getElementById('new-item-form');
+        document.getElementById('add-new-item-btn').addEventListener('click', () => newItemModal.classList.remove('hidden'));
+        document.getElementById('cancel-item-btn').addEventListener('click', () => newItemModal.classList.add('hidden'));
+        newItemModal.addEventListener('click', (e) => { if (e.target === newItemModal) newItemModal.classList.add('hidden'); });
+
+        newItemForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('item-name').value;
+            const price = parseFloat(document.getElementById('item-price').value);
+            const category = document.getElementById('item-category').value;
+
+            try {
+                await addDoc(collection(db, "products"), { name, price, category });
+                alert("Item salvo com sucesso!");
+                newItemForm.reset();
+                newItemModal.classList.add('hidden');
+                loadServicesAndProducts();
+            } catch (error) {
+                console.error("Erro ao salvar item:", error);
+                alert("Erro ao salvar item.");
             }
         });
-
-
+        
         // --- LÓGICA DA FRENTE DE CAIXA ---
-        const allServiceItems = document.querySelectorAll('.service-item input[type="checkbox"]');
         const subtotalEl = document.getElementById('subtotal');
         const discountEl = document.getElementById('discount');
         const totalEl = document.getElementById('total');
 
         function calculateTotal() {
             let currentSubtotal = 0;
-            allServiceItems.forEach(item => {
-                if (item.checked) {
-                    const priceString = item.nextElementSibling.querySelector('span').textContent;
-                    const price = parseFloat(priceString.replace('R$ ', '').replace(',', '.'));
-                    currentSubtotal += price;
-                }
+            document.querySelectorAll('.service-item input[type="checkbox"]:checked').forEach(item => {
+                currentSubtotal += parseFloat(item.dataset.price);
             });
             const discount = parseFloat(discountEl.value) || 0;
             const currentTotal = currentSubtotal - discount;
@@ -338,7 +389,9 @@
             totalEl.textContent = `R$ ${currentTotal.toFixed(2).replace('.', ',')}`;
         }
 
-        allServiceItems.forEach(item => item.addEventListener('change', calculateTotal));
+        function rebindCalculationEvents() {
+            document.querySelectorAll('.service-item input[type="checkbox"]').forEach(item => item.addEventListener('change', calculateTotal));
+        }
         discountEl.addEventListener('input', calculateTotal);
 
         // --- LÓGICA PARA SALVAR A VENDA E GERAR SENHA ---
@@ -361,24 +414,24 @@
         }
 
         saveSaleBtn.addEventListener('click', async () => {
-            const clientName = selectedClient ? selectedClient.name : "Cliente não informado";
-            const clientId = selectedClient ? selectedClient.id : null;
-            const totalValue = totalEl.textContent;
-            const paymentMethod = document.getElementById('payment-method').value;
-
-            if (totalValue === 'R$ 0,00') {
-                alert("Nenhum item selecionado para a venda.");
-                return;
+            const totalValue = parseFloat(totalEl.textContent.replace('R$ ', '').replace(',', '.'));
+            if (totalValue <= 0) {
+                alert("Nenhum item selecionado para a venda."); return;
             }
 
             const password = await getNextPassword();
+            const saleItems = [];
+            document.querySelectorAll('.service-item input[type="checkbox"]:checked').forEach(item => {
+                saleItems.push({ name: item.dataset.name, price: parseFloat(item.dataset.price) });
+            });
             
             try {
                 await addDoc(collection(db, "sales"), {
-                    clientName: clientName,
-                    clientId: clientId,
+                    clientName: selectedClient ? selectedClient.name : "Cliente Avulso",
+                    clientId: selectedClient ? selectedClient.id : null,
                     total: totalValue,
-                    paymentMethod: paymentMethod,
+                    paymentMethod: document.getElementById('payment-method').value,
+                    items: saleItems,
                     password: password,
                     createdAt: Timestamp.now()
                 });
@@ -386,14 +439,46 @@
                 generatedPasswordEl.textContent = password;
                 passwordDisplay.classList.remove('hidden');
                 alert(`Venda salva! Senha do cliente: ${password}`);
-                
-                // TODO: Limpar campos para a próxima venda
-                
+                loadDailySales();
+                resetSaleForm();
             } catch (error) {
                 console.error("Erro ao salvar venda:", error);
                 alert("Ocorreu um erro ao salvar a venda.");
             }
         });
+
+        function resetSaleForm() {
+            selectedClient = null;
+            clientSearchInput.value = '';
+            selectedClientDisplay.style.display = 'none';
+            document.querySelectorAll('.service-item input[type="checkbox"]').forEach(cb => cb.checked = false);
+            discountEl.value = '';
+            calculateTotal();
+            setTimeout(() => passwordDisplay.classList.add('hidden'), 5000);
+        }
+
+        async function loadDailySales() {
+            const tableBody = document.getElementById('daily-sales-table');
+            tableBody.innerHTML = '';
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+
+            const q = query(collection(db, "sales"), where("createdAt", ">=", Timestamp.fromDate(todayStart)), orderBy("createdAt", "desc"));
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach(doc => {
+                const sale = doc.data();
+                const saleTime = sale.createdAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                const row = `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="p-2 font-mono">${sale.password}</td>
+                        <td class="p-2 font-semibold">${sale.clientName}</td>
+                        <td class="p-2">${saleTime}</td>
+                        <td class="p-2">R$ ${sale.total.toFixed(2).replace('.',',')}</td>
+                        <td class="p-2">${sale.paymentMethod}</td>
+                    </tr>`;
+                tableBody.innerHTML += row;
+            });
+        }
 
     </script>
 </body>
