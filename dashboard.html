@@ -184,15 +184,14 @@
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 document.getElementById('user-email').textContent = user.email;
-                // Carregar dados iniciais ao autenticar
                 fetchDashboardData();
             } else {
-                window.location.href = './login.html';
+                window.location.href = './index.html';
             }
         });
 
         document.getElementById('logout-btn').addEventListener('click', () => {
-            signOut(auth).then(() => window.location.href = './login.html');
+            signOut(auth).then(() => window.location.href = './index.html');
         });
 
         // --- LÓGICA DO DASHBOARD ---
@@ -231,31 +230,20 @@
             }
         });
 
-        // Função para buscar e renderizar os dados
         async function fetchDashboardData() {
             const selectedMonth = parseInt(monthSelect.value);
             const selectedYear = parseInt(yearSelect.value);
-
-            // Definir o intervalo de datas para o filtro mensal
             const startDate = new Date(selectedYear, selectedMonth, 1);
             const endDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
-
-            // Definir o intervalo para o filtro diário
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
             const todayEnd = new Date();
             todayEnd.setHours(23, 59, 59, 999);
-
-            // TODO: Substitua 'appointments' pelo nome real da sua coleção de agendamentos/vendas
             const appointmentsRef = collection(db, "appointments"); 
-            
-            // Query para dados mensais
             const monthlyQuery = query(appointmentsRef, 
                 where("date", ">=", Timestamp.fromDate(startDate)), 
                 where("date", "<=", Timestamp.fromDate(endDate))
             );
-
-            // Query para dados diários
             const dailyQuery = query(appointmentsRef, 
                 where("date", ">=", Timestamp.fromDate(todayStart)), 
                 where("date", "<=", Timestamp.fromDate(todayEnd))
@@ -263,7 +251,6 @@
 
             try {
                 const [monthlySnapshot, dailySnapshot] = await Promise.all([getDocs(monthlyQuery), getDocs(dailyQuery)]);
-                
                 let monthlyRevenue = 0;
                 const serviceCounts = {};
                 monthlySnapshot.forEach(doc => {
@@ -284,12 +271,10 @@
                     paymentMethodTotals[paymentMethod] = (paymentMethodTotals[paymentMethod] || 0) + data.price;
                 });
 
-                // Atualizar a UI
                 document.getElementById('monthly-revenue').textContent = `R$ ${monthlyRevenue.toFixed(2)}`;
                 document.getElementById('daily-revenue').textContent = `R$ ${dailyRevenue.toFixed(2)}`;
                 document.getElementById('daily-appointments').textContent = dailyAppointments;
 
-                // Atualizar detalhes de pagamento
                 const paymentDetailsContainer = document.getElementById('payment-methods-details');
                 paymentDetailsContainer.innerHTML = '';
                 if (Object.keys(paymentMethodTotals).length > 0) {
@@ -304,7 +289,6 @@
                     paymentDetailsContainer.innerHTML = '<p class="text-gray-500">Nenhum dado para hoje.</p>';
                 }
 
-                // Atualizar gráfico
                 servicesChart.data.labels = Object.keys(serviceCounts);
                 servicesChart.data.datasets[0].data = Object.values(serviceCounts);
                 servicesChart.update();
@@ -317,7 +301,6 @@
 
         document.getElementById('filter-apply').addEventListener('click', fetchDashboardData);
 
-        // Lógica de Download e Compartilhamento
         const downloadBtn = document.getElementById('download-btn');
         const shareBtn = document.getElementById('share-btn');
         const reportContent = document.getElementById('report-content');
