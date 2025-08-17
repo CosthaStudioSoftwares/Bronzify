@@ -57,7 +57,7 @@
                     Não tem uma conta? <a href="#" id="show-register" class="text-[#B76E79] hover:underline">Crie uma agora</a>
                 </p>
                 <p class="text-center text-gray-600 mt-2">
-                    Precisa ativar seu acesso? <a href="ativacao.html" class="text-[#B76E79] hover:underline">Ative aqui</a>
+                    Precisa ativar seu acesso? <a href="./ativacao.html" class="text-[#B76E79] hover:underline">Ative aqui</a>
                 </p>
             </div>
 
@@ -84,7 +84,6 @@
 
     <!-- Firebase SDKs -->
     <script type="module">
-        // Importe as funções que você precisa dos SDKs
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { 
             getAuth, 
@@ -94,22 +93,19 @@
             signInWithPopup
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-        // TODO: Adicione a configuração do seu projeto Firebase aqui
         const firebaseConfig = {
-            apiKey: "SUA_API_KEY",
-            authDomain: "SEU_AUTH_DOMAIN",
-            projectId: "SEU_PROJECT_ID",
-            storageBucket: "SEU_STORAGE_BUCKET",
-            messagingSenderId: "SEU_MESSAGING_SENDER_ID",
-            appId: "SEU_APP_ID"
+            apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
+            authDomain: "bronzify-b2491.firebaseapp.com",
+            projectId: "bronzify-b2491",
+            storageBucket: "bronzify-b2491.firebasestorage.app",
+            messagingSenderId: "399230151633",
+            appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
         };
 
-        // Inicialize o Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
 
-        // Lógica para alternar entre login e cadastro
         const loginSection = document.querySelector('#login-form').parentElement;
         const registerSection = document.getElementById('register-section');
         const showRegisterBtn = document.getElementById('show-register');
@@ -127,8 +123,6 @@
             loginSection.classList.remove('hidden');
         });
 
-
-        // Lógica de Login com E-mail e Senha
         const loginForm = document.getElementById('login-form');
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -138,14 +132,13 @@
             signInWithEmailAndPassword(auth, email, password)
                 .then((userCredential) => {
                     console.log('Usuário logado:', userCredential.user);
-                    window.location.href = 'dashboard.html'; // Redireciona para o dashboard
+                    window.location.href = './dashboard.html';
                 })
                 .catch((error) => {
                     alert('Erro ao fazer login: ' + error.message);
                 });
         });
 
-        // Lógica de Cadastro com E-mail e Senha
         const registerForm = document.getElementById('register-form');
         registerForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -156,27 +149,23 @@
                 .then((userCredential) => {
                     console.log('Usuário criado:', userCredential.user);
                     alert('Conta criada com sucesso! Por favor, ative seu acesso.');
-                    // Idealmente, aqui você guardaria o novo usuário no Firestore com status "pendente"
-                    window.location.href = 'ativacao.html';
+                    window.location.href = './ativacao.html';
                 })
                 .catch((error) => {
                     alert('Erro ao criar conta: ' + error.message);
                 });
         });
 
-        // Lógica de Login com Google
         const googleLoginBtn = document.getElementById('google-login');
         googleLoginBtn.addEventListener('click', () => {
             signInWithPopup(auth, provider)
                 .then((result) => {
                     console.log('Usuário logado com Google:', result.user);
-                    // Aqui você pode verificar no Firestore se o usuário já tem um plano ativo
-                    window.location.href = 'dashboard.html';
+                    window.location.href = './dashboard.html';
                 }).catch((error) => {
                     alert('Erro no login com Google: ' + error.message);
                 });
         });
-
     </script>
 </body>
 </html>
