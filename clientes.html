@@ -50,19 +50,19 @@
             <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
         </div>
         <nav class="mt-6 px-4">
-            <a href="dashboard.html" class="sidebar-link">
+            <a href="./dashboard.html" class="sidebar-link">
                 <i data-lucide="layout-dashboard"></i> Dashboard
             </a>
-            <a href="clientes.html" class="sidebar-link active">
+            <a href="./clientes.html" class="sidebar-link active">
                 <i data-lucide="users"></i> Clientes
             </a>
-            <a href="caixa.html" class="sidebar-link">
+            <a href="./caixa.html" class="sidebar-link">
                 <i data-lucide="dollar-sign"></i> Caixa
             </a>
-            <a href="ordem-chegada.html" class="sidebar-link">
+            <a href="./ordem-chegada.html" class="sidebar-link">
                 <i data-lucide="list-ordered"></i> Ordem de Chegada
             </a>
-            <a href="patio.html" class="sidebar-link">
+            <a href="./patio.html" class="sidebar-link">
                 <i data-lucide="sun"></i> Pátio
             </a>
         </nav>
@@ -177,7 +177,7 @@
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, where, getDocs, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // TODO: Adicione a configuração do seu projeto Firebase aqui
+        // TODO: Substitua pela configuração do seu projeto Firebase
         const firebaseConfig = {
             apiKey: "SUA_API_KEY",
             authDomain: "SEU_AUTH_DOMAIN",
@@ -194,11 +194,11 @@
         // --- LÓGICA DE AUTENTICAÇÃO ---
         onAuthStateChanged(auth, (user) => {
             if (!user) {
-                window.location.href = './login.html';
+                window.location.href = './index.html'; // CORRIGIDO
             }
         });
         document.getElementById('logout-btn').addEventListener('click', () => {
-            signOut(auth).then(() => window.location.href = './login.html');
+            signOut(auth).then(() => window.location.href = './index.html'); // CORRIGIDO
         });
 
         // --- LÓGICA DO MODAL ---
