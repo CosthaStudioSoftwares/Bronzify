@@ -89,7 +89,7 @@
                     <h3 class="text-2xl text-gray-800 mb-4">1. Selecionar Cliente</h3>
                     <div class="relative">
                         <input type="text" id="client-search" placeholder="Digite o nome ou telefone da cliente..." class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]">
-                        <div id="search-results" class="absolute z-10 w-full bg-white border rounded-lg mt-1 max-h-60 overflow-y-auto hidden"></div>
+                        <div id="search-results" class="absolute z-10 w-full bg-white border rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
                     </div>
                     <div id="selected-client-display" class="mt-4 hidden items-center gap-3 bg-rose-50 p-3 rounded-lg">
                         <p class="font-semibold text-gray-700">Cliente: <span id="selected-client-name"></span></p>
@@ -202,7 +202,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, where, getDocs, Timestamp, increment, or } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, where, getDocs, Timestamp, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // Configuração do seu projeto Firebase
         const firebaseConfig = {
@@ -219,61 +219,67 @@
         const db = getFirestore(app);
 
         let selectedClient = null;
+        let allClients = []; // Array para armazenar todos os clientes
 
-        // --- LÓGICA DE AUTENTICAÇÃO ---
+        // --- LÓGICA DE AUTENTICAÇÃO E CARREGAMENTO INICIAL ---
         onAuthStateChanged(auth, (user) => {
-            if (!user) window.location.href = './index.html';
+            if (user) {
+                loadAllClients(); // Carrega os clientes assim que o usuário estiver autenticado
+            } else {
+                window.location.href = './index.html';
+            }
         });
+
         document.getElementById('logout-btn').addEventListener('click', () => {
             signOut(auth).then(() => window.location.href = './index.html');
         });
 
-        // --- LÓGICA DE BUSCA DE CLIENTE ---
+        // --- LÓGICA DE BUSCA DE CLIENTE (CORRIGIDA) ---
         const clientSearchInput = document.getElementById('client-search');
         const searchResultsContainer = document.getElementById('search-results');
         const selectedClientDisplay = document.getElementById('selected-client-display');
         const selectedClientNameEl = document.getElementById('selected-client-name');
         const birthdayAlertEl = document.getElementById('birthday-alert');
 
-        clientSearchInput.addEventListener('input', async (e) => {
-            const searchTerm = e.target.value.trim();
-            if (searchTerm.length < 3) {
+        // Função para carregar todos os clientes do Firestore para a memória
+        async function loadAllClients() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "clients"));
+                allClients = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                console.log("Clientes carregados:", allClients.length);
+            } catch (error) {
+                console.error("Erro ao carregar clientes:", error);
+            }
+        }
+
+        clientSearchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.trim().toLowerCase();
+            
+            if (searchTerm.length < 2) {
                 searchResultsContainer.innerHTML = '';
                 searchResultsContainer.classList.add('hidden');
                 return;
             }
 
-            try {
-                const clientsRef = collection(db, "clients");
-                // Firestore não suporta busca "contém" nativamente. Esta busca é "começa com".
-                // Para uma busca mais completa, considere usar um serviço de terceiros como Algolia.
-                const q = query(clientsRef, 
-                    or(
-                        where('name', '>=', searchTerm),
-                        where('name', '<=', searchTerm + '\uf8ff'),
-                        where('phone', '>=', searchTerm),
-                        where('phone', '<=', searchTerm + '\uf8ff')
-                    )
-                );
-                const querySnapshot = await getDocs(q);
-                
-                searchResultsContainer.innerHTML = '';
-                if (querySnapshot.empty) {
-                    searchResultsContainer.innerHTML = '<div class="p-2 text-gray-500">Nenhum cliente encontrado.</div>';
-                } else {
-                    querySnapshot.forEach((doc) => {
-                        const client = { id: doc.id, ...doc.data() };
-                        const resultItem = document.createElement('div');
-                        resultItem.className = 'p-2 hover:bg-gray-100 cursor-pointer';
-                        resultItem.textContent = `${client.name} - ${client.phone}`;
-                        resultItem.addEventListener('click', () => selectClient(client));
-                        searchResultsContainer.appendChild(resultItem);
-                    });
-                }
-                searchResultsContainer.classList.remove('hidden');
-            } catch (error) {
-                console.error("Erro ao buscar clientes:", error);
+            // Filtra o array 'allClients' localmente
+            const filteredClients = allClients.filter(client => 
+                client.name.toLowerCase().includes(searchTerm) || 
+                (client.phone && client.phone.includes(searchTerm))
+            );
+
+            searchResultsContainer.innerHTML = '';
+            if (filteredClients.length === 0) {
+                searchResultsContainer.innerHTML = '<div class="p-3 text-gray-500">Nenhum cliente encontrado.</div>';
+            } else {
+                filteredClients.forEach(client => {
+                    const resultItem = document.createElement('div');
+                    resultItem.className = 'p-3 hover:bg-gray-100 cursor-pointer';
+                    resultItem.textContent = `${client.name} - ${client.phone}`;
+                    resultItem.addEventListener('click', () => selectClient(client));
+                    searchResultsContainer.appendChild(resultItem);
+                });
             }
+            searchResultsContainer.classList.remove('hidden');
         });
 
         function selectClient(client) {
@@ -282,20 +288,34 @@
             searchResultsContainer.classList.add('hidden');
             
             selectedClientNameEl.textContent = client.name;
-            selectedClientDisplay.style.display = 'flex'; // Usar style.display para flex
+            selectedClientDisplay.style.display = 'flex';
 
             // Checar aniversário
             if (client.birthdate) {
-                const birthMonth = new Date(client.birthdate).getUTCMonth();
+                // Adiciona 1 dia para corrigir problemas de fuso horário (UTC vs local)
+                const birthDate = new Date(client.birthdate);
+                birthDate.setDate(birthDate.getDate() + 1);
+                const birthMonth = birthDate.getMonth();
                 const currentMonth = new Date().getMonth();
+                
                 if (birthMonth === currentMonth) {
                     birthdayAlertEl.style.display = 'flex';
                 } else {
                     birthdayAlertEl.style.display = 'none';
                 }
+            } else {
+                 birthdayAlertEl.style.display = 'none';
             }
             lucide.createIcons();
         }
+
+        // Esconde a lista de resultados se clicar fora
+        document.addEventListener('click', function(event) {
+            if (!clientSearchInput.contains(event.target)) {
+                searchResultsContainer.classList.add('hidden');
+            }
+        });
+
 
         // --- LÓGICA DA FRENTE DE CAIXA ---
         const allServiceItems = document.querySelectorAll('.service-item input[type="checkbox"]');
