@@ -9,6 +9,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Bibliotecas para Gráfico e PDF -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body {
             font-family: 'Poppins', sans-serif;
@@ -33,6 +37,20 @@
         .sidebar-link svg {
             margin-right: 0.75rem;
         }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #fff9f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #fadadd;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #b76e79;
+        }
     </style>
 </head>
 <body class="flex h-screen">
@@ -43,19 +61,19 @@
             <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
         </div>
         <nav class="mt-6 px-4">
-            <a href="./dashboard.html" class="sidebar-link active">
+            <a href="dashboard.html" class="sidebar-link active">
                 <i data-lucide="layout-dashboard"></i> Dashboard
             </a>
-            <a href="./clientes.html" class="sidebar-link">
+            <a href="clientes.html" class="sidebar-link">
                 <i data-lucide="users"></i> Clientes
             </a>
-            <a href="./caixa.html" class="sidebar-link">
+            <a href="caixa.html" class="sidebar-link">
                 <i data-lucide="dollar-sign"></i> Caixa
             </a>
-            <a href="./ordem-chegada.html" class="sidebar-link">
+            <a href="ordem-chegada.html" class="sidebar-link">
                 <i data-lucide="list-ordered"></i> Ordem de Chegada
             </a>
-            <a href="./patio.html" class="sidebar-link">
+            <a href="patio.html" class="sidebar-link">
                 <i data-lucide="sun"></i> Pátio
             </a>
         </nav>
@@ -68,7 +86,7 @@
 
     <!-- Main Content -->
     <main class="flex-1 p-8 overflow-y-auto">
-        <header class="flex justify-between items-center mb-8">
+        <header class="flex flex-wrap justify-between items-center mb-8 gap-4">
             <h2 class="text-4xl text-gray-800">Dashboard</h2>
             <div class="flex items-center gap-4">
                 <span id="user-email" class="text-gray-600">carregando...</span>
@@ -76,76 +94,217 @@
             </div>
         </header>
 
-        <!-- Conteúdo da Página -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div class="bg-white p-6 rounded-2xl shadow-md">
-                <h3 class="text-lg font-semibold text-gray-500">Clientes Ativos</h3>
-                <p class="text-4xl font-bold text-[#B76E79] mt-2">124</p>
+        <!-- Filtros e Ações -->
+        <div class="bg-white p-4 rounded-2xl shadow-md mb-8 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                 <h3 class="text-lg font-semibold text-gray-700">Filtros:</h3>
+                 <select id="filter-month" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]">
+                     <!-- Meses serão populados via JS -->
+                 </select>
+                 <select id="filter-year" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]">
+                     <!-- Anos serão populados via JS -->
+                 </select>
+                 <button id="filter-apply" class="bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90">Aplicar</button>
             </div>
-            <div class="bg-white p-6 rounded-2xl shadow-md">
-                <h3 class="text-lg font-semibold text-gray-500">Faturamento (Mês)</h3>
-                <p class="text-4xl font-bold text-[#B76E79] mt-2">R$ 7.850</p>
-            </div>
-            <div class="bg-white p-6 rounded-2xl shadow-md">
-                <h3 class="text-lg font-semibold text-gray-500">Aguardando no Pátio</h3>
-                <p class="text-4xl font-bold text-[#B76E79] mt-2">5</p>
-            </div>
-            <div class="bg-white p-6 rounded-2xl shadow-md">
-                <h3 class="text-lg font-semibold text-gray-500">Próximo da Fila</h3>
-                <p class="text-4xl font-bold text-[#B76E79] mt-2">Ana P.</p>
+            <div class="flex items-center gap-3">
+                <button id="share-btn" class="flex items-center gap-2 p-2 border rounded-lg text-gray-600 hover:bg-gray-100">
+                    <i data-lucide="share-2"></i> Compartilhar
+                </button>
+                <button id="download-btn" class="flex items-center gap-2 p-2 border rounded-lg text-gray-600 hover:bg-gray-100">
+                    <i data-lucide="download"></i> Baixar PDF
+                </button>
             </div>
         </div>
         
-        <div class="mt-8 bg-white p-6 rounded-2xl shadow-md">
-            <h3 class="text-2xl text-gray-800 mb-4">Visão Geral</h3>
-            <p class="text-gray-600">Aqui você terá gráficos e informações rápidas sobre o seu negócio.</p>
+        <!-- Área do Relatório para Download/Compartilhamento -->
+        <div id="report-content">
+            <!-- Cards de Métricas Principais -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-2xl shadow-md">
+                    <h3 class="text-lg font-semibold text-gray-500">Faturamento Mensal</h3>
+                    <p class="text-4xl font-bold text-[#B76E79] mt-2">R$ 7.850,00</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-md">
+                    <h3 class="text-lg font-semibold text-gray-500">Faturamento Diário</h3>
+                    <p class="text-4xl font-bold text-[#B76E79] mt-2">R$ 450,00</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-md">
+                    <h3 class="text-lg font-semibold text-gray-500">Atendimentos no Dia</h3>
+                    <p class="text-4xl font-bold text-[#B76E79] mt-2">5</p>
+                </div>
+            </div>
+
+            <!-- Gráficos e Detalhes -->
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <!-- Faturamento por Forma de Pagamento -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md">
+                    <h3 class="text-2xl text-gray-800 mb-4">Faturamento Diário por Pagamento</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">PIX</span>
+                            <span class="font-bold text-gray-800">R$ 250,00</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Cartão de Crédito</span>
+                            <span class="font-bold text-gray-800">R$ 120,00</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Dinheiro</span>
+                            <span class="font-bold text-gray-800">R$ 80,00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráfico de Pizza -->
+                <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-md">
+                    <h3 class="text-2xl text-gray-800 mb-4">Tipos de Bronze e Serviços</h3>
+                    <div class="max-h-80 flex justify-center items-center">
+                        <canvas id="servicesChart"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
+
     </main>
 
     <script>
       lucide.createIcons();
+      const { jsPDF } = window.jspdf;
     </script>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
+        // TODO: Adicione a configuração do seu projeto Firebase aqui
         const firebaseConfig = {
-            apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
-            authDomain: "bronzify-b2491.firebaseapp.com",
-            projectId: "bronzify-b2491",
-            storageBucket: "bronzify-b2491.firebasestorage.app",
-            messagingSenderId: "399230151633",
-            appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
+            apiKey: "SUA_API_KEY",
+            authDomain: "SEU_AUTH_DOMAIN",
+            projectId: "SEU_PROJECT_ID",
+            storageBucket: "SEU_STORAGE_BUCKET",
+            messagingSenderId: "SEU_MESSAGING_SENDER_ID",
+            appId: "SEU_APP_ID"
         };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        const redirectToLogin = () => {
-            const path = window.location.pathname.split('/');
-            path.pop(); // Remove o nome do arquivo atual (ex: 'dashboard.html')
-            path.push('index.html'); // Adiciona o nome do arquivo de login
-            window.location.href = path.join('/');
-        };
-
+        // --- LÓGICA DE AUTENTICAÇÃO ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                const userEmailElement = document.getElementById('user-email');
-                if(userEmailElement) userEmailElement.textContent = user.email;
+                document.getElementById('user-email').textContent = user.email;
             } else {
-                redirectToLogin();
+                window.location.href = 'login.html';
             }
         });
 
-        const logoutBtn = document.getElementById('logout-btn');
-        logoutBtn.addEventListener('click', () => {
-            signOut(auth).then(() => {
-                redirectToLogin();
-            }).catch((error) => {
-                console.error('Erro ao deslogar:', error);
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            signOut(auth).then(() => window.location.href = 'login.html');
+        });
+
+        // --- LÓGICA DO DASHBOARD ---
+
+        // 1. Popular Filtros
+        const monthSelect = document.getElementById('filter-month');
+        const yearSelect = document.getElementById('filter-year');
+        const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+        const currentYear = new Date().getFullYear();
+        
+        months.forEach((month, index) => {
+            const option = new Option(month, index + 1);
+            monthSelect.add(option);
+        });
+        
+        for (let i = currentYear; i >= 2020; i--) {
+            const option = new Option(i, i);
+            yearSelect.add(option);
+        }
+        // Selecionar mês e ano atuais por padrão
+        monthSelect.value = new Date().getMonth() + 1;
+        yearSelect.value = currentYear;
+
+        // 2. Lógica para buscar dados (exemplo)
+        document.getElementById('filter-apply').addEventListener('click', () => {
+            const selectedMonth = monthSelect.value;
+            const selectedYear = yearSelect.value;
+            alert(`Buscando dados para ${months[selectedMonth-1]} de ${selectedYear}...`);
+            // TODO: Aqui você deve chamar sua função para buscar os dados do Firebase
+            // com base no mês e ano selecionados e atualizar os cards e o gráfico.
+        });
+
+
+        // 3. Gráfico de Pizza (Chart.js)
+        const ctx = document.getElementById('servicesChart').getContext('2d');
+        const servicesChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['Bronze Simples', 'Bronze com Biquíni', 'Banho de Lua', 'Manutenção'],
+                datasets: [{
+                    label: 'Atendimentos',
+                    // TODO: Substituir por dados reais do Firebase
+                    data: [12, 19, 5, 8], 
+                    backgroundColor: [
+                        '#B76E79', // Tom principal
+                        '#D49A9A',
+                        '#FADADD', // Tom mais claro
+                        '#A9606C',
+                    ],
+                    borderColor: '#FFF9F9',
+                    borderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    }
+                }
+            }
+        });
+        
+        // 4. Lógica de Download e Compartilhamento
+        const downloadBtn = document.getElementById('download-btn');
+        const shareBtn = document.getElementById('share-btn');
+        const reportContent = document.getElementById('report-content');
+
+        downloadBtn.addEventListener('click', () => {
+            downloadBtn.textContent = "Gerando...";
+            html2canvas(reportContent, { scale: 2 }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'px',
+                    format: [canvas.width, canvas.height]
+                });
+                pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+                pdf.save(`relatorio_bronzify_${yearSelect.value}_${monthSelect.value}.pdf`);
+                downloadBtn.innerHTML = '<i data-lucide="download"></i> Baixar PDF';
+                lucide.createIcons();
             });
         });
+        
+        shareBtn.addEventListener('click', async () => {
+            const title = `Relatório Bronzify - ${months[monthSelect.value-1]}/${yearSelect.value}`;
+            const text = `Confira o resumo de faturamento e atendimentos.`;
+            
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: title,
+                        text: text,
+                        url: window.location.href,
+                    });
+                } catch (err) {
+                    console.error("Erro ao compartilhar:", err);
+                }
+            } else {
+                // Fallback para desktops
+                alert("Função de compartilhamento não suportada neste navegador. Tente copiar a URL.");
+            }
+        });
+
     </script>
 </body>
 </html>
