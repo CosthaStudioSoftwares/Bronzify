@@ -97,12 +97,12 @@
                     <p class="text-sm text-gray-500 mt-2">Busque por nome, telefone ou filtre pelos aniversariantes do mês atual.</p>
                 </div>
 
-                <!-- Clientes Recentes -->
+                <!-- Lista de Clientes -->
                 <div class="bg-white p-6 rounded-2xl shadow-md">
-                    <h3 class="text-2xl text-gray-800 mb-4">Clientes Recentes</h3>
-                    <div id="recent-clients-list" class="space-y-4">
+                    <h3 class="text-2xl text-gray-800 mb-4">Lista de Clientes</h3>
+                    <div id="clients-list" class="space-y-4">
                         <!-- Conteúdo populado via JS -->
-                         <p class="text-gray-500">Nenhum cliente recente encontrado.</p>
+                         <p class="text-gray-500">Nenhum cliente cadastrado.</p>
                     </div>
                 </div>
             </div>
@@ -162,7 +162,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, where, getDocs, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
@@ -178,16 +178,12 @@
         const db = getFirestore(app);
 
         // --- LÓGICA DE AUTENTICAÇÃO ---
-        // Espera a verificação inicial do Firebase ser concluída
         const unsubscribe = onAuthStateChanged(auth, (user) => {
-            unsubscribe(); // Para de ouvir após a primeira verificação
+            unsubscribe(); 
             if (user) {
-                // Usuário está logado, então exibe a página
                 document.body.classList.remove('opacity-0');
-                // Agora podemos carregar os dados da página
                 loadPageData(); 
             } else {
-                // Usuário não está logado, redireciona para o login
                 window.location.href = 'index.html';
             }
         });
@@ -196,11 +192,43 @@
             signOut(auth).then(() => window.location.href = 'index.html');
         });
 
-        // --- FUNÇÃO PRINCIPAL PARA CARREGAR DADOS ---
+        // --- FUNÇÕES DA PÁGINA ---
+        const clientsList = document.getElementById('clients-list');
+
+        async function loadAllClients() {
+            const q = query(collection(db, "clients"), orderBy("createdAt", "desc"));
+            try {
+                const querySnapshot = await getDocs(q);
+                clientsList.innerHTML = ''; // Limpa a lista antes de adicionar os novos itens
+                if (querySnapshot.empty) {
+                    clientsList.innerHTML = '<p class="text-gray-500">Nenhum cliente cadastrado.</p>';
+                    return;
+                }
+                querySnapshot.forEach((doc) => {
+                    const client = doc.data();
+                    const clientElement = document.createElement('div');
+                    clientElement.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+                    
+                    const formattedDate = client.createdAt.toDate().toLocaleDateString('pt-BR');
+
+                    clientElement.innerHTML = `
+                        <div>
+                            <p class="font-semibold text-gray-700">${client.name}</p>
+                            <p class="text-sm text-gray-500">${client.phone}</p>
+                        </div>
+                        <span class="text-sm text-gray-600">Cadastrado em: ${formattedDate}</span>
+                    `;
+                    clientsList.appendChild(clientElement);
+                });
+            } catch (error) {
+                console.error("Erro ao carregar clientes: ", error);
+                clientsList.innerHTML = '<p class="text-red-500">Erro ao carregar a lista de clientes.</p>';
+            }
+        }
+
         function loadPageData() {
-            // Coloque aqui as funções que buscam dados do Firestore
             console.log("Usuário autenticado, carregando dados da página de clientes...");
-            // Exemplo: loadRecentClients();
+            loadAllClients();
         }
 
         // --- LÓGICA DO MODAL ---
@@ -228,6 +256,7 @@
                 alert("Cliente cadastrada com sucesso!");
                 newClientForm.reset();
                 closeModal();
+                loadAllClients(); // ATUALIZA A LISTA APÓS CADASTRAR
             } catch (error) {
                 console.error("Erro ao adicionar cliente: ", error);
                 alert("Erro ao cadastrar cliente.");
