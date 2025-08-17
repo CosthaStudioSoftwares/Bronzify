@@ -132,26 +132,33 @@
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
 
+            // Consulta simplificada que não exige índice composto manual
             const q = query(
                 collection(db, "sales"),
-                where("createdAt", ">=", Timestamp.fromDate(todayStart)),
                 where("status", "==", "waiting"),
                 orderBy("createdAt", "asc")
             );
 
             onSnapshot(q, (querySnapshot) => {
-                // Limpa a lista, mas mantém a mensagem de "nenhum cliente"
+                const salesToday = [];
+                querySnapshot.forEach(doc => {
+                    const sale = { id: doc.id, ...doc.data() };
+                    // Filtra os resultados do dia no lado do cliente
+                    if (sale.createdAt.toDate() >= todayStart) {
+                        salesToday.push(sale);
+                    }
+                });
+
                 waitingListContainer.innerHTML = '';
                 waitingListContainer.appendChild(noClientsMessage);
 
-                if (querySnapshot.empty) {
+                if (salesToday.length === 0) {
                     noClientsMessage.classList.remove('hidden');
                 } else {
                     noClientsMessage.classList.add('hidden');
                 }
 
-                querySnapshot.forEach((doc) => {
-                    const sale = { id: doc.id, ...doc.data() };
+                salesToday.forEach((sale) => {
                     const clientElement = document.createElement('div');
                     clientElement.className = 'waiting-item flex items-center justify-between bg-gray-50 p-4 rounded-lg shadow-sm';
                     clientElement.id = `sale-${sale.id}`;
@@ -179,18 +186,17 @@
                 const saleRef = doc(db, "sales", saleId);
                 
                 try {
-                    // Adiciona a classe para a animação de saída
                     const itemToRemove = document.getElementById(`sale-${saleId}`);
                     if(itemToRemove) itemToRemove.classList.add('removing');
 
-                    // Espera a animação terminar antes de atualizar o banco
                     setTimeout(async () => {
                          await updateDoc(saleRef, { status: "called" });
-                    }, 500); // 500ms é a duração da transição no CSS
+                    }, 500);
                    
                 } catch (error) {
                     console.error("Erro ao atualizar status da venda: ", error);
                     alert("Ocorreu um erro ao chamar a cliente.");
+                    if(itemToRemove) itemToRemove.classList.remove('removing'); // Reverte a animação em caso de erro
                 }
             }
         });
