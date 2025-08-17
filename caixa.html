@@ -275,7 +275,7 @@
             allProducts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             
             allProducts.forEach(item => {
-                const priceFormatted = `R$ ${item.price.toFixed(2).replace('.', ',')}`;
+                const priceFormatted = (item.price || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                 const itemHtml = `
                     <div class="service-item" id="item-container-${item.id}">
                         <input type="checkbox" id="${item.id}" data-price="${item.price}" data-name="${item.name}" class="hidden">
@@ -330,6 +330,7 @@
             itemModalTitle.textContent = 'Cadastrar Novo Item';
             itemForm.reset();
             itemIdInput.value = '';
+            itemPriceInput.value = '';
             itemModal.classList.remove('hidden');
         });
         
@@ -339,8 +340,7 @@
             itemModalTitle.textContent = 'Editar Item';
             itemIdInput.value = item.id;
             itemNameInput.value = item.name;
-            itemPriceInput.value = item.price.toFixed(2).replace('.',',');
-            formatCurrency(itemPriceInput); // Formata o valor ao preencher
+            itemPriceInput.value = (item.price || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             itemCategorySelect.value = item.category;
             itemModal.classList.remove('hidden');
         }
@@ -351,11 +351,10 @@
         itemForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = itemIdInput.value;
-            // Converte o valor formatado de volta para número
-            const priceString = itemPriceInput.value.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
+            const priceString = itemPriceInput.value.replace(/\D/g, '');
             const itemData = {
                 name: itemNameInput.value,
-                price: parseFloat(priceString),
+                price: priceString ? parseInt(priceString, 10) / 100 : 0,
                 category: itemCategorySelect.value
             };
 
@@ -383,8 +382,12 @@
 
         function formatCurrency(input) {
             let value = input.value.replace(/\D/g, '');
-            value = (value / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            input.value = value;
+            if(value) {
+                value = (parseInt(value, 10) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                input.value = value;
+            } else {
+                input.value = '';
+            }
         }
         itemPriceInput.addEventListener('input', () => formatCurrency(itemPriceInput));
         discountEl.addEventListener('input', () => formatCurrency(discountEl));
@@ -394,8 +397,8 @@
             document.querySelectorAll('.service-item input[type="checkbox"]:checked').forEach(item => {
                 currentSubtotal += parseFloat(item.dataset.price);
             });
-            const discountString = discountEl.value.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
-            const discount = parseFloat(discountString) || 0;
+            const discountString = discountEl.value.replace(/\D/g, '');
+            const discount = discountString ? parseInt(discountString, 10) / 100 : 0;
             const currentTotal = currentSubtotal - discount;
             subtotalEl.textContent = currentSubtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             totalEl.textContent = currentTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -421,8 +424,8 @@
         }
 
         saveSaleBtn.addEventListener('click', async () => {
-            const totalString = totalEl.textContent.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
-            const totalValue = parseFloat(totalString);
+            const totalString = totalEl.textContent.replace(/\D/g, '');
+            const totalValue = totalString ? parseInt(totalString, 10) / 100 : 0;
             if (totalValue <= 0) { alert("Nenhum item selecionado para a venda."); return; }
             const password = await getNextPassword();
             const saleItems = Array.from(document.querySelectorAll('.service-item input:checked')).map(i => ({ name: i.dataset.name, price: parseFloat(i.dataset.price) }));
