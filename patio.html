@@ -102,7 +102,7 @@
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
             authDomain: "bronzify-b2491.firebaseapp.com",
             projectId: "bronzify-b2491",
-            storageBucket: "bronzify-b2491.appspot.com",
+            storageBucket: "bronzify-b2491.firebasestorage.app",
             messagingSenderId: "399230151633",
             appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
         };
@@ -134,7 +134,7 @@
             }
         }
 
-        // --- LÓGICA DO PÁTIO (CORRIGIDA E MAIS ROBUSTA) ---
+        // --- LÓGICA DO PÁTIO ---
         const patioListContainer = document.getElementById('patio-list');
         const noClientsMessage = document.getElementById('no-clients-patio');
 
@@ -142,27 +142,35 @@
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
 
-            // Esta consulta é mais específica e confiável, mas pode exigir um índice.
             const q = query(
                 collection(db, "sales"),
-                where("status", "==", "called"),
                 where("createdAt", ">=", Timestamp.fromDate(todayStart)),
                 orderBy("createdAt", "asc")
             );
 
             onSnapshot(q, (querySnapshot) => {
+                const patioClients = [];
+                querySnapshot.forEach(doc => {
+                    const sale = { id: doc.id, ...doc.data() };
+                    // Filtra os resultados para status "called" no lado do cliente
+                    if (sale.status === 'called') {
+                        patioClients.push(sale);
+                    }
+                });
+
                 patioListContainer.innerHTML = ''; // Limpa a lista a cada atualização
 
-                if (querySnapshot.empty) {
+                if (patioClients.length === 0) {
                     noClientsMessage.classList.remove('hidden');
                 } else {
                     noClientsMessage.classList.add('hidden');
                 }
 
-                querySnapshot.forEach((doc) => {
-                    const sale = { id: doc.id, ...doc.data() };
+                patioClients.forEach((sale) => {
                     // Categoriza os itens da venda
-                    const bronzeItems = [], consumableItems = [], extraItems = [];
+                    const bronzeItems = [];
+                    const consumableItems = [];
+                    const extraItems = [];
 
                     if (sale.items && Array.isArray(sale.items)) {
                         sale.items.forEach(saleItem => {
@@ -182,9 +190,24 @@
                     card.innerHTML = `
                         <div class="flex-grow">
                             <h3 class="text-2xl text-gray-800 font-bold mb-4">${sale.clientName}</h3>
-                            ${bronzeItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Bronze</h4><p class="text-gray-600">${bronzeItems.join(', ')}</p></div>` : ''}
-                            ${consumableItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Consumo</h4><p class="text-gray-600">${consumableItems.join(', ')}</p></div>` : ''}
-                            ${extraItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Adicionais</h4><p class="text-gray-600">${extraItems.join(', ')}</p></div>` : ''}
+                            
+                            ${bronzeItems.length > 0 ? `
+                            <div class="mb-3">
+                                <h4 class="font-semibold text-sm text-[#B76E79] mb-1">Bronze</h4>
+                                <p class="text-gray-600">${bronzeItems.join(', ')}</p>
+                            </div>` : ''}
+
+                            ${consumableItems.length > 0 ? `
+                            <div class="mb-3">
+                                <h4 class="font-semibold text-sm text-[#B76E79] mb-1">Consumo</h4>
+                                <p class="text-gray-600">${consumableItems.join(', ')}</p>
+                            </div>` : ''}
+
+                            ${extraItems.length > 0 ? `
+                            <div class="mb-3">
+                                <h4 class="font-semibold text-sm text-[#B76E79] mb-1">Adicionais</h4>
+                                <p class="text-gray-600">${extraItems.join(', ')}</p>
+                            </div>` : ''}
                         </div>
                         <button data-id="${sale.id}" class="finish-btn mt-4 w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center justify-center gap-2">
                             <i data-lucide="party-popper" class="w-5 h-5"></i> Finalizar
@@ -193,9 +216,6 @@
                     patioListContainer.appendChild(card);
                 });
                 lucide.createIcons();
-            }, (error) => {
-                console.error("Erro na consulta do Pátio:", error);
-                // A mensagem de erro no console terá o link para criar o índice.
             });
         }
 
