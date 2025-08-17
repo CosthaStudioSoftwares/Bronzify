@@ -43,19 +43,19 @@
             <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
         </div>
         <nav class="mt-6 px-4">
-            <a href="dashboard.html" class="sidebar-link active">
+            <a href="./dashboard.html" class="sidebar-link active">
                 <i data-lucide="layout-dashboard"></i> Dashboard
             </a>
-            <a href="clientes.html" class="sidebar-link">
+            <a href="./clientes.html" class="sidebar-link">
                 <i data-lucide="users"></i> Clientes
             </a>
-            <a href="caixa.html" class="sidebar-link">
+            <a href="./caixa.html" class="sidebar-link">
                 <i data-lucide="dollar-sign"></i> Caixa
             </a>
-            <a href="ordem-chegada.html" class="sidebar-link">
+            <a href="./ordem-chegada.html" class="sidebar-link">
                 <i data-lucide="list-ordered"></i> Ordem de Chegada
             </a>
-            <a href="patio.html" class="sidebar-link">
+            <a href="./patio.html" class="sidebar-link">
                 <i data-lucide="sun"></i> Pátio
             </a>
         </nav>
@@ -78,22 +78,18 @@
 
         <!-- Conteúdo da Página -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <!-- Card Exemplo 1 -->
             <div class="bg-white p-6 rounded-2xl shadow-md">
                 <h3 class="text-lg font-semibold text-gray-500">Clientes Ativos</h3>
                 <p class="text-4xl font-bold text-[#B76E79] mt-2">124</p>
             </div>
-            <!-- Card Exemplo 2 -->
             <div class="bg-white p-6 rounded-2xl shadow-md">
                 <h3 class="text-lg font-semibold text-gray-500">Faturamento (Mês)</h3>
                 <p class="text-4xl font-bold text-[#B76E79] mt-2">R$ 7.850</p>
             </div>
-            <!-- Card Exemplo 3 -->
             <div class="bg-white p-6 rounded-2xl shadow-md">
                 <h3 class="text-lg font-semibold text-gray-500">Aguardando no Pátio</h3>
                 <p class="text-4xl font-bold text-[#B76E79] mt-2">5</p>
             </div>
-            <!-- Card Exemplo 4 -->
             <div class="bg-white p-6 rounded-2xl shadow-md">
                 <h3 class="text-lg font-semibold text-gray-500">Próximo da Fila</h3>
                 <p class="text-4xl font-bold text-[#B76E79] mt-2">Ana P.</p>
@@ -104,49 +100,48 @@
             <h3 class="text-2xl text-gray-800 mb-4">Visão Geral</h3>
             <p class="text-gray-600">Aqui você terá gráficos e informações rápidas sobre o seu negócio.</p>
         </div>
-
     </main>
 
     <script>
       lucide.createIcons();
     </script>
     
-    <!-- Firebase e Script de Autenticação -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-        // TODO: Adicione a configuração do seu projeto Firebase aqui
         const firebaseConfig = {
-            apiKey: "SUA_API_KEY",
-            authDomain: "SEU_AUTH_DOMAIN",
-            projectId: "SEU_PROJECT_ID",
-            storageBucket: "SEU_STORAGE_BUCKET",
-            messagingSenderId: "SEU_MESSAGING_SENDER_ID",
-            appId: "SEU_APP_ID"
+            apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
+            authDomain: "bronzify-b2491.firebaseapp.com",
+            projectId: "bronzify-b2491",
+            storageBucket: "bronzify-b2491.firebasestorage.app",
+            messagingSenderId: "399230151633",
+            appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
         };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        // Verifica se o usuário está logado
+        const redirectToLogin = () => {
+            const path = window.location.pathname.split('/');
+            path.pop(); // Remove o nome do arquivo atual (ex: 'dashboard.html')
+            path.push('index.html'); // Adiciona o nome do arquivo de login
+            window.location.href = path.join('/');
+        };
+
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                // Usuário está logado, exibe o e-mail
                 const userEmailElement = document.getElementById('user-email');
                 if(userEmailElement) userEmailElement.textContent = user.email;
             } else {
-                // Usuário não está logado, redireciona para a página de login
-                window.location.href = 'login.html';
+                redirectToLogin();
             }
         });
 
-        // Lógica de Logout
         const logoutBtn = document.getElementById('logout-btn');
         logoutBtn.addEventListener('click', () => {
             signOut(auth).then(() => {
-                console.log('Usuário deslogado');
-                window.location.href = 'login.html';
+                redirectToLogin();
             }).catch((error) => {
                 console.error('Erro ao deslogar:', error);
             });
