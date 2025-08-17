@@ -2,22 +2,97 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Teste de Login - Bronzify</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bronzify - Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        h1, h2, h3 {
+            font-family: 'Playfair Display', serif;
+        }
+        .bg-gradient-bronzify {
+            background: linear-gradient(135deg, #FADADD 0%, #B76E79 100%);
+        }
+    </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center h-screen">
+<body class="bg-gray-50 flex items-center justify-center min-h-screen">
 
-    <div class="text-center">
-        <h1 class="text-2xl font-bold mb-4">Página de Teste de Login</h1>
-        <button id="google-login-test" class="bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-700">
-            Entrar com Google
-        </button>
-        <p id="status" class="mt-4 text-gray-600">Aguardando login...</p>
+    <div class="container mx-auto p-4 flex justify-center">
+        <div class="w-full max-w-md">
+            <div id="login-section" class="bg-white rounded-2xl shadow-xl p-8">
+                <h1 class="text-4xl text-center text-[#B76E79] mb-6">Bronzify</h1>
+                
+                <!-- Formulário de Login -->
+                <form id="login-form">
+                    <h2 class="text-2xl text-gray-700 mb-6 text-center">Acesse sua conta</h2>
+                    <div class="mb-4">
+                        <label for="login-email" class="block text-gray-600 mb-2">E-mail</label>
+                        <input type="email" id="login-email" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
+                    </div>
+                    <div class="mb-6">
+                        <label for="login-password" class="block text-gray-600 mb-2">Senha</label>
+                        <input type="password" id="login-password" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
+                    </div>
+                    <button type="submit" class="w-full bg-gradient-bronzify text-white py-2 rounded-lg hover:opacity-90 transition-opacity duration-300">Entrar</button>
+                </form>
+
+                <div class="my-6 flex items-center justify-center">
+                    <hr class="w-full border-gray-300">
+                    <span class="px-4 text-gray-500 bg-white">OU</span>
+                    <hr class="w-full border-gray-300">
+                </div>
+
+                <!-- Login com Google -->
+                <button id="google-login" class="w-full flex items-center justify-center gap-2 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-100 transition-colors duration-300 mb-6">
+                    <svg class="w-5 h-5" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.42-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path><path fill="none" d="M0 0h48v48H0z"></path></svg>
+                    Entrar com Google
+                </button>
+
+                <p class="text-center text-gray-600">
+                    Não tem uma conta? <a href="#" id="show-register" class="text-[#B76E79] hover:underline">Crie uma agora</a>
+                </p>
+                <p class="text-center text-gray-600 mt-2">
+                    Precisa ativar seu acesso? <a href="./ativacao.html" class="text-[#B76E79] hover:underline">Ative aqui</a>
+                </p>
+            </div>
+
+            <!-- Formulário de Cadastro (Oculto por padrão) -->
+            <div id="register-section" class="bg-white rounded-2xl shadow-xl p-8 hidden">
+                 <h2 class="text-2xl text-gray-700 mb-6 text-center">Crie sua conta</h2>
+                <form id="register-form">
+                    <div class="mb-4">
+                        <label for="register-email" class="block text-gray-600 mb-2">E-mail</label>
+                        <input type="email" id="register-email" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
+                    </div>
+                    <div class="mb-6">
+                        <label for="register-password" class="block text-gray-600 mb-2">Senha</label>
+                        <input type="password" id="register-password" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
+                    </div>
+                    <button type="submit" class="w-full bg-gradient-bronzify text-white py-2 rounded-lg hover:opacity-90 transition-opacity duration-300">Criar Conta</button>
+                </form>
+                 <p class="text-center text-gray-600 mt-4">
+                    Já tem uma conta? <a href="#" id="show-login" class="text-[#B76E79] hover:underline">Faça login</a>
+                </p>
+            </div>
+        </div>
     </div>
 
+    <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { 
+            getAuth, 
+            signInWithEmailAndPassword, 
+            createUserWithEmailAndPassword,
+            GoogleAuthProvider,
+            signInWithPopup,
+            onAuthStateChanged
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
         // Configuração do seu projeto Firebase
         const firebaseConfig = {
@@ -33,23 +108,58 @@
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
 
-        const loginButton = document.getElementById('google-login-test');
-        const statusElement = document.getElementById('status');
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                window.location.href = './dashboard.html';
+            }
+        });
 
-        loginButton.addEventListener('click', () => {
-            statusElement.textContent = 'Tentando fazer login...';
-            signInWithPopup(auth, provider)
-                .then((result) => {
-                    const user = result.user;
-                    statusElement.textContent = `Login bem-sucedido! Olá, ${user.displayName}!`;
-                    statusElement.style.color = 'green';
-                    console.log(result);
+        const loginSection = document.getElementById('login-section');
+        const registerSection = document.getElementById('register-section');
+        const showRegisterBtn = document.getElementById('show-register');
+        const showLoginBtn = document.getElementById('show-login');
+        const mainContainer = document.querySelector('.w-full.max-w-md');
+
+        showRegisterBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            mainContainer.removeChild(loginSection);
+            mainContainer.appendChild(registerSection);
+            registerSection.classList.remove('hidden');
+        });
+
+        showLoginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            mainContainer.removeChild(registerSection);
+            mainContainer.appendChild(loginSection);
+            loginSection.classList.remove('hidden');
+        });
+
+        const loginForm = document.getElementById('login-form');
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = loginForm['login-email'].value;
+            const password = loginForm['login-password'].value;
+            signInWithEmailAndPassword(auth, email, password)
+                .catch((error) => alert('Erro ao fazer login: ' + error.message));
+        });
+
+        const registerForm = document.getElementById('register-form');
+        registerForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = registerForm['register-email'].value;
+            const password = registerForm['register-password'].value;
+            createUserWithEmailAndPassword(auth, email, password)
+                .then(() => {
+                    alert('Conta criada com sucesso! Por favor, ative seu acesso.');
+                    window.location.href = './ativacao.html';
                 })
-                .catch((error) => {
-                    statusElement.textContent = `Falha no login: ${error.message}`;
-                    statusElement.style.color = 'red';
-                    console.error(error);
-                });
+                .catch((error) => alert('Erro ao criar conta: ' + error.message));
+        });
+
+        const googleLoginBtn = document.getElementById('google-login');
+        googleLoginBtn.addEventListener('click', () => {
+            signInWithPopup(auth, provider)
+                .catch((error) => alert('Erro no login com Google: ' + error.message));
         });
     </script>
 </body>
