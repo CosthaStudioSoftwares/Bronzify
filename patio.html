@@ -134,7 +134,7 @@
             }
         }
 
-        // --- LÓGICA DO PÁTIO ---
+        // --- LÓGICA DO PÁTIO (CORRIGIDA) ---
         const patioListContainer = document.getElementById('patio-list');
         const noClientsMessage = document.getElementById('no-clients-patio');
 
@@ -145,22 +145,28 @@
             const q = query(
                 collection(db, "sales"),
                 where("createdAt", ">=", Timestamp.fromDate(todayStart)),
-                where("status", "==", "called"),
                 orderBy("createdAt", "asc")
             );
 
             onSnapshot(q, (querySnapshot) => {
+                const patioClients = [];
+                querySnapshot.forEach(doc => {
+                    const sale = { id: doc.id, ...doc.data() };
+                    // Filtra os resultados para status "called" no lado do cliente
+                    if (sale.status === 'called') {
+                        patioClients.push(sale);
+                    }
+                });
+
                 patioListContainer.innerHTML = ''; // Limpa a lista a cada atualização
 
-                if (querySnapshot.empty) {
+                if (patioClients.length === 0) {
                     noClientsMessage.classList.remove('hidden');
                 } else {
                     noClientsMessage.classList.add('hidden');
                 }
 
-                querySnapshot.forEach((doc) => {
-                    const sale = { id: doc.id, ...doc.data() };
-                    
+                patioClients.forEach((sale) => {
                     // Categoriza os itens da venda
                     const bronzeItems = [];
                     const consumableItems = [];
