@@ -186,12 +186,12 @@
                 document.getElementById('user-email').textContent = user.email;
                 fetchDashboardData();
             } else {
-                window.location.href = './index.html';
+                window.location.href = 'index.html'; // CORRIGIDO
             }
         });
 
         document.getElementById('logout-btn').addEventListener('click', () => {
-            signOut(auth).then(() => window.location.href = './index.html');
+            signOut(auth).then(() => window.location.href = 'index.html'); // CORRIGIDO
         });
 
         // --- LÓGICA DO DASHBOARD ---
