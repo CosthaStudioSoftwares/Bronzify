@@ -42,7 +42,7 @@
         }
     </style>
 </head>
-<body class="flex h-screen">
+<body class="flex h-screen opacity-0 transition-opacity duration-300">
 
     <!-- Sidebar -->
     <aside class="w-64 bg-white shadow-lg flex-shrink-0">
@@ -101,21 +101,8 @@
                 <div class="bg-white p-6 rounded-2xl shadow-md">
                     <h3 class="text-2xl text-gray-800 mb-4">Clientes Recentes</h3>
                     <div id="recent-clients-list" class="space-y-4">
-                        <!-- Exemplo de cliente, será populado via JS -->
-                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div>
-                                <p class="font-semibold text-gray-700">Juliana Paes</p>
-                                <p class="text-sm text-gray-500">(79) 99988-7766</p>
-                            </div>
-                            <span class="text-sm text-gray-600">15/08/2025, 10:30</span>
-                        </div>
-                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div>
-                                <p class="font-semibold text-gray-700">Mariana Rios</p>
-                                <p class="text-sm text-gray-500">(79) 98877-6655</p>
-                            </div>
-                            <span class="text-sm text-gray-600">15/08/2025, 09:15</span>
-                        </div>
+                        <!-- Conteúdo populado via JS -->
+                         <p class="text-gray-500">Nenhum cliente recente encontrado.</p>
                     </div>
                 </div>
             </div>
@@ -143,8 +130,8 @@
     </main>
     
     <!-- Modal de Cadastro de Cliente -->
-    <div id="client-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 modal-content transform scale-95">
+    <div id="client-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
             <h3 class="text-2xl text-gray-800 mb-6">Cadastrar Nova Cliente</h3>
             <form id="new-client-form">
                 <div class="mb-4">
@@ -177,14 +164,13 @@
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, where, getDocs, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // TODO: Substitua pela configuração do seu projeto Firebase
         const firebaseConfig = {
-            apiKey: "SUA_API_KEY",
-            authDomain: "SEU_AUTH_DOMAIN",
-            projectId: "SEU_PROJECT_ID",
-            storageBucket: "SEU_STORAGE_BUCKET",
-            messagingSenderId: "SEU_MESSAGING_SENDER_ID",
-            appId: "SEU_APP_ID"
+            apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
+            authDomain: "bronzify-b2491.firebaseapp.com",
+            projectId: "bronzify-b2491",
+            storageBucket: "bronzify-b2491.appspot.com",
+            messagingSenderId: "399230151633",
+            appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -193,12 +179,17 @@
 
         // --- LÓGICA DE AUTENTICAÇÃO ---
         onAuthStateChanged(auth, (user) => {
-            if (!user) {
-                window.location.href = './index.html'; // CORRIGIDO
+            if (user) {
+                // Usuário está logado, exibe o conteúdo da página
+                document.body.classList.remove('opacity-0');
+            } else {
+                // Usuário não está logado, redireciona para o login
+                window.location.href = 'index.html';
             }
         });
+
         document.getElementById('logout-btn').addEventListener('click', () => {
-            signOut(auth).then(() => window.location.href = './index.html'); // CORRIGIDO
+            signOut(auth).then(() => window.location.href = 'index.html');
         });
 
         // --- LÓGICA DO MODAL ---
@@ -206,20 +197,8 @@
         const addClientBtn = document.getElementById('add-client-btn');
         const cancelBtn = document.getElementById('cancel-btn');
 
-        addClientBtn.addEventListener('click', () => {
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                modal.querySelector('.modal-backdrop').classList.remove('opacity-0');
-                modal.querySelector('.modal-content').classList.remove('scale-95');
-            }, 10);
-        });
-
-        const closeModal = () => {
-            modal.querySelector('.modal-backdrop').classList.add('opacity-0');
-            modal.querySelector('.modal-content').classList.add('scale-95');
-            setTimeout(() => modal.classList.add('hidden'), 300);
-        };
-
+        addClientBtn.addEventListener('click', () => modal.classList.remove('hidden'));
+        const closeModal = () => modal.classList.add('hidden');
         cancelBtn.addEventListener('click', closeModal);
         modal.addEventListener('click', (e) => {
             if (e.target === modal) closeModal();
@@ -234,20 +213,13 @@
             const birthdate = document.getElementById('client-birthdate').value;
 
             try {
-                const docRef = await addDoc(collection(db, "clients"), {
-                    name: name,
-                    phone: phone,
-                    birthdate: birthdate,
-                    createdAt: new Date()
-                });
-                console.log("Cliente salvo com ID: ", docRef.id);
+                await addDoc(collection(db, "clients"), { name, phone, birthdate, createdAt: new Date() });
                 alert("Cliente cadastrada com sucesso!");
                 newClientForm.reset();
                 closeModal();
-                // TODO: Atualizar a lista de clientes na tela
             } catch (error) {
                 console.error("Erro ao adicionar cliente: ", error);
-                alert("Erro ao cadastrar cliente. Tente novamente.");
+                alert("Erro ao cadastrar cliente.");
             }
         });
 
@@ -255,30 +227,11 @@
         const raffleMonthsSelect = document.getElementById('raffle-months');
         const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
         months.forEach((month, index) => {
-            const option = new Option(month, index + 1);
-            raffleMonthsSelect.add(option);
+            raffleMonthsSelect.add(new Option(month, index + 1));
         });
 
         document.getElementById('raffle-btn').addEventListener('click', async () => {
-            const selectedMonths = Array.from(raffleMonthsSelect.selectedOptions).map(opt => parseInt(opt.value));
-            if (selectedMonths.length === 0) {
-                alert("Por favor, selecione pelo menos um mês para o sorteio.");
-                return;
-            }
-            
-            alert(`Sorteando entre clientes que fizeram serviços nos meses: ${selectedMonths.join(', ')}...`);
-            // TODO: Implementar a busca no Firestore
-            // 1. Buscar todas as vendas/serviços nos meses selecionados.
-            // 2. Pegar os IDs dos clientes dessas vendas.
-            // 3. Escolher um ID de cliente aleatoriamente.
-            // 4. Buscar os dados do cliente sorteado e exibir.
-
-            // Exemplo de resultado (simulado):
-            const raffleResultDiv = document.getElementById('raffle-result');
-            document.getElementById('winner-name').textContent = "Cliente Sorteada Exemplo";
-            document.getElementById('winner-phone').textContent = "(79) 91234-5678";
-            document.getElementById('winner-date').textContent = "Serviço realizado em: 10/07/2025, 14:00";
-            raffleResultDiv.classList.remove('hidden');
+            alert("Função de sorteio ainda não implementada.");
         });
 
     </script>
