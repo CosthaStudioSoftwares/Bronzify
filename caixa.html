@@ -49,6 +49,13 @@
         .modal-content {
             transition: transform 0.3s ease;
         }
+        .item-actions {
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+        }
+        .service-item-label:hover .item-actions {
+            opacity: 1;
+        }
     </style>
 </head>
 <body class="flex h-screen">
@@ -114,22 +121,14 @@
                         <button id="add-new-item-btn" class="text-sm text-[#B76E79] hover:underline font-semibold flex items-center gap-1"><i data-lucide="plus-circle" class="w-4 h-4"></i> Adicionar novo</button>
                     </div>
                     
-                    <!-- Tipos de Bronze -->
-                    <h4 class="font-semibold text-gray-600 mb-2">Tipos de Bronze</h4>
-                    <div id="bronze-services" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 min-h-[50px]">
-                        <!-- Itens carregados dinamicamente -->
-                    </div>
-
-                    <!-- Consumo -->
-                    <h4 class="font-semibold text-gray-600 mb-2">Consumo</h4>
-                    <div id="consumables" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 min-h-[50px]">
-                        <!-- Itens carregados dinamicamente -->
-                    </div>
-
-                    <!-- Adicionais -->
-                    <h4 class="font-semibold text-gray-600 mb-2">Adicionais</h4>
-                    <div id="extras" class="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[50px]">
-                         <!-- Itens carregados dinamicamente -->
+                    <!-- Categorias de Serviços -->
+                    <div id="services-container" class="space-y-4">
+                        <h4 class="font-semibold text-gray-600">Tipos de Bronze</h4>
+                        <div id="bronze-services" class="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[50px]"></div>
+                        <h4 class="font-semibold text-gray-600">Consumo</h4>
+                        <div id="consumables" class="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[50px]"></div>
+                        <h4 class="font-semibold text-gray-600">Adicionais</h4>
+                        <div id="extras" class="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[50px]"></div>
                     </div>
                 </div>
             </div>
@@ -142,30 +141,17 @@
                         <div class="flex justify-between text-gray-600"><span>Subtotal</span><span id="subtotal">R$ 0,00</span></div>
                         <div class="flex justify-between items-center text-gray-600">
                             <span>Desconto</span>
-                            <input type="number" id="discount" placeholder="R$ 0,00" class="w-24 p-1 border rounded-md text-right focus:outline-none focus:ring-1 focus:ring-[#B76E79]">
+                            <input type="text" id="discount" placeholder="R$ 0,00" class="w-24 p-1 border rounded-md text-right focus:outline-none focus:ring-1 focus:ring-[#B76E79]">
                         </div>
                         <hr>
                         <div class="flex justify-between font-bold text-xl text-gray-800"><span>TOTAL</span><span id="total">R$ 0,00</span></div>
                     </div>
-
                     <h4 class="font-semibold text-gray-600 mb-2">Forma de Pagamento</h4>
                     <select id="payment-method" class="w-full p-2 border rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-[#B76E79]">
-                        <option>Dinheiro</option>
-                        <option>PIX</option>
-                        <option>Débito</option>
-                        <option>Crédito</option>
-                        <option>A Prazo</option>
-                        <option>Parceria</option>
+                        <option>Dinheiro</option><option>PIX</option><option>Débito</option><option>Crédito</option><option>A Prazo</option><option>Parceria</option>
                     </select>
-
-                    <button id="save-sale-btn" class="w-full bg-gradient-to-r from-pink-500 to-[#B76E79] text-white py-3 rounded-lg hover:opacity-90 font-bold text-lg">
-                        Salvar Venda
-                    </button>
-                    
-                    <div id="password-display" class="mt-4 text-center hidden">
-                        <p class="text-gray-600">Senha Gerada:</p>
-                        <p id="generated-password" class="text-4xl font-bold text-[#B76E79]"></p>
-                    </div>
+                    <button id="save-sale-btn" class="w-full bg-gradient-to-r from-pink-500 to-[#B76E79] text-white py-3 rounded-lg hover:opacity-90 font-bold text-lg">Salvar Venda</button>
+                    <div id="password-display" class="mt-4 text-center hidden"><p class="text-gray-600">Senha Gerada:</p><p id="generated-password" class="text-4xl font-bold text-[#B76E79]"></p></div>
                 </div>
             </div>
         </div>
@@ -173,50 +159,20 @@
         <!-- Atendimentos do Dia -->
         <div class="mt-8 bg-white p-6 rounded-2xl shadow-md">
             <h3 class="text-2xl text-gray-800 mb-4">Atendimentos do Dia</h3>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left">
-                    <thead>
-                        <tr class="border-b">
-                            <th class="p-2">Senha</th>
-                            <th class="p-2">Cliente</th>
-                            <th class="p-2">Horário</th>
-                            <th class="p-2">Valor</th>
-                            <th class="p-2">Pagamento</th>
-                        </tr>
-                    </thead>
-                    <tbody id="daily-sales-table">
-                        <!-- Linhas populadas via JS -->
-                    </tbody>
-                </table>
-            </div>
+            <div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="border-b"><th class="p-2">Senha</th><th class="p-2">Cliente</th><th class="p-2">Horário</th><th class="p-2">Valor</th><th class="p-2">Pagamento</th></tr></thead><tbody id="daily-sales-table"></tbody></table></div>
         </div>
     </main>
 
-    <!-- Modal de Novo Item -->
-    <div id="new-item-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
+    <!-- Modal de Novo/Editar Item -->
+    <div id="item-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 modal-content transform scale-95">
-            <h3 class="text-2xl text-gray-800 mb-6">Cadastrar Novo Item</h3>
-            <form id="new-item-form">
-                <div class="mb-4">
-                    <label for="item-name" class="block text-gray-600 mb-2">Nome do Item</label>
-                    <input type="text" id="item-name" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
-                </div>
-                <div class="mb-4">
-                    <label for="item-price" class="block text-gray-600 mb-2">Valor (R$)</label>
-                    <input type="number" id="item-price" step="0.01" placeholder="25.00" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
-                </div>
-                <div class="mb-6">
-                    <label for="item-category" class="block text-gray-600 mb-2">Categoria</label>
-                    <select id="item-category" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
-                        <option value="bronze">Tipo de Bronze</option>
-                        <option value="consumable">Consumo</option>
-                        <option value="extra">Adicional</option>
-                    </select>
-                </div>
-                <div class="flex justify-end gap-4">
-                    <button type="button" id="cancel-item-btn" class="px-4 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Cancelar</button>
-                    <button type="submit" class="px-6 py-2 bg-[#B76E79] text-white rounded-lg hover:opacity-90">Salvar Item</button>
-                </div>
+            <h3 id="item-modal-title" class="text-2xl text-gray-800 mb-6">Cadastrar Novo Item</h3>
+            <form id="item-form">
+                <input type="hidden" id="item-id">
+                <div class="mb-4"><label for="item-name" class="block text-gray-600 mb-2">Nome do Item</label><input type="text" id="item-name" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required></div>
+                <div class="mb-4"><label for="item-price" class="block text-gray-600 mb-2">Valor</label><input type="text" id="item-price" placeholder="R$ 0,00" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required></div>
+                <div class="mb-6"><label for="item-category" class="block text-gray-600 mb-2">Categoria</label><select id="item-category" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required><option value="bronze">Tipo de Bronze</option><option value="consumable">Consumo</option><option value="extra">Adicional</option></select></div>
+                <div class="flex justify-end gap-4"><button type="button" id="cancel-item-btn" class="px-4 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Cancelar</button><button type="submit" class="px-6 py-2 bg-[#B76E79] text-white rounded-lg hover:opacity-90">Salvar Item</button></div>
             </form>
         </div>
     </div>
@@ -228,7 +184,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, where, getDocs, Timestamp, increment, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, where, getDocs, Timestamp, increment, orderBy, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
@@ -245,8 +201,8 @@
 
         let selectedClient = null;
         let allClients = [];
+        let allProducts = [];
 
-        // --- LÓGICA DE AUTENTICAÇÃO E CARREGAMENTO INICIAL ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 loadAllClients();
@@ -257,9 +213,7 @@
             }
         });
 
-        document.getElementById('logout-btn').addEventListener('click', () => {
-            signOut(auth).then(() => window.location.href = './index.html');
-        });
+        document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = './index.html'));
 
         // --- LÓGICA DE BUSCA DE CLIENTE ---
         const clientSearchInput = document.getElementById('client-search');
@@ -269,25 +223,18 @@
         const birthdayAlertEl = document.getElementById('birthday-alert');
 
         async function loadAllClients() {
-            try {
-                const querySnapshot = await getDocs(collection(db, "clients"));
-                allClients = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            } catch (error) {
-                console.error("Erro ao carregar clientes:", error);
-            }
+            const querySnapshot = await getDocs(collection(db, "clients"));
+            allClients = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         }
 
         clientSearchInput.addEventListener('input', (e) => {
             const searchTerm = e.target.value.trim().toLowerCase();
-            if (searchTerm.length < 2) {
-                searchResultsContainer.classList.add('hidden'); return;
-            }
-            const filteredClients = allClients.filter(c => c.name.toLowerCase().includes(searchTerm) || (c.phone && c.phone.includes(searchTerm)));
+            if (searchTerm.length < 2) { searchResultsContainer.classList.add('hidden'); return; }
+            const filtered = allClients.filter(c => c.name.toLowerCase().includes(searchTerm) || (c.phone && c.phone.includes(searchTerm)));
             searchResultsContainer.innerHTML = '';
-            if (filteredClients.length === 0) {
-                searchResultsContainer.innerHTML = '<div class="p-3 text-gray-500">Nenhum cliente encontrado.</div>';
-            } else {
-                filteredClients.forEach(client => {
+            if (filtered.length === 0) { searchResultsContainer.innerHTML = '<div class="p-3 text-gray-500">Nenhum cliente encontrado.</div>'; } 
+            else {
+                filtered.forEach(client => {
                     const item = document.createElement('div');
                     item.className = 'p-3 hover:bg-gray-100 cursor-pointer';
                     item.textContent = `${client.name} - ${client.phone}`;
@@ -307,8 +254,7 @@
             if (client.birthdate) {
                 const birthDate = new Date(client.birthdate);
                 birthDate.setDate(birthDate.getDate() + 1);
-                const isBirthdayMonth = birthDate.getMonth() === new Date().getMonth();
-                birthdayAlertEl.style.display = isBirthdayMonth ? 'flex' : 'none';
+                birthdayAlertEl.style.display = birthDate.getMonth() === new Date().getMonth() ? 'flex' : 'none';
             } else {
                 birthdayAlertEl.style.display = 'none';
             }
@@ -316,56 +262,113 @@
         }
         document.addEventListener('click', (e) => { if (!clientSearchInput.contains(e.target)) searchResultsContainer.classList.add('hidden'); });
 
-        // --- LÓGICA DE SERVIÇOS E PRODUTOS ---
-        const bronzeContainer = document.getElementById('bronze-services');
-        const consumablesContainer = document.getElementById('consumables');
-        const extrasContainer = document.getElementById('extras');
+        // --- LÓGICA DE SERVIÇOS E PRODUTOS (COM EDITAR/EXCLUIR) ---
+        const servicesContainer = document.getElementById('services-container');
 
         async function loadServicesAndProducts() {
-            bronzeContainer.innerHTML = '';
-            consumablesContainer.innerHTML = '';
-            extrasContainer.innerHTML = '';
+            document.getElementById('bronze-services').innerHTML = '';
+            document.getElementById('consumables').innerHTML = '';
+            document.getElementById('extras').innerHTML = '';
 
+            const q = query(collection(db, "products"), orderBy("name"));
+            const querySnapshot = await getDocs(q);
+            allProducts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            allProducts.forEach(item => {
+                const priceFormatted = `R$ ${item.price.toFixed(2).replace('.', ',')}`;
+                const itemHtml = `
+                    <div class="service-item" id="item-container-${item.id}">
+                        <input type="checkbox" id="${item.id}" data-price="${item.price}" data-name="${item.name}" class="hidden">
+                        <label for="${item.id}" class="service-item-label flex items-center justify-between border rounded-lg p-3 cursor-pointer">
+                            <span>${item.name}</span>
+                            <div class="flex items-center">
+                                <span class="font-bold mr-4">${priceFormatted}</span>
+                                <div class="item-actions flex items-center gap-2">
+                                    <button class="edit-item-btn p-1 text-gray-500 hover:text-blue-600" data-id="${item.id}"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                                    <button class="delete-item-btn p-1 text-gray-500 hover:text-red-600" data-id="${item.id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                </div>
+                            </div>
+                        </label>
+                    </div>`;
+                
+                const containerId = item.category === 'bronze' ? 'bronze-services' : item.category === 'consumable' ? 'consumables' : 'extras';
+                document.getElementById(containerId).innerHTML += itemHtml;
+            });
+            lucide.createIcons();
+            rebindAllEvents();
+        }
+
+        servicesContainer.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.edit-item-btn');
+            const deleteBtn = e.target.closest('.delete-item-btn');
+            if (editBtn) openEditModal(editBtn.dataset.id);
+            if (deleteBtn) handleDeleteItem(deleteBtn.dataset.id);
+        });
+
+        async function handleDeleteItem(id) {
+            if (!confirm('Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.')) return;
             try {
-                const q = query(collection(db, "products"), orderBy("name"));
-                const querySnapshot = await getDocs(q);
-                querySnapshot.forEach((doc) => {
-                    const item = { id: doc.id, ...doc.data() };
-                    const priceFormatted = `R$ ${item.price.toFixed(2).replace('.', ',')}`;
-                    const itemHtml = `
-                        <div class="service-item">
-                            <input type="checkbox" id="${item.id}" data-price="${item.price}" data-name="${item.name}" class="hidden">
-                            <label for="${item.id}" class="block border rounded-lg p-3 cursor-pointer">${item.name} <span class="font-bold float-right">${priceFormatted}</span></label>
-                        </div>`;
-                    
-                    if (item.category === 'bronze') bronzeContainer.innerHTML += itemHtml;
-                    else if (item.category === 'consumable') consumablesContainer.innerHTML += itemHtml;
-                    else if (item.category === 'extra') extrasContainer.innerHTML += itemHtml;
-                });
-                rebindCalculationEvents();
+                await deleteDoc(doc(db, "products", id));
+                alert('Item excluído com sucesso!');
+                loadServicesAndProducts();
             } catch (error) {
-                console.error("Erro ao carregar produtos:", error);
+                console.error("Erro ao excluir item:", error);
+                alert('Erro ao excluir item.');
             }
         }
 
-        // --- LÓGICA DO MODAL DE NOVO ITEM ---
-        const newItemModal = document.getElementById('new-item-modal');
-        const newItemForm = document.getElementById('new-item-form');
-        document.getElementById('add-new-item-btn').addEventListener('click', () => newItemModal.classList.remove('hidden'));
-        document.getElementById('cancel-item-btn').addEventListener('click', () => newItemModal.classList.add('hidden'));
-        newItemModal.addEventListener('click', (e) => { if (e.target === newItemModal) newItemModal.classList.add('hidden'); });
+        // --- LÓGICA DO MODAL DE ITEM ---
+        const itemModal = document.getElementById('item-modal');
+        const itemForm = document.getElementById('item-form');
+        const itemModalTitle = document.getElementById('item-modal-title');
+        const itemIdInput = document.getElementById('item-id');
+        const itemNameInput = document.getElementById('item-name');
+        const itemPriceInput = document.getElementById('item-price');
+        const itemCategorySelect = document.getElementById('item-category');
 
-        newItemForm.addEventListener('submit', async (e) => {
+        document.getElementById('add-new-item-btn').addEventListener('click', () => {
+            itemModalTitle.textContent = 'Cadastrar Novo Item';
+            itemForm.reset();
+            itemIdInput.value = '';
+            itemModal.classList.remove('hidden');
+        });
+        
+        function openEditModal(id) {
+            const item = allProducts.find(p => p.id === id);
+            if (!item) return;
+            itemModalTitle.textContent = 'Editar Item';
+            itemIdInput.value = item.id;
+            itemNameInput.value = item.name;
+            itemPriceInput.value = item.price.toFixed(2).replace('.',',');
+            formatCurrency(itemPriceInput); // Formata o valor ao preencher
+            itemCategorySelect.value = item.category;
+            itemModal.classList.remove('hidden');
+        }
+
+        document.getElementById('cancel-item-btn').addEventListener('click', () => itemModal.classList.add('hidden'));
+        itemModal.addEventListener('click', (e) => { if (e.target === itemModal) itemModal.classList.add('hidden'); });
+
+        itemForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const name = document.getElementById('item-name').value;
-            const price = parseFloat(document.getElementById('item-price').value);
-            const category = document.getElementById('item-category').value;
+            const id = itemIdInput.value;
+            // Converte o valor formatado de volta para número
+            const priceString = itemPriceInput.value.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
+            const itemData = {
+                name: itemNameInput.value,
+                price: parseFloat(priceString),
+                category: itemCategorySelect.value
+            };
 
             try {
-                await addDoc(collection(db, "products"), { name, price, category });
-                alert("Item salvo com sucesso!");
-                newItemForm.reset();
-                newItemModal.classList.add('hidden');
+                if (id) { // Editando
+                    await updateDoc(doc(db, "products", id), itemData);
+                    alert("Item atualizado com sucesso!");
+                } else { // Criando novo
+                    await addDoc(collection(db, "products"), itemData);
+                    alert("Item salvo com sucesso!");
+                }
+                itemForm.reset();
+                itemModal.classList.add('hidden');
                 loadServicesAndProducts();
             } catch (error) {
                 console.error("Erro ao salvar item:", error);
@@ -373,27 +376,36 @@
             }
         });
         
-        // --- LÓGICA DA FRENTE DE CAIXA ---
+        // --- LÓGICA DA FRENTE DE CAIXA E FORMATAÇÃO ---
         const subtotalEl = document.getElementById('subtotal');
         const discountEl = document.getElementById('discount');
         const totalEl = document.getElementById('total');
+
+        function formatCurrency(input) {
+            let value = input.value.replace(/\D/g, '');
+            value = (value / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            input.value = value;
+        }
+        itemPriceInput.addEventListener('input', () => formatCurrency(itemPriceInput));
+        discountEl.addEventListener('input', () => formatCurrency(discountEl));
 
         function calculateTotal() {
             let currentSubtotal = 0;
             document.querySelectorAll('.service-item input[type="checkbox"]:checked').forEach(item => {
                 currentSubtotal += parseFloat(item.dataset.price);
             });
-            const discount = parseFloat(discountEl.value) || 0;
+            const discountString = discountEl.value.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
+            const discount = parseFloat(discountString) || 0;
             const currentTotal = currentSubtotal - discount;
-            subtotalEl.textContent = `R$ ${currentSubtotal.toFixed(2).replace('.', ',')}`;
-            totalEl.textContent = `R$ ${currentTotal.toFixed(2).replace('.', ',')}`;
+            subtotalEl.textContent = currentSubtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            totalEl.textContent = currentTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }
 
-        function rebindCalculationEvents() {
+        function rebindAllEvents() {
             document.querySelectorAll('.service-item input[type="checkbox"]').forEach(item => item.addEventListener('change', calculateTotal));
+            discountEl.addEventListener('input', calculateTotal);
         }
-        discountEl.addEventListener('input', calculateTotal);
-
+        
         // --- LÓGICA PARA SALVAR A VENDA E GERAR SENHA ---
         const saveSaleBtn = document.getElementById('save-sale-btn');
         const passwordDisplay = document.getElementById('password-display');
@@ -403,28 +415,17 @@
             const today = new Date().toISOString().split('T')[0];
             const counterRef = doc(db, "dailyCounters", today);
             const counterSnap = await getDoc(counterRef);
-            let nextNumber = 1;
-            if (counterSnap.exists()) {
-                nextNumber = counterSnap.data().lastPassword + 1;
-                await setDoc(counterRef, { lastPassword: increment(1) }, { merge: true });
-            } else {
-                await setDoc(counterRef, { lastPassword: 1 });
-            }
+            let nextNumber = counterSnap.exists() ? counterSnap.data().lastPassword + 1 : 1;
+            await setDoc(counterRef, { lastPassword: nextNumber }, { merge: true });
             return String(nextNumber).padStart(3, '0');
         }
 
         saveSaleBtn.addEventListener('click', async () => {
-            const totalValue = parseFloat(totalEl.textContent.replace('R$ ', '').replace(',', '.'));
-            if (totalValue <= 0) {
-                alert("Nenhum item selecionado para a venda."); return;
-            }
-
+            const totalString = totalEl.textContent.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
+            const totalValue = parseFloat(totalString);
+            if (totalValue <= 0) { alert("Nenhum item selecionado para a venda."); return; }
             const password = await getNextPassword();
-            const saleItems = [];
-            document.querySelectorAll('.service-item input[type="checkbox"]:checked').forEach(item => {
-                saleItems.push({ name: item.dataset.name, price: parseFloat(item.dataset.price) });
-            });
-            
+            const saleItems = Array.from(document.querySelectorAll('.service-item input:checked')).map(i => ({ name: i.dataset.name, price: parseFloat(i.dataset.price) }));
             try {
                 await addDoc(collection(db, "sales"), {
                     clientName: selectedClient ? selectedClient.name : "Cliente Avulso",
@@ -435,23 +436,19 @@
                     password: password,
                     createdAt: Timestamp.now()
                 });
-
                 generatedPasswordEl.textContent = password;
                 passwordDisplay.classList.remove('hidden');
                 alert(`Venda salva! Senha do cliente: ${password}`);
                 loadDailySales();
                 resetSaleForm();
-            } catch (error) {
-                console.error("Erro ao salvar venda:", error);
-                alert("Ocorreu um erro ao salvar a venda.");
-            }
+            } catch (error) { console.error("Erro ao salvar venda:", error); alert("Ocorreu um erro ao salvar a venda."); }
         });
 
         function resetSaleForm() {
             selectedClient = null;
             clientSearchInput.value = '';
             selectedClientDisplay.style.display = 'none';
-            document.querySelectorAll('.service-item input[type="checkbox"]').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.service-item input:checked').forEach(cb => cb.checked = false);
             discountEl.value = '';
             calculateTotal();
             setTimeout(() => passwordDisplay.classList.add('hidden'), 5000);
@@ -460,26 +457,15 @@
         async function loadDailySales() {
             const tableBody = document.getElementById('daily-sales-table');
             tableBody.innerHTML = '';
-            const todayStart = new Date();
-            todayStart.setHours(0, 0, 0, 0);
-
+            const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
             const q = query(collection(db, "sales"), where("createdAt", ">=", Timestamp.fromDate(todayStart)), orderBy("createdAt", "desc"));
             const querySnapshot = await getDocs(q);
             querySnapshot.forEach(doc => {
                 const sale = doc.data();
                 const saleTime = sale.createdAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                const row = `
-                    <tr class="border-b hover:bg-gray-50">
-                        <td class="p-2 font-mono">${sale.password}</td>
-                        <td class="p-2 font-semibold">${sale.clientName}</td>
-                        <td class="p-2">${saleTime}</td>
-                        <td class="p-2">R$ ${sale.total.toFixed(2).replace('.',',')}</td>
-                        <td class="p-2">${sale.paymentMethod}</td>
-                    </tr>`;
-                tableBody.innerHTML += row;
+                tableBody.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="p-2 font-mono">${sale.password}</td><td class="p-2 font-semibold">${sale.clientName}</td><td class="p-2">${saleTime}</td><td class="p-2">${sale.total.toLocaleString('pt-BR', {style:'currency', currency: 'BRL'})}</td><td class="p-2">${sale.paymentMethod}</td></tr>`;
             });
         }
-
     </script>
 </body>
 </html>
