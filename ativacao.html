@@ -42,25 +42,23 @@
                 </a>
             </div>
              <p class="text-center text-gray-600 mt-6">
-                Já tem acesso? <a href="login.html" class="text-[#B76E79] hover:underline">Faça login</a>
+                Já tem acesso? <a href="./index.html" class="text-[#B76E79] hover:underline">Faça login</a>
             </p>
         </div>
     </div>
 
-    <!-- Firebase SDKs e Lógica -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, getDoc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-        // TODO: Adicione a configuração do seu projeto Firebase aqui
         const firebaseConfig = {
-            apiKey: "SUA_API_KEY",
-            authDomain: "SEU_AUTH_DOMAIN",
-            projectId: "SEU_PROJECT_ID",
-            storageBucket: "SEU_STORAGE_BUCKET",
-            messagingSenderId: "SEU_MESSAGING_SENDER_ID",
-            appId: "SEU_APP_ID"
+            apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
+            authDomain: "bronzify-b2491.firebaseapp.com",
+            projectId: "bronzify-b2491",
+            storageBucket: "bronzify-b2491.firebasestorage.app",
+            messagingSenderId: "399230151633",
+            appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -68,6 +66,13 @@
         const auth = getAuth(app);
 
         const activationForm = document.getElementById('activation-form');
+        
+        const redirectTo = (page) => {
+            const path = window.location.pathname.split('/');
+            path.pop(); // Remove o nome do arquivo atual
+            path.push(page); // Adiciona o nome do novo arquivo
+            window.location.href = path.join('/');
+        };
 
         activationForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -81,11 +86,10 @@
             const user = auth.currentUser;
             if (!user) {
                 alert("Você precisa estar logado para ativar um código. Se ainda não tem conta, crie uma na tela de login.");
-                window.location.href = 'login.html';
+                redirectTo('index.html');
                 return;
             }
 
-            // Lógica para verificar e usar o código no Firestore
             const codeRef = doc(db, "activationCodes", code);
             
             try {
@@ -96,29 +100,27 @@
                     if (codeData.isUsed) {
                         alert("Este código já foi utilizado.");
                     } else {
-                        // O código é válido e não foi usado.
-                        // 1. Atualize o documento do código para 'isUsed: true'
                         await updateDoc(codeRef, {
                             isUsed: true,
                             activatedBy: user.uid,
                             activationDate: new Date()
                         });
 
-                        // 2. Atualize o perfil do usuário no Firestore com as informações do plano
                         const userProfileRef = doc(db, "users", user.uid);
                         const expirationDate = new Date();
                         expirationDate.setDate(expirationDate.getDate() + codeData.durationDays);
                         
-                        await updateDoc(userProfileRef, {
+                        await setDoc(userProfileRef, {
+                            email: user.email,
                             plan: {
                                 type: `${codeData.durationDays} dias`,
                                 expiresAt: expirationDate
                             },
                             status: "active"
-                        });
+                        }, { merge: true });
 
                         alert("Seu acesso foi ativado com sucesso! Você será redirecionado para o dashboard.");
-                        window.location.href = 'dashboard.html';
+                        redirectTo('dashboard.html');
                     }
                 } else {
                     alert("Código de ativação inválido.");
