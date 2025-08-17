@@ -124,7 +124,7 @@
 
         document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = './index.html'));
 
-        // --- LÓGICA DA ORDEM DE CHEGADA ---
+        // --- LÓGICA DA ORDEM DE CHEGADA (CORRIGIDA) ---
         const waitingListContainer = document.getElementById('waiting-list');
         const noClientsMessage = document.getElementById('no-clients-message');
 
@@ -132,33 +132,34 @@
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
 
-            // Consulta simplificada que não exige índice composto manual
+            // Consulta que busca primeiro pelas vendas do dia, e depois filtra por status.
+            // Isso evita a necessidade de um índice composto manual no Firestore.
             const q = query(
                 collection(db, "sales"),
-                where("status", "==", "waiting"),
+                where("createdAt", ">=", Timestamp.fromDate(todayStart)),
                 orderBy("createdAt", "asc")
             );
 
             onSnapshot(q, (querySnapshot) => {
-                const salesToday = [];
+                const waitingSales = [];
                 querySnapshot.forEach(doc => {
                     const sale = { id: doc.id, ...doc.data() };
-                    // Filtra os resultados do dia no lado do cliente
-                    if (sale.createdAt.toDate() >= todayStart) {
-                        salesToday.push(sale);
+                    // Filtra os resultados para status "waiting" no lado do cliente
+                    if (sale.status === 'waiting') {
+                        waitingSales.push(sale);
                     }
                 });
 
                 waitingListContainer.innerHTML = '';
                 waitingListContainer.appendChild(noClientsMessage);
 
-                if (salesToday.length === 0) {
+                if (waitingSales.length === 0) {
                     noClientsMessage.classList.remove('hidden');
                 } else {
                     noClientsMessage.classList.add('hidden');
                 }
 
-                salesToday.forEach((sale) => {
+                waitingSales.forEach((sale) => {
                     const clientElement = document.createElement('div');
                     clientElement.className = 'waiting-item flex items-center justify-between bg-gray-50 p-4 rounded-lg shadow-sm';
                     clientElement.id = `sale-${sale.id}`;
