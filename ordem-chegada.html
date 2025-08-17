@@ -33,6 +33,13 @@
         .sidebar-link svg {
             margin-right: 0.75rem;
         }
+        .waiting-item {
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .waiting-item.removing {
+            opacity: 0;
+            transform: translateX(-100px);
+        }
     </style>
 </head>
 <body class="flex h-screen">
@@ -43,19 +50,19 @@
             <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
         </div>
         <nav class="mt-6 px-4">
-            <a href="dashboard.html" class="sidebar-link">
+            <a href="./dashboard.html" class="sidebar-link">
                 <i data-lucide="layout-dashboard"></i> Dashboard
             </a>
-            <a href="clientes.html" class="sidebar-link">
+            <a href="./clientes.html" class="sidebar-link">
                 <i data-lucide="users"></i> Clientes
             </a>
-            <a href="caixa.html" class="sidebar-link">
+            <a href="./caixa.html" class="sidebar-link">
                 <i data-lucide="dollar-sign"></i> Caixa
             </a>
-            <a href="ordem-chegada.html" class="sidebar-link active">
+            <a href="./ordem-chegada.html" class="sidebar-link active">
                 <i data-lucide="list-ordered"></i> Ordem de Chegada
             </a>
-            <a href="patio.html" class="sidebar-link">
+            <a href="./patio.html" class="sidebar-link">
                 <i data-lucide="sun"></i> Pátio
             </a>
         </nav>
@@ -72,32 +79,13 @@
             <h2 class="text-4xl text-gray-800">Ordem de Chegada</h2>
         </header>
 
-        <!-- Conteúdo da Página -->
         <div class="bg-white p-6 rounded-2xl shadow-md">
-            <div class="space-y-4">
-                <!-- Item da Fila -->
-                <div class="flex items-center justify-between p-4 border rounded-lg">
-                    <div class="flex items-center gap-4">
-                        <span class="text-2xl font-bold text-[#B76E79]">1º</span>
-                        <span class="font-medium text-gray-800 text-lg">Juliana Paes</span>
-                    </div>
-                    <button class="bg-green-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-green-600">Atender</button>
-                </div>
-                <!-- Item da Fila -->
-                <div class="flex items-center justify-between p-4 border rounded-lg">
-                    <div class="flex items-center gap-4">
-                        <span class="text-2xl font-bold text-[#B76E79]">2º</span>
-                        <span class="font-medium text-gray-800 text-lg">Fernanda Torres</span>
-                    </div>
-                     <button class="bg-green-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-green-600">Atender</button>
-                </div>
-                <!-- Item da Fila -->
-                <div class="flex items-center justify-between p-4 border rounded-lg">
-                    <div class="flex items-center gap-4">
-                        <span class="text-2xl font-bold text-[#B76E79]">3º</span>
-                        <span class="font-medium text-gray-800 text-lg">Débora Secco</span>
-                    </div>
-                     <button class="bg-green-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-green-600">Atender</button>
+            <h3 class="text-2xl text-gray-800 mb-4">Aguardando Atendimento</h3>
+            <div id="waiting-list" class="space-y-4">
+                <!-- Lista de clientes será populada dinamicamente -->
+                <div id="no-clients-message" class="text-center py-8 text-gray-500 hidden">
+                    <i data-lucide="users" class="mx-auto w-12 h-12 mb-2"></i>
+                    <p>Nenhuma cliente aguardando no momento.</p>
                 </div>
             </div>
         </div>
@@ -107,10 +95,10 @@
       lucide.createIcons();
     </script>
     
-    <!-- Firebase e Script de Autenticação -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, query, where, onSnapshot, orderBy, doc, updateDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
@@ -123,19 +111,90 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
 
+        // --- LÓGICA DE AUTENTICAÇÃO ---
         onAuthStateChanged(auth, (user) => {
-            if (!user) {
-                window.location.href = 'login.html';
+            if (user) {
+                listenForWaitingClients();
+            } else {
+                window.location.href = './index.html';
             }
         });
 
-        const logoutBtn = document.getElementById('logout-btn');
-        logoutBtn.addEventListener('click', () => {
-            signOut(auth).then(() => {
-                window.location.href = 'login.html';
+        document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = './index.html'));
+
+        // --- LÓGICA DA ORDEM DE CHEGADA ---
+        const waitingListContainer = document.getElementById('waiting-list');
+        const noClientsMessage = document.getElementById('no-clients-message');
+
+        function listenForWaitingClients() {
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+
+            const q = query(
+                collection(db, "sales"),
+                where("createdAt", ">=", Timestamp.fromDate(todayStart)),
+                where("status", "==", "waiting"),
+                orderBy("createdAt", "asc")
+            );
+
+            onSnapshot(q, (querySnapshot) => {
+                // Limpa a lista, mas mantém a mensagem de "nenhum cliente"
+                waitingListContainer.innerHTML = '';
+                waitingListContainer.appendChild(noClientsMessage);
+
+                if (querySnapshot.empty) {
+                    noClientsMessage.classList.remove('hidden');
+                } else {
+                    noClientsMessage.classList.add('hidden');
+                }
+
+                querySnapshot.forEach((doc) => {
+                    const sale = { id: doc.id, ...doc.data() };
+                    const clientElement = document.createElement('div');
+                    clientElement.className = 'waiting-item flex items-center justify-between bg-gray-50 p-4 rounded-lg shadow-sm';
+                    clientElement.id = `sale-${sale.id}`;
+                    
+                    clientElement.innerHTML = `
+                        <div class="flex items-center gap-4">
+                            <span class="font-mono text-2xl font-bold text-[#B76E79] bg-white px-3 py-1 rounded-md">${sale.password}</span>
+                            <span class="font-semibold text-gray-700 text-lg">${sale.clientName}</span>
+                        </div>
+                        <button data-id="${sale.id}" class="call-client-btn bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 flex items-center gap-2">
+                            <i data-lucide="check" class="w-5 h-5"></i> Chamar
+                        </button>
+                    `;
+                    waitingListContainer.appendChild(clientElement);
+                });
+                lucide.createIcons();
             });
+        }
+
+        // Event listener para o botão "Chamar"
+        waitingListContainer.addEventListener('click', async (e) => {
+            const callButton = e.target.closest('.call-client-btn');
+            if (callButton) {
+                const saleId = callButton.dataset.id;
+                const saleRef = doc(db, "sales", saleId);
+                
+                try {
+                    // Adiciona a classe para a animação de saída
+                    const itemToRemove = document.getElementById(`sale-${saleId}`);
+                    if(itemToRemove) itemToRemove.classList.add('removing');
+
+                    // Espera a animação terminar antes de atualizar o banco
+                    setTimeout(async () => {
+                         await updateDoc(saleRef, { status: "called" });
+                    }, 500); // 500ms é a duração da transição no CSS
+                   
+                } catch (error) {
+                    console.error("Erro ao atualizar status da venda: ", error);
+                    alert("Ocorreu um erro ao chamar a cliente.");
+                }
+            }
         });
+
     </script>
 </body>
 </html>
