@@ -33,13 +33,6 @@
         .sidebar-link svg {
             margin-right: 0.75rem;
         }
-        /* Estilos para o Modal */
-        .modal-backdrop {
-            transition: opacity 0.3s ease;
-        }
-        .modal-content {
-            transition: transform 0.3s ease;
-        }
     </style>
 </head>
 <body class="flex h-screen opacity-0 transition-opacity duration-300">
@@ -89,12 +82,12 @@
                 <div class="bg-white p-6 rounded-2xl shadow-md">
                     <h3 class="text-2xl text-gray-800 mb-4">Pesquisar Clientes</h3>
                     <div class="flex flex-wrap gap-4">
-                        <input type="text" id="search-input" placeholder="Digite nome ou telefone..." class="flex-grow p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]">
+                        <input type="text" id="search-input" placeholder="Digite nome ou telefone para buscar..." class="flex-grow p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]">
                         <button id="birthday-filter-btn" class="bg-pink-100 text-[#B76E79] px-4 py-2 rounded-lg hover:bg-pink-200 flex items-center gap-2">
                             <i data-lucide="cake"></i> Aniversariantes do Mês
                         </button>
                     </div>
-                    <p class="text-sm text-gray-500 mt-2">Busque por nome, telefone ou filtre pelos aniversariantes do mês atual.</p>
+                    <p class="text-sm text-gray-500 mt-2">A busca é feita em tempo real. Para limpar o filtro de aniversariantes, apague o campo de busca.</p>
                 </div>
 
                 <!-- Lista de Clientes -->
@@ -129,11 +122,12 @@
         </div>
     </main>
     
-    <!-- Modal de Cadastro de Cliente -->
+    <!-- Modal de Cadastro/Edição de Cliente -->
     <div id="client-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
-            <h3 class="text-2xl text-gray-800 mb-6">Cadastrar Nova Cliente</h3>
-            <form id="new-client-form">
+            <h3 id="modal-title" class="text-2xl text-gray-800 mb-6">Cadastrar Nova Cliente</h3>
+            <form id="client-form">
+                <input type="hidden" id="client-id">
                 <div class="mb-4">
                     <label for="client-name" class="block text-gray-600 mb-2">Nome Completo</label>
                     <input type="text" id="client-name" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
@@ -162,7 +156,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, getDocs, orderBy, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
@@ -192,74 +186,174 @@
             signOut(auth).then(() => window.location.href = 'index.html');
         });
 
-        // --- FUNÇÕES DA PÁGINA ---
-        const clientsList = document.getElementById('clients-list');
+        // --- VARIÁVEIS GLOBAIS DA PÁGINA ---
+        const clientsListEl = document.getElementById('clients-list');
+        let allClientsData = []; // Cache para guardar os dados dos clientes
+
+        // --- FUNÇÕES DE RENDERIZAÇÃO E DADOS ---
+        function renderClients(clientsToRender) {
+            clientsListEl.innerHTML = '';
+            if (clientsToRender.length === 0) {
+                clientsListEl.innerHTML = '<p class="text-gray-500">Nenhum cliente encontrado.</p>';
+                return;
+            }
+
+            const currentMonth = new Date().getMonth() + 1;
+
+            clientsToRender.forEach(client => {
+                const clientElement = document.createElement('div');
+                clientElement.className = 'client-item flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+                clientElement.dataset.name = client.name.toLowerCase();
+                clientElement.dataset.phone = client.phone;
+                clientElement.dataset.birthdate = client.birthdate;
+
+                const clientBirthMonth = client.birthdate ? new Date(client.birthdate + 'T00:00:00').getMonth() + 1 : 0;
+                const isBirthdayMonth = clientBirthMonth === currentMonth;
+
+                clientElement.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        ${isBirthdayMonth ? '<i data-lucide="cake" class="text-pink-500"></i>' : ''}
+                        <div>
+                            <p class="font-semibold text-gray-700">${client.name}</p>
+                            <p class="text-sm text-gray-500">${client.phone}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button class="edit-btn p-2 text-gray-500 hover:text-blue-600" data-id="${client.id}" title="Editar Cliente">
+                            <i data-lucide="file-pen-line" class="pointer-events-none"></i>
+                        </button>
+                        <button class="delete-btn p-2 text-gray-500 hover:text-red-600" data-id="${client.id}" data-name="${client.name}" title="Excluir Cliente">
+                            <i data-lucide="trash-2" class="pointer-events-none"></i>
+                        </button>
+                    </div>
+                `;
+                clientsListEl.appendChild(clientElement);
+            });
+            lucide.createIcons();
+        }
 
         async function loadAllClients() {
             const q = query(collection(db, "clients"), orderBy("createdAt", "desc"));
             try {
                 const querySnapshot = await getDocs(q);
-                clientsList.innerHTML = ''; // Limpa a lista antes de adicionar os novos itens
-                if (querySnapshot.empty) {
-                    clientsList.innerHTML = '<p class="text-gray-500">Nenhum cliente cadastrado.</p>';
-                    return;
-                }
-                querySnapshot.forEach((doc) => {
-                    const client = doc.data();
-                    const clientElement = document.createElement('div');
-                    clientElement.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
-                    
-                    const formattedDate = client.createdAt.toDate().toLocaleDateString('pt-BR');
-
-                    clientElement.innerHTML = `
-                        <div>
-                            <p class="font-semibold text-gray-700">${client.name}</p>
-                            <p class="text-sm text-gray-500">${client.phone}</p>
-                        </div>
-                        <span class="text-sm text-gray-600">Cadastrado em: ${formattedDate}</span>
-                    `;
-                    clientsList.appendChild(clientElement);
-                });
+                allClientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderClients(allClientsData);
             } catch (error) {
                 console.error("Erro ao carregar clientes: ", error);
-                clientsList.innerHTML = '<p class="text-red-500">Erro ao carregar a lista de clientes.</p>';
+                clientsListEl.innerHTML = '<p class="text-red-500">Erro ao carregar a lista de clientes.</p>';
             }
         }
 
         function loadPageData() {
-            console.log("Usuário autenticado, carregando dados da página de clientes...");
             loadAllClients();
         }
 
-        // --- LÓGICA DO MODAL ---
-        const modal = document.getElementById('client-modal');
-        const addClientBtn = document.getElementById('add-client-btn');
-        const cancelBtn = document.getElementById('cancel-btn');
-
-        addClientBtn.addEventListener('click', () => modal.classList.remove('hidden'));
-        const closeModal = () => modal.classList.add('hidden');
-        cancelBtn.addEventListener('click', closeModal);
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) closeModal();
+        // --- LÓGICA DE PESQUISA E FILTROS ---
+        const searchInput = document.getElementById('search-input');
+        searchInput.addEventListener('input', () => {
+            const searchTerm = searchInput.value.toLowerCase();
+            const filteredClients = allClientsData.filter(client => 
+                client.name.toLowerCase().includes(searchTerm) || 
+                client.phone.includes(searchTerm)
+            );
+            renderClients(filteredClients);
         });
 
-        // --- LÓGICA DE CADASTRO DE CLIENTE ---
-        const newClientForm = document.getElementById('new-client-form');
-        newClientForm.addEventListener('submit', async (e) => {
+        const birthdayBtn = document.getElementById('birthday-filter-btn');
+        birthdayBtn.addEventListener('click', () => {
+            const currentMonth = new Date().getMonth() + 1;
+            const birthdayClients = allClientsData.filter(client => {
+                if (!client.birthdate) return false;
+                const birthMonth = new Date(client.birthdate + 'T00:00:00').getMonth() + 1;
+                return birthMonth === currentMonth;
+            });
+            renderClients(birthdayClients);
+        });
+
+        // --- LÓGICA DO MODAL (ADD/EDIT) ---
+        const modal = document.getElementById('client-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const clientForm = document.getElementById('client-form');
+        const clientIdField = document.getElementById('client-id');
+        const clientNameField = document.getElementById('client-name');
+        const clientPhoneField = document.getElementById('client-phone');
+        const clientBirthdateField = document.getElementById('client-birthdate');
+        
+        const openModalForNew = () => {
+            modalTitle.textContent = 'Cadastrar Nova Cliente';
+            clientForm.reset();
+            clientIdField.value = '';
+            modal.classList.remove('hidden');
+        };
+
+        const openModalForEdit = (client) => {
+            modalTitle.textContent = 'Editar Cliente';
+            clientForm.reset();
+            clientIdField.value = client.id;
+            clientNameField.value = client.name;
+            clientPhoneField.value = client.phone;
+            clientBirthdateField.value = client.birthdate;
+            modal.classList.remove('hidden');
+        };
+
+        document.getElementById('add-client-btn').addEventListener('click', openModalForNew);
+        document.getElementById('cancel-btn').addEventListener('click', () => modal.classList.add('hidden'));
+
+        clientForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const name = document.getElementById('client-name').value;
-            const phone = document.getElementById('client-phone').value;
-            const birthdate = document.getElementById('client-birthdate').value;
+            const clientId = clientIdField.value;
+            const clientData = {
+                name: clientNameField.value,
+                phone: clientPhoneField.value,
+                birthdate: clientBirthdateField.value,
+            };
 
             try {
-                await addDoc(collection(db, "clients"), { name, phone, birthdate, createdAt: new Date() });
-                alert("Cliente cadastrada com sucesso!");
-                newClientForm.reset();
-                closeModal();
-                loadAllClients(); // ATUALIZA A LISTA APÓS CADASTRAR
+                if (clientId) { // Editando cliente existente
+                    const clientRef = doc(db, "clients", clientId);
+                    await updateDoc(clientRef, clientData);
+                    alert("Cliente atualizado com sucesso!");
+                } else { // Criando novo cliente
+                    clientData.createdAt = new Date();
+                    await addDoc(collection(db, "clients"), clientData);
+                    alert("Cliente cadastrado com sucesso!");
+                }
+                modal.classList.add('hidden');
+                loadAllClients();
             } catch (error) {
-                console.error("Erro ao adicionar cliente: ", error);
-                alert("Erro ao cadastrar cliente.");
+                console.error("Erro ao salvar cliente: ", error);
+                alert("Erro ao salvar cliente.");
+            }
+        });
+
+        // --- LÓGICA DE AÇÕES (EDIT/DELETE) ---
+        clientsListEl.addEventListener('click', async (e) => {
+            const target = e.target.closest('button');
+            if (!target) return;
+
+            const clientId = target.dataset.id;
+
+            if (target.classList.contains('edit-btn')) {
+                const clientToEdit = allClientsData.find(c => c.id === clientId);
+                if (clientToEdit) openModalForEdit(clientToEdit);
+            }
+
+            if (target.classList.contains('delete-btn')) {
+                // Usando um prompt simples para confirmação, pois alert/confirm não são permitidos
+                const clientName = target.dataset.name;
+                const confirmation = prompt(`Para excluir, digite o nome do cliente: "${clientName}"`);
+                if (confirmation === clientName) {
+                    try {
+                        await deleteDoc(doc(db, "clients", clientId));
+                        alert("Cliente excluído com sucesso!");
+                        loadAllClients();
+                    } catch (error) {
+                        console.error("Erro ao excluir cliente: ", error);
+                        alert("Erro ao excluir cliente.");
+                    }
+                } else if (confirmation !== null) {
+                    alert("O nome digitado não corresponde. A exclusão foi cancelada.");
+                }
             }
         });
 
