@@ -33,6 +33,13 @@
         .sidebar-link svg {
             margin-right: 0.75rem;
         }
+        .patio-card {
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .patio-card.removing {
+            opacity: 0;
+            transform: scale(0.95);
+        }
     </style>
 </head>
 <body class="flex h-screen">
@@ -43,19 +50,19 @@
             <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
         </div>
         <nav class="mt-6 px-4">
-            <a href="dashboard.html" class="sidebar-link">
+            <a href="./dashboard.html" class="sidebar-link">
                 <i data-lucide="layout-dashboard"></i> Dashboard
             </a>
-            <a href="clientes.html" class="sidebar-link">
+            <a href="./clientes.html" class="sidebar-link">
                 <i data-lucide="users"></i> Clientes
             </a>
-            <a href="caixa.html" class="sidebar-link">
+            <a href="./caixa.html" class="sidebar-link">
                 <i data-lucide="dollar-sign"></i> Caixa
             </a>
-            <a href="ordem-chegada.html" class="sidebar-link">
+            <a href="./ordem-chegada.html" class="sidebar-link">
                 <i data-lucide="list-ordered"></i> Ordem de Chegada
             </a>
-            <a href="patio.html" class="sidebar-link active">
+            <a href="./patio.html" class="sidebar-link active">
                 <i data-lucide="sun"></i> Pátio
             </a>
         </nav>
@@ -69,38 +76,16 @@
     <!-- Main Content -->
     <main class="flex-1 p-8 overflow-y-auto">
         <header class="flex justify-between items-center mb-8">
-            <h2 class="text-4xl text-gray-800">Clientes no Pátio</h2>
+            <h2 class="text-4xl text-gray-800">Pátio</h2>
         </header>
 
-        <!-- Conteúdo da Página -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Card Cliente no Pátio -->
-            <div class="bg-white p-6 rounded-2xl shadow-md text-center">
-                <img src="https://placehold.co/80x80/FADADD/B76E79?text=J" alt="Avatar" class="rounded-full mx-auto mb-4">
-                <h3 class="text-xl font-bold text-gray-800">Joana Silva</h3>
-                <p class="text-gray-500">Chegou às 09:15</p>
-                <div class="mt-4 border-t pt-4">
-                    <button class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">Finalizar Sessão</button>
-                </div>
-            </div>
-             <!-- Card Cliente no Pátio -->
-            <div class="bg-white p-6 rounded-2xl shadow-md text-center">
-                <img src="https://placehold.co/80x80/FADADD/B76E79?text=M" alt="Avatar" class="rounded-full mx-auto mb-4">
-                <h3 class="text-xl font-bold text-gray-800">Mariana Costa</h3>
-                <p class="text-gray-500">Chegou às 09:22</p>
-                <div class="mt-4 border-t pt-4">
-                    <button class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">Finalizar Sessão</button>
-                </div>
-            </div>
-             <!-- Card Cliente no Pátio -->
-            <div class="bg-white p-6 rounded-2xl shadow-md text-center">
-                <img src="https://placehold.co/80x80/FADADD/B76E79?text=L" alt="Avatar" class="rounded-full mx-auto mb-4">
-                <h3 class="text-xl font-bold text-gray-800">Larissa Andrade</h3>
-                <p class="text-gray-500">Chegou às 09:30</p>
-                <div class="mt-4 border-t pt-4">
-                    <button class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">Finalizar Sessão</button>
-                </div>
-            </div>
+        <div id="patio-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Cards de clientes serão populados dinamicamente -->
+        </div>
+        
+        <div id="no-clients-patio" class="text-center py-16 text-gray-500 hidden">
+            <i data-lucide="sun" class="mx-auto w-16 h-16 mb-4"></i>
+            <p class="text-xl">O pátio está vazio no momento.</p>
         </div>
     </main>
 
@@ -108,10 +93,10 @@
       lucide.createIcons();
     </script>
     
-    <!-- Firebase e Script de Autenticação -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, query, where, onSnapshot, orderBy, doc, updateDoc, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
@@ -124,19 +109,135 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
+        let allProducts = [];
 
+        // --- LÓGICA DE AUTENTICAÇÃO E CARREGAMENTO ---
         onAuthStateChanged(auth, (user) => {
-            if (!user) {
-                window.location.href = 'login.html';
+            if (user) {
+                loadProductsAndListenForClients();
+            } else {
+                window.location.href = './index.html';
             }
         });
 
-        const logoutBtn = document.getElementById('logout-btn');
-        logoutBtn.addEventListener('click', () => {
-            signOut(auth).then(() => {
-                window.location.href = 'login.html';
+        document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = './index.html'));
+
+        // Carrega os produtos uma vez para categorizar os itens da venda
+        async function loadProductsAndListenForClients() {
+            try {
+                const productsSnapshot = await getDocs(collection(db, "products"));
+                allProducts = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                listenForPatioClients();
+            } catch (error) {
+                console.error("Erro ao carregar produtos:", error);
+            }
+        }
+
+        // --- LÓGICA DO PÁTIO ---
+        const patioListContainer = document.getElementById('patio-list');
+        const noClientsMessage = document.getElementById('no-clients-patio');
+
+        function listenForPatioClients() {
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+
+            const q = query(
+                collection(db, "sales"),
+                where("createdAt", ">=", Timestamp.fromDate(todayStart)),
+                where("status", "==", "called"),
+                orderBy("createdAt", "asc")
+            );
+
+            onSnapshot(q, (querySnapshot) => {
+                patioListContainer.innerHTML = ''; // Limpa a lista a cada atualização
+
+                if (querySnapshot.empty) {
+                    noClientsMessage.classList.remove('hidden');
+                } else {
+                    noClientsMessage.classList.add('hidden');
+                }
+
+                querySnapshot.forEach((doc) => {
+                    const sale = { id: doc.id, ...doc.data() };
+                    
+                    // Categoriza os itens da venda
+                    const bronzeItems = [];
+                    const consumableItems = [];
+                    const extraItems = [];
+
+                    if (sale.items && Array.isArray(sale.items)) {
+                        sale.items.forEach(saleItem => {
+                            const productDetails = allProducts.find(p => p.name === saleItem.name);
+                            if (productDetails) {
+                                if (productDetails.category === 'bronze') bronzeItems.push(saleItem.name);
+                                else if (productDetails.category === 'consumable') consumableItems.push(saleItem.name);
+                                else if (productDetails.category === 'extra') extraItems.push(saleItem.name);
+                            }
+                        });
+                    }
+
+                    const card = document.createElement('div');
+                    card.className = 'patio-card bg-white p-5 rounded-2xl shadow-md flex flex-col';
+                    card.id = `sale-${sale.id}`;
+
+                    card.innerHTML = `
+                        <div class="flex-grow">
+                            <h3 class="text-2xl text-gray-800 font-bold mb-4">${sale.clientName}</h3>
+                            
+                            ${bronzeItems.length > 0 ? `
+                            <div class="mb-3">
+                                <h4 class="font-semibold text-sm text-[#B76E79] mb-1">Bronze</h4>
+                                <p class="text-gray-600">${bronzeItems.join(', ')}</p>
+                            </div>` : ''}
+
+                            ${consumableItems.length > 0 ? `
+                            <div class="mb-3">
+                                <h4 class="font-semibold text-sm text-[#B76E79] mb-1">Consumo</h4>
+                                <p class="text-gray-600">${consumableItems.join(', ')}</p>
+                            </div>` : ''}
+
+                            ${extraItems.length > 0 ? `
+                            <div class="mb-3">
+                                <h4 class="font-semibold text-sm text-[#B76E79] mb-1">Adicionais</h4>
+                                <p class="text-gray-600">${extraItems.join(', ')}</p>
+                            </div>` : ''}
+                        </div>
+                        <button data-id="${sale.id}" class="finish-btn mt-4 w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center justify-center gap-2">
+                            <i data-lucide="party-popper" class="w-5 h-5"></i> Finalizar
+                        </button>
+                    `;
+                    patioListContainer.appendChild(card);
+                });
+                lucide.createIcons();
             });
+        }
+
+        // Event listener para o botão "Finalizar"
+        patioListContainer.addEventListener('click', async (e) => {
+            const finishButton = e.target.closest('.finish-btn');
+            if (finishButton) {
+                if (!confirm('Confirmar a finalização do serviço para esta cliente?')) return;
+
+                const saleId = finishButton.dataset.id;
+                const saleRef = doc(db, "sales", saleId);
+                
+                try {
+                    const cardToRemove = document.getElementById(`sale-${saleId}`);
+                    if (cardToRemove) cardToRemove.classList.add('removing');
+
+                    setTimeout(async () => {
+                        await updateDoc(saleRef, { status: "finished" });
+                    }, 500);
+                   
+                } catch (error) {
+                    console.error("Erro ao finalizar serviço: ", error);
+                    alert("Ocorreu um erro ao finalizar o serviço.");
+                    if (cardToRemove) cardToRemove.classList.remove('removing');
+                }
+            }
         });
+
     </script>
 </body>
 </html>
