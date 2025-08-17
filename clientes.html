@@ -178,10 +178,14 @@
         const db = getFirestore(app);
 
         // --- LÓGICA DE AUTENTICAÇÃO ---
-        onAuthStateChanged(auth, (user) => {
+        // Espera a verificação inicial do Firebase ser concluída
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            unsubscribe(); // Para de ouvir após a primeira verificação
             if (user) {
-                // Usuário está logado, exibe o conteúdo da página
+                // Usuário está logado, então exibe a página
                 document.body.classList.remove('opacity-0');
+                // Agora podemos carregar os dados da página
+                loadPageData(); 
             } else {
                 // Usuário não está logado, redireciona para o login
                 window.location.href = 'index.html';
@@ -191,6 +195,13 @@
         document.getElementById('logout-btn').addEventListener('click', () => {
             signOut(auth).then(() => window.location.href = 'index.html');
         });
+
+        // --- FUNÇÃO PRINCIPAL PARA CARREGAR DADOS ---
+        function loadPageData() {
+            // Coloque aqui as funções que buscam dados do Firestore
+            console.log("Usuário autenticado, carregando dados da página de clientes...");
+            // Exemplo: loadRecentClients();
+        }
 
         // --- LÓGICA DO MODAL ---
         const modal = document.getElementById('client-modal');
