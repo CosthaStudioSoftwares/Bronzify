@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ativação - Bronzify</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        h1, h2 {
+            font-family: 'Playfair Display', serif;
+        }
+        .bg-gradient-bronzify {
+            background: linear-gradient(135deg, #FADADD 0%, #B76E79 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen">
+
+    <div class="container mx-auto p-4 flex justify-center">
+        <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center">
+            <h1 class="text-4xl text-[#B76E79] mb-4">Bronzify</h1>
+            <h2 class="text-2xl text-gray-700 mb-6">Ative seu Acesso</h2>
+            <p class="text-gray-600 mb-6">Insira o código de ativação que você recebeu para liberar seu acesso ao sistema.</p>
+            
+            <form id="activation-form">
+                <div class="mb-4">
+                    <input type="text" id="activation-code" placeholder="SEU-CODIGO-AQUI" class="w-full text-center tracking-widest font-mono px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
+                </div>
+                <button type="submit" class="w-full bg-gradient-bronzify text-white py-3 rounded-lg hover:opacity-90 transition-opacity duration-300 font-semibold">Ativar Agora</button>
+            </form>
+
+            <div class="mt-8">
+                <p class="text-gray-600">Precisa de ajuda?</p>
+                <a href="https://wa.me/5579999462052?text=Ol%C3%A1%2C%20eu%20quero%20ativar%20o%20meu%20login%20no%20Bronzify" target="_blank" class="inline-block mt-2 bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors">
+                    Suporte via WhatsApp
+                </a>
+            </div>
+             <p class="text-center text-gray-600 mt-6">
+                Já tem acesso? <a href="login.html" class="text-[#B76E79] hover:underline">Faça login</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs e Lógica -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+        // TODO: Adicione a configuração do seu projeto Firebase aqui
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY",
+            authDomain: "SEU_AUTH_DOMAIN",
+            projectId: "SEU_PROJECT_ID",
+            storageBucket: "SEU_STORAGE_BUCKET",
+            messagingSenderId: "SEU_MESSAGING_SENDER_ID",
+            appId: "SEU_APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        const activationForm = document.getElementById('activation-form');
+
+        activationForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const code = document.getElementById('activation-code').value.trim().toUpperCase();
+            
+            if (!code) {
+                alert("Por favor, insira um código.");
+                return;
+            }
+
+            const user = auth.currentUser;
+            if (!user) {
+                alert("Você precisa estar logado para ativar um código. Se ainda não tem conta, crie uma na tela de login.");
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Lógica para verificar e usar o código no Firestore
+            const codeRef = doc(db, "activationCodes", code);
+            
+            try {
+                const codeSnap = await getDoc(codeRef);
+
+                if (codeSnap.exists()) {
+                    const codeData = codeSnap.data();
+                    if (codeData.isUsed) {
+                        alert("Este código já foi utilizado.");
+                    } else {
+                        // O código é válido e não foi usado.
+                        // 1. Atualize o documento do código para 'isUsed: true'
+                        await updateDoc(codeRef, {
+                            isUsed: true,
+                            activatedBy: user.uid,
+                            activationDate: new Date()
+                        });
+
+                        // 2. Atualize o perfil do usuário no Firestore com as informações do plano
+                        const userProfileRef = doc(db, "users", user.uid);
+                        const expirationDate = new Date();
+                        expirationDate.setDate(expirationDate.getDate() + codeData.durationDays);
+                        
+                        await updateDoc(userProfileRef, {
+                            plan: {
+                                type: `${codeData.durationDays} dias`,
+                                expiresAt: expirationDate
+                            },
+                            status: "active"
+                        });
+
+                        alert("Seu acesso foi ativado com sucesso! Você será redirecionado para o dashboard.");
+                        window.location.href = 'dashboard.html';
+                    }
+                } else {
+                    alert("Código de ativação inválido.");
+                }
+            } catch (error) {
+                console.error("Erro ao ativar código: ", error);
+                alert("Ocorreu um erro ao tentar ativar seu código. Tente novamente.");
+            }
+        });
+    </script>
+</body>
+</html>

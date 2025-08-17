@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pátio - Bronzify</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #FFF9F9;
+        }
+        h1, h2, h3, h4 {
+            font-family: 'Playfair Display', serif;
+        }
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.75rem;
+            color: #4A5568;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background-color: #FADADD;
+            color: #B76E79;
+        }
+        .sidebar-link svg {
+            margin-right: 0.75rem;
+        }
+    </style>
+</head>
+<body class="flex h-screen">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white shadow-lg flex-shrink-0">
+        <div class="p-6">
+            <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
+        </div>
+        <nav class="mt-6 px-4">
+            <a href="dashboard.html" class="sidebar-link">
+                <i data-lucide="layout-dashboard"></i> Dashboard
+            </a>
+            <a href="clientes.html" class="sidebar-link">
+                <i data-lucide="users"></i> Clientes
+            </a>
+            <a href="caixa.html" class="sidebar-link">
+                <i data-lucide="dollar-sign"></i> Caixa
+            </a>
+            <a href="ordem-chegada.html" class="sidebar-link">
+                <i data-lucide="list-ordered"></i> Ordem de Chegada
+            </a>
+            <a href="patio.html" class="sidebar-link active">
+                <i data-lucide="sun"></i> Pátio
+            </a>
+        </nav>
+        <div class="absolute bottom-0 w-64 p-4">
+             <button id="logout-btn" class="w-full flex items-center justify-center gap-2 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors duration-300">
+                <i data-lucide="log-out"></i> Sair
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-8 overflow-y-auto">
+        <header class="flex justify-between items-center mb-8">
+            <h2 class="text-4xl text-gray-800">Clientes no Pátio</h2>
+        </header>
+
+        <!-- Conteúdo da Página -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Card Cliente no Pátio -->
+            <div class="bg-white p-6 rounded-2xl shadow-md text-center">
+                <img src="https://placehold.co/80x80/FADADD/B76E79?text=J" alt="Avatar" class="rounded-full mx-auto mb-4">
+                <h3 class="text-xl font-bold text-gray-800">Joana Silva</h3>
+                <p class="text-gray-500">Chegou às 09:15</p>
+                <div class="mt-4 border-t pt-4">
+                    <button class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">Finalizar Sessão</button>
+                </div>
+            </div>
+             <!-- Card Cliente no Pátio -->
+            <div class="bg-white p-6 rounded-2xl shadow-md text-center">
+                <img src="https://placehold.co/80x80/FADADD/B76E79?text=M" alt="Avatar" class="rounded-full mx-auto mb-4">
+                <h3 class="text-xl font-bold text-gray-800">Mariana Costa</h3>
+                <p class="text-gray-500">Chegou às 09:22</p>
+                <div class="mt-4 border-t pt-4">
+                    <button class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">Finalizar Sessão</button>
+                </div>
+            </div>
+             <!-- Card Cliente no Pátio -->
+            <div class="bg-white p-6 rounded-2xl shadow-md text-center">
+                <img src="https://placehold.co/80x80/FADADD/B76E79?text=L" alt="Avatar" class="rounded-full mx-auto mb-4">
+                <h3 class="text-xl font-bold text-gray-800">Larissa Andrade</h3>
+                <p class="text-gray-500">Chegou às 09:30</p>
+                <div class="mt-4 border-t pt-4">
+                    <button class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">Finalizar Sessão</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+      lucide.createIcons();
+    </script>
+    
+    <!-- Firebase e Script de Autenticação -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
+            authDomain: "bronzify-b2491.firebaseapp.com",
+            projectId: "bronzify-b2491",
+            storageBucket: "bronzify-b2491.appspot.com",
+            messagingSenderId: "399230151633",
+            appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = 'login.html';
+            }
+        });
+
+        const logoutBtn = document.getElementById('logout-btn');
+        logoutBtn.addEventListener('click', () => {
+            signOut(auth).then(() => {
+                window.location.href = 'login.html';
+            });
+        });
+    </script>
+</body>
+</html>
