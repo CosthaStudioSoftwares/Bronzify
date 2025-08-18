@@ -150,7 +150,7 @@
 
         document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = 'index.html'));
 
-        // --- LÓGICA DO MODO ADMINISTRADOR ---
+        // --- LÓGICA DO MODO ADMINISTRADOR (INDIVIDUAL POR USUÁRIO) ---
         const adminModeBtn = document.getElementById('admin-mode-btn');
         const adminPasswordModal = document.getElementById('admin-password-modal');
         const adminPasswordForm = document.getElementById('admin-password-form');
@@ -191,13 +191,16 @@
                 isAdminModeActive = false;
                 updateUIVisibility();
             } else {
-                // Verifica se a senha já foi definida para mostrar a mensagem correta
-                const configRef = doc(db, "admin_config", "password");
+                const user = auth.currentUser;
+                if (!user) return; // Sai se não houver usuário logado
+
+                const configRef = doc(db, "admin_passwords", user.uid);
                 const configSnap = await getDoc(configRef);
+                
                 if (!configSnap.exists()) {
                     adminModalSubtitle.textContent = 'Primeiro acesso. Crie a sua senha de administrador.';
                 } else {
-                    adminModalSubtitle.textContent = 'Insira a senha para ver os dados.';
+                    adminModalSubtitle.textContent = 'Insira a sua senha para ver os dados.';
                 }
                 adminPasswordModal.classList.remove('hidden');
             }
@@ -207,14 +210,17 @@
 
         adminPasswordForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const user = auth.currentUser;
+            if (!user) return;
+
             const password = adminPasswordInput.value;
-            const configRef = doc(db, "admin_config", "password");
+            const configRef = doc(db, "admin_passwords", user.uid);
             
             try {
                 const configSnap = await getDoc(configRef);
                 if (!configSnap.exists()) {
                     await setDoc(configRef, { value: password });
-                    alert("Senha de administrador definida com sucesso!");
+                    alert("Sua senha de administrador individual foi definida com sucesso!");
                     isAdminModeActive = true;
                 } else {
                     if (configSnap.data().value === password) {
