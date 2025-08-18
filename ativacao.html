@@ -37,7 +37,7 @@
 
             <div class="mt-8">
                 <p class="text-gray-600">Precisa de ajuda?</p>
-                <a href="https://wa.me/5579996365824?text=Ol%C3%A1%2C%20eu%20quero%20ativar%20o%20meu%20login%20no%20Bronzify" target="_blank" class="inline-block mt-2 bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors">
+                <a href="https://wa.me/557999636524?text=Ol%C3%A1%2C%20eu%20quero%20ativar%20o%20meu%20login%20no%20Bronzify" target="_blank" class="inline-block mt-2 bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors">
                     Suporte via WhatsApp
                 </a>
             </div>
@@ -67,10 +67,8 @@
 
         const activationForm = document.getElementById('activation-form');
         
-        // Espera o Firebase confirmar o estado de login do usuário
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                // Se o usuário estiver logado, o formulário de ativação funcionará
                 activationForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
                     const code = document.getElementById('activation-code').value.trim().toUpperCase();
@@ -121,8 +119,6 @@
                     }
                 });
             } else {
-                // Se o usuário não estiver logado, o formulário ainda funcionará,
-                // mas mostrará um alerta pedindo para fazer login primeiro.
                 activationForm.addEventListener('submit', (e) => {
                     e.preventDefault();
                     alert("Você precisa estar logado para ativar um código. Se ainda não tem conta, crie uma na tela de login.");
@@ -133,4 +129,3 @@
     </script>
 </body>
 </html>
-
