@@ -11,7 +11,6 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Bibliotecas para Gráfico e PDF -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #FFF9F9; }
@@ -245,7 +244,7 @@
         const currentYear = new Date().getFullYear();
         
         months.forEach((month, index) => monthSelect.add(new Option(month, index)));
-        monthSelect.add(new Option("Ano Inteiro", 12)); // Adiciona a opção para o ano inteiro
+        monthSelect.add(new Option("Ano Inteiro", 12));
         
         for (let i = currentYear; i >= 2020; i--) yearSelect.add(new Option(i, i));
         monthSelect.value = new Date().getMonth();
@@ -262,7 +261,7 @@
             const revenueTitleEl = document.getElementById('revenue-title');
             const servicesChartTitleEl = document.getElementById('services-chart-title');
 
-            if (selectedMonth === 12) { // Se "Ano Inteiro" for selecionado
+            if (selectedMonth === 12) {
                 periodStartDate = new Date(selectedYear, 0, 1);
                 periodEndDate = new Date(selectedYear, 11, 31, 23, 59, 59);
                 revenueTitleEl.textContent = 'Faturamento Anual';
@@ -299,7 +298,7 @@
                     paymentMethodTotals[method] = (paymentMethodTotals[method] || 0) + sale.total;
                 });
                 
-                dashboardDataCache = { monthlyRevenue: periodRevenue, dailyRevenue, paymentMethodTotals };
+                dashboardDataCache = { monthlyRevenue: periodRevenue, dailyRevenue, paymentMethodTotals, serviceCounts };
                 
                 document.getElementById('daily-appointments').textContent = dailySnapshot.size;
                 
@@ -313,7 +312,71 @@
         }
 
         document.getElementById('filter-apply').addEventListener('click', fetchDashboardData);
-        // Demais lógicas de download e compartilhamento...
+
+        // --- LÓGICA DE COMPARTILHAR E BAIXAR (CORRIGIDA) ---
+        document.getElementById('download-btn').addEventListener('click', () => {
+            if (!isAdminModeActive || !dashboardDataCache) {
+                alert("Ative o Modo ADM para baixar o relatório.");
+                return;
+            }
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
+            const periodText = monthSelect.options[monthSelect.selectedIndex].text + " de " + yearSelect.value;
+            let y = 22; // Posição vertical inicial
+
+            pdf.setFontSize(18);
+            pdf.text("Relatório de Faturamento - Bronzify", 14, y);
+            y += 10;
+            pdf.setFontSize(12);
+            pdf.text(`Período: ${periodText}`, 14, y);
+            y += 15;
+
+            pdf.setFontSize(14);
+            pdf.text("Resumo Financeiro", 14, y);
+            y += 8;
+            pdf.setFontSize(11);
+            pdf.text(`Faturamento do Período: ${dashboardDataCache.monthlyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, 14, y);
+            y += 7;
+            pdf.text(`Faturamento de Hoje: ${dashboardDataCache.dailyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, 14, y);
+            y += 7;
+            pdf.text(`Atendimentos Hoje: ${document.getElementById('daily-appointments').textContent}`, 14, y);
+            y += 15;
+
+            pdf.setFontSize(14);
+            pdf.text("Serviços Realizados no Período", 14, y);
+            y += 8;
+            pdf.setFontSize(11);
+            for (const service in dashboardDataCache.serviceCounts) {
+                pdf.text(`- ${service}: ${dashboardDataCache.serviceCounts[service]} vez(es)`, 14, y);
+                y += 7;
+            }
+
+            pdf.save(`relatorio_bronzify_${yearSelect.value}_${monthSelect.options[monthSelect.selectedIndex].text}.pdf`);
+        });
+        
+        document.getElementById('share-btn').addEventListener('click', async () => {
+            if (!isAdminModeActive || !dashboardDataCache) {
+                alert("Ative o Modo ADM para compartilhar o relatório.");
+                return;
+            }
+            const periodText = monthSelect.options[monthSelect.selectedIndex].text + " de " + yearSelect.value;
+            
+            let shareText = `*Relatório Bronzify - ${periodText}*\n\n`;
+            shareText += `*Faturamento:* ${dashboardDataCache.monthlyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n`;
+            shareText += `*Atendimentos (hoje):* ${document.getElementById('daily-appointments').textContent}\n\n`;
+            shareText += `*Serviços mais realizados:*\n`;
+            for (const service in dashboardDataCache.serviceCounts) {
+                shareText += `- ${service}: ${dashboardDataCache.serviceCounts[service]}x\n`;
+            }
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title: `Relatório Bronzify - ${periodText}`, text: shareText });
+                } catch (err) { console.error("Erro ao compartilhar:", err); }
+            } else {
+                alert("Função de compartilhamento não suportada neste navegador.");
+            }
+        });
     </script>
 </body>
 </html>
