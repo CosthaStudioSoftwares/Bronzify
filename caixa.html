@@ -276,4 +276,316 @@
             document.getElementById('consumables').innerHTML = '';
             document.getElementById('extras').innerHTML = '';
 
-            const productsRef = collection(db, "businesses", currentUser.uid, "products
+            const productsRef = collection(db, "businesses", currentUser.uid, "products");
+            const q = query(productsRef, orderBy("name"));
+            const querySnapshot = await getDocs(q);
+            allProducts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            allProducts.forEach(item => {
+                const priceFormatted = (item.price || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                let itemHtml = '';
+
+                if (item.category === 'consumable') {
+                    itemHtml = `
+                        <div class="consumable-item border rounded-lg p-3" data-price="${item.price}" data-name="${item.name}" data-id="${item.id}">
+                            <div class="service-item-label flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <span class="font-semibold">${item.name}</span>
+                                    <div class="item-actions flex items-center gap-2 ml-2">
+                                        <button class="edit-item-btn p-1 text-gray-500 hover:text-blue-600" data-id="${item.id}"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                                        <button class="delete-item-btn p-1 text-gray-500 hover:text-red-600" data-id="${item.id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                    </div>
+                                </div>
+                                <span class="text-gray-500 text-sm">(${priceFormatted})</span>
+                            </div>
+                            <div class="flex items-center gap-2 mt-2 justify-end">
+                                <button type="button" class="quantity-btn minus-btn bg-rose-200 text-rose-700 rounded-full w-7 h-7 flex items-center justify-center font-bold">-</button>
+                                <input type="number" value="0" min="0" class="quantity-input w-12 text-center border rounded-md">
+                                <button type="button" class="quantity-btn plus-btn bg-rose-200 text-rose-700 rounded-full w-7 h-7 flex items-center justify-center font-bold">+</button>
+                            </div>
+                        </div>`;
+                } else {
+                    itemHtml = `
+                        <div class="service-item" id="item-container-${item.id}">
+                            <input type="checkbox" id="${item.id}" data-price="${item.price}" data-name="${item.name}" class="hidden">
+                            <label for="${item.id}" class="service-item-label flex items-center justify-between border rounded-lg p-3 cursor-pointer">
+                                <span>${item.name}</span>
+                                <div class="flex items-center">
+                                    <span class="font-bold mr-4">${priceFormatted}</span>
+                                    <div class="item-actions flex items-center gap-2">
+                                        <button class="edit-item-btn p-1 text-gray-500 hover:text-blue-600" data-id="${item.id}"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                                        <button class="delete-item-btn p-1 text-gray-500 hover:text-red-600" data-id="${item.id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>`;
+                }
+                
+                const containerId = item.category === 'bronze' ? 'bronze-services' : item.category === 'consumable' ? 'consumables' : 'extras';
+                document.getElementById(containerId).innerHTML += itemHtml;
+            });
+            lucide.createIcons();
+            rebindAllEvents();
+        }
+
+        servicesContainer.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.edit-item-btn');
+            const deleteBtn = e.target.closest('.delete-item-btn');
+            if (editBtn) openEditModal(editBtn.dataset.id);
+            if (deleteBtn) handleDeleteItem(deleteBtn.dataset.id);
+        });
+
+        async function handleDeleteItem(id) {
+            if (!currentUser) return;
+            if (!confirm('Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.')) return;
+            try {
+                const productRef = doc(db, "businesses", currentUser.uid, "products", id);
+                await deleteDoc(productRef);
+                alert('Item excluído com sucesso!');
+                loadServicesAndProducts();
+            } catch (error) {
+                console.error("Erro ao excluir item:", error);
+                alert('Erro ao excluir item.');
+            }
+        }
+
+        // --- LÓGICA DO MODAL DE ITEM ---
+        const itemModal = document.getElementById('item-modal');
+        const itemForm = document.getElementById('item-form');
+        const itemModalTitle = document.getElementById('item-modal-title');
+        const itemIdInput = document.getElementById('item-id');
+        const itemNameInput = document.getElementById('item-name');
+        const itemPriceInput = document.getElementById('item-price');
+        const itemCategorySelect = document.getElementById('item-category');
+
+        document.getElementById('add-new-item-btn').addEventListener('click', () => {
+            itemModalTitle.textContent = 'Cadastrar Novo Item';
+            itemForm.reset();
+            itemIdInput.value = '';
+            itemPriceInput.value = '';
+            itemModal.classList.remove('hidden');
+        });
+        
+        function openEditModal(id) {
+            const item = allProducts.find(p => p.id === id);
+            if (!item) return;
+            itemModalTitle.textContent = 'Editar Item';
+            itemIdInput.value = item.id;
+            itemNameInput.value = item.name;
+            itemPriceInput.value = (item.price || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            itemCategorySelect.value = item.category;
+            itemModal.classList.remove('hidden');
+        }
+
+        document.getElementById('cancel-item-btn').addEventListener('click', () => itemModal.classList.add('hidden'));
+        itemModal.addEventListener('click', (e) => { if (e.target === itemModal) itemModal.classList.add('hidden'); });
+
+        itemForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentUser) return;
+
+            const id = itemIdInput.value;
+            const priceString = itemPriceInput.value.replace(/\D/g, '');
+            const itemData = {
+                name: itemNameInput.value,
+                price: priceString ? parseInt(priceString, 10) / 100 : 0,
+                category: itemCategorySelect.value
+            };
+
+            const productsRef = collection(db, "businesses", currentUser.uid, "products");
+
+            try {
+                if (id) { // Editando
+                    const productRef = doc(productsRef, id);
+                    await updateDoc(productRef, itemData);
+                    alert("Item atualizado com sucesso!");
+                } else { // Criando novo
+                    await addDoc(productsRef, itemData);
+                    alert("Item salvo com sucesso!");
+                }
+                itemForm.reset();
+                itemModal.classList.add('hidden');
+                loadServicesAndProducts();
+            } catch (error) {
+                console.error("Erro ao salvar item:", error);
+                alert("Erro ao salvar item.");
+            }
+        });
+        
+        // --- LÓGICA DA FRENTE DE CAIXA E FORMATAÇÃO ---
+        const subtotalEl = document.getElementById('subtotal');
+        const discountEl = document.getElementById('discount');
+        const totalEl = document.getElementById('total');
+
+        function formatCurrency(input) {
+            let value = input.value.replace(/\D/g, '');
+            if(value) {
+                value = (parseInt(value, 10) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                input.value = value;
+            } else {
+                input.value = '';
+            }
+        }
+        itemPriceInput.addEventListener('input', () => formatCurrency(itemPriceInput));
+        discountEl.addEventListener('input', () => formatCurrency(discountEl));
+
+        function calculateTotal() {
+            let currentSubtotal = 0;
+            document.querySelectorAll('.service-item input[type="checkbox"]:checked').forEach(item => {
+                currentSubtotal += parseFloat(item.dataset.price);
+            });
+            document.querySelectorAll('.consumable-item').forEach(item => {
+                const quantity = parseInt(item.querySelector('.quantity-input').value) || 0;
+                const price = parseFloat(item.dataset.price);
+                currentSubtotal += quantity * price;
+            });
+
+            const discountString = discountEl.value.replace(/\D/g, '');
+            const discount = discountString ? parseInt(discountString, 10) / 100 : 0;
+            const currentTotal = currentSubtotal - discount;
+            subtotalEl.textContent = currentSubtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            totalEl.textContent = currentTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        function rebindAllEvents() {
+            document.querySelectorAll('.service-item input[type="checkbox"]').forEach(item => item.addEventListener('change', calculateTotal));
+            
+            document.querySelectorAll('.quantity-input').forEach(input => input.addEventListener('input', calculateTotal));
+            document.querySelectorAll('.minus-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                const input = e.target.nextElementSibling;
+                let value = parseInt(input.value);
+                if (value > 0) input.value = value - 1;
+                calculateTotal();
+            }));
+            document.querySelectorAll('.plus-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                const input = e.target.previousElementSibling;
+                input.value = parseInt(input.value) + 1;
+                calculateTotal();
+            }));
+
+            discountEl.addEventListener('input', calculateTotal);
+        }
+        
+        // --- LÓGICA PARA SALVAR VENDA ---
+        const saveSaleBtn = document.getElementById('save-sale-btn');
+        const passwordDisplay = document.getElementById('password-display');
+        const generatedPasswordEl = document.getElementById('generated-password');
+
+        saveSaleBtn.addEventListener('click', async () => {
+            if (!currentUser) return;
+            const totalString = totalEl.textContent.replace(/\D/g, '');
+            const totalValue = totalString ? parseInt(totalString, 10) / 100 : 0;
+            if (totalValue <= 0 && !editingSaleId) { 
+                alert("Nenhum item selecionado para a venda."); 
+                return; 
+            }
+
+            const subtotalString = subtotalEl.textContent.replace(/\D/g, '');
+            const subtotalValue = subtotalString ? parseInt(subtotalString, 10) / 100 : 0;
+            const discountString = discountEl.value.replace(/\D/g, '');
+            const discountValue = discountString ? parseInt(discountString, 10) / 100 : 0;
+            
+            const saleItems = [];
+            document.querySelectorAll('.service-item input:checked').forEach(i => saleItems.push({ name: i.dataset.name, price: parseFloat(i.dataset.price), quantity: 1 }));
+            document.querySelectorAll('.consumable-item').forEach(item => {
+                const quantity = parseInt(item.querySelector('.quantity-input').value);
+                if (quantity > 0) {
+                    saleItems.push({ name: item.dataset.name, price: parseFloat(item.dataset.price), quantity: quantity });
+                }
+            });
+            
+            const salePayload = {
+                clientName: selectedClient ? selectedClient.name : "Cliente Avulso",
+                clientId: selectedClient ? selectedClient.id : null,
+                subtotal: subtotalValue,
+                discount: discountValue,
+                total: totalValue,
+                paymentMethod: document.getElementById('payment-method').value,
+                items: saleItems,
+                createdAt: Timestamp.now(),
+                status: 'waiting'
+            };
+
+            const salesRef = collection(db, "businesses", currentUser.uid, "sales");
+
+            try {
+                if (editingSaleId) {
+                    const saleRef = doc(salesRef, editingSaleId);
+                    const existingDoc = await getDoc(saleRef);
+                    const existingData = existingDoc.data();
+                    salePayload.status = existingData.status;
+                    salePayload.password = existingData.password;
+                    salePayload.createdAt = existingData.createdAt;
+                    await updateDoc(saleRef, salePayload);
+                    alert('Venda atualizada com sucesso!');
+                } else {
+                    const password = await getNextPassword();
+                    salePayload.password = password;
+                    await addDoc(salesRef, salePayload);
+                    generatedPasswordEl.textContent = password;
+                    passwordDisplay.classList.remove('hidden');
+                    alert(`Venda salva! Senha do cliente: ${password}`);
+                }
+                loadDailySales();
+                resetSaleForm();
+            } catch (error) { 
+                console.error("Erro ao salvar venda:", error); 
+                alert("Ocorreu um erro ao salvar a venda."); 
+            }
+        });
+        
+        // --- FUNÇÕES AUXILIARES ---
+        async function getNextPassword() {
+            if (!currentUser) return '000';
+            const today = new Date().toISOString().split('T')[0];
+            const counterRef = doc(db, "businesses", currentUser.uid, "dailyCounters", today);
+            const counterSnap = await getDoc(counterRef);
+            let nextNumber = counterSnap.exists() ? counterSnap.data().lastPassword + 1 : 1;
+            await setDoc(counterRef, { lastPassword: nextNumber }, { merge: true });
+            return String(nextNumber).padStart(3, '0');
+        }
+
+        function resetSaleForm() {
+            editingSaleId = null;
+            selectedClient = null;
+            clientSearchInput.value = '';
+            selectedClientDisplay.style.display = 'none';
+            document.querySelectorAll('.service-item input:checked').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.quantity-input').forEach(input => input.value = 0);
+            discountEl.value = '';
+            calculateTotal();
+            saveSaleBtn.textContent = 'Salvar Venda';
+            setTimeout(() => passwordDisplay.classList.add('hidden'), 5000);
+        }
+
+        async function loadDailySales() {
+            if (!currentUser) return;
+            const tableBody = document.getElementById('daily-sales-table');
+            tableBody.innerHTML = '';
+            const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+            
+            const salesRef = collection(db, "businesses", currentUser.uid, "sales");
+            const q = query(salesRef, where("createdAt", ">=", Timestamp.fromDate(todayStart)), orderBy("createdAt", "desc"));
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach(doc => {
+                const sale = {id: doc.id, ...doc.data()};
+                const saleTime = sale.createdAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                const row = `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="p-2 font-mono">${sale.password}</td>
+                        <td class="p-2 font-semibold">${sale.clientName}</td>
+                        <td class="p-2">${saleTime}</td>
+                        <td class="p-2">${(sale.total || 0).toLocaleString('pt-BR', {style:'currency', currency: 'BRL'})}</td>
+                        <td class="p-2">${sale.paymentMethod}</td>
+                        <td class="p-2 flex items-center gap-2">
+                            <button class="edit-sale-btn p-1 text-gray-500 hover:text-blue-600" data-id="${sale.id}"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                            <button class="delete-sale-btn p-1 text-gray-500 hover:text-red-600" data-id="${sale.id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </td>
+                    </tr>`;
+                tableBody.innerHTML += row;
+            });
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>
