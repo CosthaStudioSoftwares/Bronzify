@@ -149,7 +149,7 @@
 
         document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = 'index.html'));
 
-        // --- LÓGICA DO MODO ADMINISTRADOR (INDIVIDUAL POR USUÁRIO - CORRIGIDO) ---
+        // --- LÓGICA DO MODO ADMINISTRADOR (INDIVIDUAL POR USUÁRIO) ---
         const adminModeBtn = document.getElementById('admin-mode-btn');
         const adminPasswordModal = document.getElementById('admin-password-modal');
         const adminPasswordForm = document.getElementById('admin-password-form');
@@ -322,7 +322,7 @@
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF();
             const periodText = monthSelect.options[monthSelect.selectedIndex].text + " de " + yearSelect.value;
-            let y = 22; // Posição vertical inicial
+            let y = 22;
 
             pdf.setFontSize(18);
             pdf.text("Relatório de Faturamento - Bronzify", 14, y);
@@ -347,7 +347,8 @@
             y += 8;
             pdf.setFontSize(11);
             for (const service in dashboardDataCache.serviceCounts) {
-                pdf.text(`- ${service}: ${dashboardDataCache.serviceCounts[service]} vez(es)`, 14, y);
+                const count = dashboardDataCache.serviceCounts[service];
+                pdf.text(`- ${service}: ${count}`, 14, y);
                 y += 7;
             }
 
@@ -366,7 +367,7 @@
             shareText += `*Atendimentos (hoje):* ${document.getElementById('daily-appointments').textContent}\n\n`;
             shareText += `*Serviços mais realizados:*\n`;
             for (const service in dashboardDataCache.serviceCounts) {
-                shareText += `- ${service}: ${dashboardDataCache.serviceCounts[service]}x\n`;
+                shareText += `- ${service}: ${dashboardDataCache.serviceCounts[service]}\n`;
             }
 
             if (navigator.share) {
