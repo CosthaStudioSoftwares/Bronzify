@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Bibliotecas para Gráfico e PDF -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
@@ -17,6 +18,8 @@
         .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1.25rem; border-radius: 0.75rem; color: #4A5568; transition: all 0.3s ease; font-weight: 500; }
         .sidebar-link:hover, .sidebar-link.active { background-color: #FADADD; color: #B76E79; }
         .sidebar-link svg { margin-right: 0.75rem; }
+        .modal-backdrop { transition: opacity 0.3s ease; }
+        .modal-content { transition: transform 0.3s ease; }
     </style>
 </head>
 <body class="flex h-screen opacity-0 transition-opacity duration-300">
@@ -41,17 +44,85 @@
 
     <!-- Main Content -->
     <main class="flex-1 p-8 overflow-y-auto">
-        <!-- Conteúdo do Dashboard aqui -->
+        <header class="flex flex-wrap justify-between items-center mb-8 gap-4">
+            <h2 class="text-4xl text-gray-800">Dashboard</h2>
+            <div class="flex items-center gap-4">
+                <button id="admin-mode-btn" class="bg-rose-100 text-[#B76E79] px-4 py-2 rounded-lg hover:bg-rose-200 flex items-center gap-2 font-semibold">
+                    <i data-lucide="eye"></i> Ativar Modo ADM
+                </button>
+                <span id="user-email" class="text-gray-600">carregando...</span>
+                <img src="https://placehold.co/40x40/FADADD/B76E79?text=B" alt="Avatar" class="rounded-full">
+            </div>
+        </header>
+
+        <!-- Filtros e Ações -->
+        <div class="bg-white p-4 rounded-2xl shadow-md mb-8 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                 <h3 class="text-lg font-semibold text-gray-700">Filtros:</h3>
+                 <select id="filter-month" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]"></select>
+                 <select id="filter-year" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]"></select>
+                 <button id="filter-apply" class="bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90">Aplicar</button>
+            </div>
+            <div class="flex items-center gap-3">
+                <button id="share-btn" class="flex items-center gap-2 p-2 border rounded-lg text-gray-600 hover:bg-gray-100"><i data-lucide="share-2"></i> Compartilhar</button>
+                <button id="download-btn" class="flex items-center gap-2 p-2 border rounded-lg text-gray-600 hover:bg-gray-100"><i data-lucide="download"></i> Baixar PDF</button>
+            </div>
+        </div>
+        
+        <!-- Área do Relatório -->
+        <div id="report-content">
+            <!-- Cards de Métricas Principais -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-2xl shadow-md">
+                    <h3 id="revenue-title" class="text-lg font-semibold text-gray-500">Faturamento Mensal</h3>
+                    <p id="monthly-revenue" class="text-4xl font-bold text-[#B76E79] mt-2">R$ *******</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-md">
+                    <h3 class="text-lg font-semibold text-gray-500">Faturamento Diário</h3>
+                    <p id="daily-revenue" class="text-4xl font-bold text-[#B76E79] mt-2">R$ *******</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-md">
+                    <h3 class="text-lg font-semibold text-gray-500">Atendimentos no Dia</h3>
+                    <p id="daily-appointments" class="text-4xl font-bold text-[#B76E79] mt-2">0</p>
+                </div>
+            </div>
+
+            <!-- Gráficos e Detalhes -->
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md">
+                    <h3 class="text-2xl text-gray-800 mb-4">Faturamento Diário por Pagamento</h3>
+                    <div id="payment-methods-details" class="space-y-4"><p class="text-gray-500">Dados ocultos. Ative o modo ADM.</p></div>
+                </div>
+                <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-md">
+                    <h3 id="services-chart-title" class="text-2xl text-gray-800 mb-4">Tipos de Bronze e Serviços (Mês)</h3>
+                    <div id="chart-container" class="max-h-80 flex justify-center items-center"><canvas id="servicesChart"></canvas></div>
+                </div>
+            </div>
+        </div>
     </main>
+
+    <!-- Modal de Senha ADM -->
+    <div id="admin-password-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 modal-content transform scale-95">
+            <h3 id="admin-modal-title" class="text-2xl text-gray-800 mb-4 text-center">Modo Administrador</h3>
+            <p id="admin-modal-subtitle" class="text-center text-gray-500 mb-6">Insira a senha para ver os dados.</p>
+            <form id="admin-password-form">
+                <input type="password" id="admin-password-input" class="w-full text-center px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
+                <button type="submit" class="w-full mt-4 bg-[#B76E79] text-white py-2 rounded-lg hover:opacity-90">Confirmar</button>
+                <button type="button" id="cancel-admin-password" class="w-full mt-2 text-gray-600 py-2 rounded-lg hover:bg-gray-100">Cancelar</button>
+            </form>
+        </div>
+    </div>
 
     <script>
       lucide.createIcons();
+      const { jsPDF } = window.jspdf;
     </script>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, query, where, getDocs, Timestamp, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
@@ -65,33 +136,249 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        
+        let isAdminModeActive = false;
+        let dashboardDataCache = null;
 
-        async function checkUserPlan(user) {
-            const userProfileRef = doc(db, "users", user.uid);
-            const docSnap = await getDoc(userProfileRef);
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.body.classList.remove('opacity-0');
+                document.getElementById('user-email').textContent = user.email;
+                fetchDashboardData();
+            } else { window.location.href = 'index.html'; }
+        });
 
-            if (!docSnap.exists() || docSnap.data().status !== 'active') {
-                // Se o perfil não existe ou o status não é ativo, redireciona para a ativação
-                window.location.href = './ativacao.html';
-                return false;
+        document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = 'index.html'));
+
+        // --- LÓGICA DO MODO ADMINISTRADOR (INDIVIDUAL POR USUÁRIO) ---
+        const adminModeBtn = document.getElementById('admin-mode-btn');
+        const adminPasswordModal = document.getElementById('admin-password-modal');
+        const adminPasswordForm = document.getElementById('admin-password-form');
+        const adminPasswordInput = document.getElementById('admin-password-input');
+        const adminModalSubtitle = document.getElementById('admin-modal-subtitle');
+        
+        function updateUIVisibility() {
+            const monthlyRevenueEl = document.getElementById('monthly-revenue');
+            const dailyRevenueEl = document.getElementById('daily-revenue');
+            const paymentDetailsContainer = document.getElementById('payment-methods-details');
+            const chartContainer = document.getElementById('chart-container');
+
+            if (isAdminModeActive && dashboardDataCache) {
+                monthlyRevenueEl.textContent = dashboardDataCache.monthlyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                dailyRevenueEl.textContent = dashboardDataCache.dailyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                
+                paymentDetailsContainer.innerHTML = '';
+                if (Object.keys(dashboardDataCache.paymentMethodTotals).length > 0) {
+                    for (const method in dashboardDataCache.paymentMethodTotals) {
+                        paymentDetailsContainer.innerHTML += `<div class="flex justify-between items-center"><span class="text-gray-600">${method}</span><span class="font-bold text-gray-800">${dashboardDataCache.paymentMethodTotals[method].toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>`;
+                    }
+                } else { paymentDetailsContainer.innerHTML = '<p class="text-gray-500">Nenhuma venda hoje.</p>'; }
+                
+                chartContainer.style.opacity = 1;
+                adminModeBtn.innerHTML = `<i data-lucide="eye-off"></i> Desativar Modo ADM`;
+            } else {
+                monthlyRevenueEl.textContent = 'R$ *******';
+                dailyRevenueEl.textContent = 'R$ *******';
+                paymentDetailsContainer.innerHTML = '<p class="text-gray-500">Dados ocultos. Ative o modo ADM.</p>';
+                chartContainer.style.opacity = 0;
+                adminModeBtn.innerHTML = `<i data-lucide="eye"></i> Ativar Modo ADM`;
             }
-            return true;
+            lucide.createIcons();
         }
 
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                const hasPlan = await checkUserPlan(user);
-                if (hasPlan) {
-                    // Só mostra a página se o usuário tiver um plano ativo
-                    document.body.classList.remove('opacity-0');
-                    // Coloque aqui o resto da lógica do seu dashboard (fetchDashboardData, etc.)
-                }
+        adminModeBtn.addEventListener('click', async () => {
+            if (isAdminModeActive) {
+                isAdminModeActive = false;
+                updateUIVisibility();
             } else {
-                window.location.href = './index.html';
+                const user = auth.currentUser;
+                if (!user) return;
+
+                const configRef = doc(db, "admin_passwords", user.uid);
+                const configSnap = await getDoc(configRef);
+                
+                if (!configSnap.exists()) {
+                    adminModalSubtitle.textContent = 'Primeiro acesso. Crie a sua senha de administrador.';
+                } else {
+                    adminModalSubtitle.textContent = 'Insira a sua senha para ver os dados.';
+                }
+                adminPasswordModal.classList.remove('hidden');
             }
         });
 
-        document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = './index.html'));
+        document.getElementById('cancel-admin-password').addEventListener('click', () => adminPasswordModal.classList.add('hidden'));
+
+        adminPasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = auth.currentUser;
+            if (!user) return;
+
+            const password = adminPasswordInput.value;
+            const configRef = doc(db, "admin_passwords", user.uid);
+            
+            try {
+                const configSnap = await getDoc(configRef);
+                if (!configSnap.exists()) {
+                    await setDoc(configRef, { value: password });
+                    alert("Sua senha de administrador individual foi definida com sucesso!");
+                    isAdminModeActive = true;
+                } else {
+                    if (configSnap.data().value === password) {
+                        isAdminModeActive = true;
+                    } else {
+                        alert("Senha incorreta!");
+                    }
+                }
+                adminPasswordForm.reset();
+                adminPasswordModal.classList.add('hidden');
+                updateUIVisibility();
+            } catch (error) {
+                console.error("Erro ao verificar senha de ADM:", error);
+                alert("Ocorreu um erro. Tente novamente.");
+            }
+        });
+
+        // --- LÓGICA DO DASHBOARD ---
+        const monthSelect = document.getElementById('filter-month');
+        const yearSelect = document.getElementById('filter-year');
+        const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+        const currentYear = new Date().getFullYear();
+        
+        months.forEach((month, index) => monthSelect.add(new Option(month, index)));
+        monthSelect.add(new Option("Ano Inteiro", 12));
+        
+        for (let i = currentYear; i >= 2020; i--) yearSelect.add(new Option(i, i));
+        monthSelect.value = new Date().getMonth();
+        yearSelect.value = currentYear;
+
+        const ctx = document.getElementById('servicesChart').getContext('2d');
+        const servicesChart = new Chart(ctx, { type: 'pie', data: { labels: [], datasets: [{ label: 'Vendas', data: [], backgroundColor: ['#B76E79', '#D49A9A', '#FADADD', '#A9606C', '#C98B8B', '#E3BDBD'], borderColor: '#FFF9F9', borderWidth: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } });
+
+        async function fetchDashboardData() {
+            const selectedMonth = parseInt(monthSelect.value);
+            const selectedYear = parseInt(yearSelect.value);
+            
+            let periodStartDate, periodEndDate;
+            const revenueTitleEl = document.getElementById('revenue-title');
+            const servicesChartTitleEl = document.getElementById('services-chart-title');
+
+            if (selectedMonth === 12) {
+                periodStartDate = new Date(selectedYear, 0, 1);
+                periodEndDate = new Date(selectedYear, 11, 31, 23, 59, 59);
+                revenueTitleEl.textContent = 'Faturamento Anual';
+                servicesChartTitleEl.textContent = 'Tipos de Bronze e Serviços (Ano)';
+            } else {
+                periodStartDate = new Date(selectedYear, selectedMonth, 1);
+                periodEndDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
+                revenueTitleEl.textContent = 'Faturamento Mensal';
+                servicesChartTitleEl.textContent = 'Tipos de Bronze e Serviços (Mês)';
+            }
+
+            const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+            const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+
+            const salesRef = collection(db, "sales");
+            const periodQuery = query(salesRef, where("createdAt", ">=", Timestamp.fromDate(periodStartDate)), where("createdAt", "<=", Timestamp.fromDate(periodEndDate)));
+            const dailyQuery = query(salesRef, where("createdAt", ">=", Timestamp.fromDate(todayStart)), where("createdAt", "<=", Timestamp.fromDate(todayEnd)));
+
+            try {
+                const [periodSnapshot, dailySnapshot] = await Promise.all([getDocs(periodQuery), getDocs(dailyQuery)]);
+                let periodRevenue = 0, dailyRevenue = 0;
+                const serviceCounts = {}, paymentMethodTotals = {};
+
+                periodSnapshot.forEach(doc => {
+                    const sale = doc.data();
+                    periodRevenue += sale.total || 0;
+                    if (sale.items) sale.items.forEach(item => serviceCounts[item.name] = (serviceCounts[item.name] || 0) + 1);
+                });
+
+                dailySnapshot.forEach(doc => {
+                    const sale = doc.data();
+                    dailyRevenue += sale.total || 0;
+                    const method = sale.paymentMethod || 'N/A';
+                    paymentMethodTotals[method] = (paymentMethodTotals[method] || 0) + sale.total;
+                });
+                
+                dashboardDataCache = { monthlyRevenue: periodRevenue, dailyRevenue, paymentMethodTotals, serviceCounts };
+                
+                document.getElementById('daily-appointments').textContent = dailySnapshot.size;
+                
+                servicesChart.data.labels = Object.keys(serviceCounts);
+                servicesChart.data.datasets[0].data = Object.values(serviceCounts);
+                servicesChart.update();
+                
+                updateUIVisibility();
+
+            } catch (error) { console.error("Erro ao buscar dados do dashboard: ", error); }
+        }
+
+        document.getElementById('filter-apply').addEventListener('click', fetchDashboardData);
+
+        // --- LÓGICA DE COMPARTILHAR E BAIXAR ---
+        document.getElementById('download-btn').addEventListener('click', () => {
+            if (!isAdminModeActive || !dashboardDataCache) {
+                alert("Ative o Modo ADM para baixar o relatório.");
+                return;
+            }
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
+            const periodText = monthSelect.options[monthSelect.selectedIndex].text + " de " + yearSelect.value;
+            let y = 22;
+
+            pdf.setFontSize(18);
+            pdf.text("Relatório de Faturamento - Bronzify", 14, y);
+            y += 10;
+            pdf.setFontSize(12);
+            pdf.text(`Período: ${periodText}`, 14, y);
+            y += 15;
+
+            pdf.setFontSize(14);
+            pdf.text("Resumo Financeiro", 14, y);
+            y += 8;
+            pdf.setFontSize(11);
+            pdf.text(`Faturamento do Período: ${dashboardDataCache.monthlyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, 14, y);
+            y += 7;
+            pdf.text(`Faturamento de Hoje: ${dashboardDataCache.dailyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, 14, y);
+            y += 7;
+            pdf.text(`Atendimentos Hoje: ${document.getElementById('daily-appointments').textContent}`, 14, y);
+            y += 15;
+
+            pdf.setFontSize(14);
+            pdf.text("Serviços Realizados no Período", 14, y);
+            y += 8;
+            pdf.setFontSize(11);
+            for (const service in dashboardDataCache.serviceCounts) {
+                const count = dashboardDataCache.serviceCounts[service];
+                pdf.text(`- ${service}: ${count}`, 14, y);
+                y += 7;
+            }
+
+            pdf.save(`relatorio_bronzify_${yearSelect.value}_${monthSelect.options[monthSelect.selectedIndex].text}.pdf`);
+        });
+        
+        document.getElementById('share-btn').addEventListener('click', async () => {
+            if (!isAdminModeActive || !dashboardDataCache) {
+                alert("Ative o Modo ADM para compartilhar o relatório.");
+                return;
+            }
+            const periodText = monthSelect.options[monthSelect.selectedIndex].text + " de " + yearSelect.value;
+            
+            let shareText = `*Relatório Bronzify - ${periodText}*\n\n`;
+            shareText += `*Faturamento:* ${dashboardDataCache.monthlyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n`;
+            shareText += `*Atendimentos (hoje):* ${document.getElementById('daily-appointments').textContent}\n\n`;
+            shareText += `*Serviços mais realizados:*\n`;
+            for (const service in dashboardDataCache.serviceCounts) {
+                shareText += `- ${service}: ${dashboardDataCache.serviceCounts[service]}\n`;
+            }
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title: `Relatório Bronzify - ${periodText}`, text: shareText });
+                } catch (err) { console.error("Erro ao compartilhar:", err); }
+            } else {
+                alert("Função de compartilhamento não suportada neste navegador.");
+            }
+        });
     </script>
 </body>
 </html>
