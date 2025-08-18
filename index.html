@@ -94,7 +94,6 @@
             onAuthStateChanged
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-        // Configuração do seu projeto Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
             authDomain: "bronzify-b2491.firebaseapp.com",
@@ -140,7 +139,14 @@
             const email = loginForm['login-email'].value;
             const password = loginForm['login-password'].value;
             signInWithEmailAndPassword(auth, email, password)
-                .catch((error) => alert('Erro ao fazer login: ' + error.message));
+                .catch((error) => {
+                    // ** MUDANÇA AQUI **
+                    if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+                        alert("E-mail ou senha inválidos. Por favor, verifique os seus dados ou crie uma conta.");
+                    } else {
+                        alert('Erro ao fazer login: ' + error.message);
+                    }
+                });
         });
 
         const registerForm = document.getElementById('register-form');
