@@ -199,19 +199,17 @@
             const selectedMonth = parseInt(monthSelect.value);
             const selectedYear = parseInt(yearSelect.value);
 
-            const salesRef = collection(db, "sales");
-            let baseQuery = query(salesRef, orderBy("createdAt", "desc"));
-            
-            try {
-                if (searchTerm) {
-                    monthSelect.value = -1;
-                    const querySnapshot = await getDocs(baseQuery);
-                    const allSales = querySnapshot.docs.map(doc => doc.data());
-                    const filteredSales = allSales.filter(sale => sale.clientName.toLowerCase().includes(searchTerm));
-                    renderResults(filteredSales);
+            if (!searchTerm && selectedMonth === -1) {
+                alert("Por favor, preencha um campo de busca (cliente ou período).");
+                return;
+            }
 
-                } else if (selectedMonth > -1) {
-                    searchTermInput.value = '';
+            const salesRef = collection(db, "sales");
+            let finalQuery;
+
+            try {
+                // Define a base da consulta pelo período, se houver um selecionado
+                if (selectedMonth > -1) {
                     let startDate, endDate;
                     if (selectedMonth === 12) { // Ano Inteiro
                         startDate = new Date(selectedYear, 0, 1);
@@ -220,18 +218,26 @@
                         startDate = new Date(selectedYear, selectedMonth, 1);
                         endDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
                     }
-                    const periodQuery = query(salesRef, 
+                    finalQuery = query(salesRef, 
                         where("createdAt", ">=", Timestamp.fromDate(startDate)),
                         where("createdAt", "<=", Timestamp.fromDate(endDate)),
                         orderBy("createdAt", "desc")
                     );
-                    const querySnapshot = await getDocs(periodQuery);
-                    const sales = querySnapshot.docs.map(doc => doc.data());
-                    renderResults(sales);
-
                 } else {
-                    alert("Por favor, preencha um campo de busca (cliente ou período).");
+                    // Se não houver período, a base é a coleção inteira ordenada
+                    finalQuery = query(salesRef, orderBy("createdAt", "desc"));
                 }
+                
+                const querySnapshot = await getDocs(finalQuery);
+                let sales = querySnapshot.docs.map(doc => doc.data());
+
+                // Se houver um termo de busca, filtra os resultados já obtidos
+                if (searchTerm) {
+                    sales = sales.filter(sale => sale.clientName.toLowerCase().includes(searchTerm));
+                }
+                
+                renderResults(sales);
+
             } catch (error) {
                 console.error("Erro ao buscar vendas: ", error);
                 resultsTable.innerHTML = '<tr><td colspan="5" class="text-center p-8 text-red-500">Ocorreu um erro ao buscar as vendas.</td></tr>';
