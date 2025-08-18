@@ -200,7 +200,7 @@
 
         searchBtn.addEventListener('click', async () => {
             if (!currentUser) return;
-            const searchTerm = searchTermInput.value.trim();
+            const searchTerm = searchTermInput.value.trim().toLowerCase();
             const selectedMonth = parseInt(monthSelect.value);
             const selectedYear = parseInt(yearSelect.value);
 
@@ -225,20 +225,22 @@
                 constraints.unshift(where("createdAt", ">=", Timestamp.fromDate(startDate)));
             }
             
-            if (searchTerm) {
-                 constraints.unshift(where("clientName", "==", searchTerm));
-            }
-            
             const finalQuery = query(salesRef, ...constraints);
             
             try {
                 const querySnapshot = await getDocs(finalQuery);
                 let sales = querySnapshot.docs.map(doc => doc.data());
+
+                // Se houver um termo de busca, filtra os resultados já obtidos do período
+                if (searchTerm) {
+                    sales = sales.filter(sale => sale.clientName.toLowerCase().includes(searchTerm));
+                }
+                
                 renderResults(sales);
 
             } catch (error) {
                 console.error("Erro ao buscar vendas: ", error);
-                resultsTable.innerHTML = '<tr><td colspan="5" class="text-center p-8 text-red-500">Ocorreu um erro ao buscar as vendas. Pode ser necessário criar um índice no Firebase. Verifique o console.</td></tr>';
+                resultsTable.innerHTML = '<tr><td colspan="5" class="text-center p-8 text-red-500">Ocorreu um erro ao buscar as vendas.</td></tr>';
             }
         });
     </script>
