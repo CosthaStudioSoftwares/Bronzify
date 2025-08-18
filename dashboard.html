@@ -150,7 +150,7 @@
 
         document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = 'index.html'));
 
-        // --- LÓGICA DO MODO ADMINISTRADOR (INDIVIDUAL POR USUÁRIO - CORRIGIDO) ---
+        // --- LÓGICA DO MODO ADMINISTRADOR ---
         const adminModeBtn = document.getElementById('admin-mode-btn');
         const adminPasswordModal = document.getElementById('admin-password-modal');
         const adminPasswordForm = document.getElementById('admin-password-form');
@@ -191,16 +191,12 @@
                 isAdminModeActive = false;
                 updateUIVisibility();
             } else {
-                const user = auth.currentUser;
-                if (!user) return;
-
-                const configRef = doc(db, "admin_passwords", user.uid);
+                const configRef = doc(db, "admin_config", "password");
                 const configSnap = await getDoc(configRef);
-                
                 if (!configSnap.exists()) {
                     adminModalSubtitle.textContent = 'Primeiro acesso. Crie a sua senha de administrador.';
                 } else {
-                    adminModalSubtitle.textContent = 'Insira a sua senha para ver os dados.';
+                    adminModalSubtitle.textContent = 'Insira a senha para ver os dados.';
                 }
                 adminPasswordModal.classList.remove('hidden');
             }
@@ -210,17 +206,14 @@
 
         adminPasswordForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const user = auth.currentUser;
-            if (!user) return;
-
             const password = adminPasswordInput.value;
-            const configRef = doc(db, "admin_passwords", user.uid);
+            const configRef = doc(db, "admin_config", "password");
             
             try {
                 const configSnap = await getDoc(configRef);
                 if (!configSnap.exists()) {
                     await setDoc(configRef, { value: password });
-                    alert("Sua senha de administrador individual foi definida com sucesso!");
+                    alert("Senha de administrador definida com sucesso!");
                     isAdminModeActive = true;
                 } else {
                     if (configSnap.data().value === password) {
@@ -245,7 +238,7 @@
         const currentYear = new Date().getFullYear();
         
         months.forEach((month, index) => monthSelect.add(new Option(month, index)));
-        monthSelect.add(new Option("Ano Inteiro", 12)); // Adiciona a opção para o ano inteiro
+        monthSelect.add(new Option("Ano Inteiro", 12));
         
         for (let i = currentYear; i >= 2020; i--) yearSelect.add(new Option(i, i));
         monthSelect.value = new Date().getMonth();
@@ -262,7 +255,7 @@
             const revenueTitleEl = document.getElementById('revenue-title');
             const servicesChartTitleEl = document.getElementById('services-chart-title');
 
-            if (selectedMonth === 12) { // Se "Ano Inteiro" for selecionado
+            if (selectedMonth === 12) {
                 periodStartDate = new Date(selectedYear, 0, 1);
                 periodEndDate = new Date(selectedYear, 11, 31, 23, 59, 59);
                 revenueTitleEl.textContent = 'Faturamento Anual';
@@ -313,7 +306,48 @@
         }
 
         document.getElementById('filter-apply').addEventListener('click', fetchDashboardData);
-        // Demais lógicas de download e compartilhamento...
+
+        // --- LÓGICA DE COMPARTILHAR E BAIXAR (CORRIGIDA) ---
+        const downloadBtn = document.getElementById('download-btn');
+        const shareBtn = document.getElementById('share-btn');
+        const reportContent = document.getElementById('report-content');
+
+        downloadBtn.addEventListener('click', () => {
+            if (!isAdminModeActive) {
+                alert("Ative o Modo ADM para baixar o relatório.");
+                return;
+            }
+            downloadBtn.textContent = "Gerando...";
+            html2canvas(reportContent, { scale: 2 }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'px',
+                    format: [canvas.width, canvas.height]
+                });
+                pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+                pdf.save(`relatorio_bronzify_${yearSelect.value}_${monthSelect.options[monthSelect.selectedIndex].text}.pdf`);
+                downloadBtn.innerHTML = '<i data-lucide="download"></i> Baixar PDF';
+                lucide.createIcons();
+            });
+        });
+        
+        shareBtn.addEventListener('click', async () => {
+            if (!isAdminModeActive) {
+                alert("Ative o Modo ADM para compartilhar o relatório.");
+                return;
+            }
+            const title = `Relatório Bronzify - ${monthSelect.options[monthSelect.selectedIndex].text}/${yearSelect.value}`;
+            const text = `Confira o resumo de faturamento e atendimentos.`;
+            
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title, text, url: window.location.href });
+                } catch (err) { console.error("Erro ao compartilhar:", err); }
+            } else {
+                alert("Função de compartilhamento não suportada neste navegador.");
+            }
+        });
     </script>
 </body>
 </html>
