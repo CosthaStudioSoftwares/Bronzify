@@ -9,15 +9,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-        }
-        h1, h2, h3 {
-            font-family: 'Playfair Display', serif;
-        }
-        .bg-gradient-bronzify {
-            background: linear-gradient(135deg, #FADADD 0%, #B76E79 100%);
-        }
+        body { font-family: 'Poppins', sans-serif; }
+        h1, h2, h3 { font-family: 'Playfair Display', serif; }
+        .bg-gradient-bronzify { background: linear-gradient(135deg, #FADADD 0%, #B76E79 100%); }
     </style>
 </head>
 <body class="bg-gray-50 flex items-center justify-center min-h-screen">
@@ -26,8 +20,6 @@
         <div class="w-full max-w-md">
             <div id="login-section" class="bg-white rounded-2xl shadow-xl p-8">
                 <h1 class="text-4xl text-center text-[#B76E79] mb-6">Bronzify</h1>
-                
-                <!-- Formulário de Login -->
                 <form id="login-form">
                     <h2 class="text-2xl text-gray-700 mb-6 text-center">Acesse sua conta</h2>
                     <div class="mb-4">
@@ -40,19 +32,13 @@
                     </div>
                     <button type="submit" class="w-full bg-gradient-bronzify text-white py-2 rounded-lg hover:opacity-90 transition-opacity duration-300">Entrar</button>
                 </form>
-
                 <div class="my-6 flex items-center justify-center">
-                    <hr class="w-full border-gray-300">
-                    <span class="px-4 text-gray-500 bg-white">OU</span>
-                    <hr class="w-full border-gray-300">
+                    <hr class="w-full border-gray-300"><span class="px-4 text-gray-500 bg-white">OU</span><hr class="w-full border-gray-300">
                 </div>
-
-                <!-- Login com Google -->
                 <button id="google-login" class="w-full flex items-center justify-center gap-2 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-100 transition-colors duration-300 mb-6">
                     <svg class="w-5 h-5" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.42-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path><path fill="none" d="M0 0h48v48H0z"></path></svg>
                     Entrar com Google
                 </button>
-
                 <p class="text-center text-gray-600">
                     Não tem uma conta? <a href="#" id="show-register" class="text-[#B76E79] hover:underline">Crie uma agora</a>
                 </p>
@@ -60,8 +46,6 @@
                     Precisa ativar seu acesso? <a href="./ativacao.html" class="text-[#B76E79] hover:underline">Ative aqui</a>
                 </p>
             </div>
-
-            <!-- Formulário de Cadastro (Oculto por padrão) -->
             <div id="register-section" class="bg-white rounded-2xl shadow-xl p-8 hidden">
                  <h2 class="text-2xl text-gray-700 mb-6 text-center">Crie sua conta</h2>
                 <form id="register-form">
@@ -82,17 +66,10 @@
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { 
-            getAuth, 
-            signInWithEmailAndPassword, 
-            createUserWithEmailAndPassword,
-            GoogleAuthProvider,
-            signInWithPopup,
-            onAuthStateChanged
-        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
@@ -105,14 +82,56 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
+        async function handleUserLogin(user) {
+            const userProfileRef = doc(db, "users", user.uid);
+            const docSnap = await getDoc(userProfileRef);
+            if (docSnap.exists() && docSnap.data().status === 'active') {
                 window.location.href = './dashboard.html';
+            } else {
+                window.location.href = './ativacao.html';
             }
+        }
+
+        const loginForm = document.getElementById('login-form');
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = loginForm['login-email'].value;
+            const password = loginForm['login-password'].value;
+            signInWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => handleUserLogin(userCredential.user))
+                .catch((error) => {
+                    if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+                        alert("E-mail ou senha inválidos. Por favor, verifique os seus dados ou crie uma conta.");
+                    } else {
+                        alert('Erro ao fazer login: ' + error.message);
+                    }
+                });
         });
 
+        const googleLoginBtn = document.getElementById('google-login');
+        googleLoginBtn.addEventListener('click', () => {
+            signInWithPopup(auth, provider)
+                .then((result) => handleUserLogin(result.user))
+                .catch((error) => alert('Erro no login com Google: ' + error.message));
+        });
+
+        const registerForm = document.getElementById('register-form');
+        registerForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = registerForm['register-email'].value;
+            const password = registerForm['register-password'].value;
+            createUserWithEmailAndPassword(auth, email, password)
+                .then(() => {
+                    alert('Conta criada com sucesso! Por favor, ative seu acesso.');
+                    window.location.href = './ativacao.html';
+                })
+                .catch((error) => alert('Erro ao criar conta: ' + error.message));
+        });
+        
+        // Lógica para alternar entre login e cadastro
         const loginSection = document.getElementById('login-section');
         const registerSection = document.getElementById('register-section');
         const showRegisterBtn = document.getElementById('show-register');
@@ -131,41 +150,6 @@
             mainContainer.removeChild(registerSection);
             mainContainer.appendChild(loginSection);
             loginSection.classList.remove('hidden');
-        });
-
-        const loginForm = document.getElementById('login-form');
-        loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = loginForm['login-email'].value;
-            const password = loginForm['login-password'].value;
-            signInWithEmailAndPassword(auth, email, password)
-                .catch((error) => {
-                    // ** MUDANÇA AQUI **
-                    if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
-                        alert("E-mail ou senha inválidos. Por favor, verifique os seus dados ou crie uma conta.");
-                    } else {
-                        alert('Erro ao fazer login: ' + error.message);
-                    }
-                });
-        });
-
-        const registerForm = document.getElementById('register-form');
-        registerForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = registerForm['register-email'].value;
-            const password = registerForm['register-password'].value;
-            createUserWithEmailAndPassword(auth, email, password)
-                .then(() => {
-                    alert('Conta criada com sucesso! Por favor, ative seu acesso.');
-                    window.location.href = './ativacao.html';
-                })
-                .catch((error) => alert('Erro ao criar conta: ' + error.message));
-        });
-
-        const googleLoginBtn = document.getElementById('google-login');
-        googleLoginBtn.addEventListener('click', () => {
-            signInWithPopup(auth, provider)
-                .catch((error) => alert('Erro no login com Google: ' + error.message));
         });
     </script>
 </body>
