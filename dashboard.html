@@ -48,7 +48,8 @@
             <h2 class="text-4xl text-gray-800">Dashboard</h2>
             <div class="flex items-center gap-4">
                 <button id="admin-mode-btn" class="bg-rose-100 text-[#B76E79] px-4 py-2 rounded-lg hover:bg-rose-200 flex items-center gap-2 font-semibold">
-                    <i data-lucide="eye"></i> Ativar Modo ADM
+                    <i data-lucide="eye"></i>
+                    <span id="admin-mode-text">Ativar Modo ADM</span>
                 </button>
                 <span id="user-email" class="text-gray-600">carregando...</span>
                 <img src="https://placehold.co/40x40/FADADD/B76E79?text=B" alt="Avatar" class="rounded-full">
@@ -162,6 +163,8 @@
             const dailyRevenueEl = document.getElementById('daily-revenue');
             const paymentDetailsContainer = document.getElementById('payment-methods-details');
             const chartContainer = document.getElementById('chart-container');
+            const adminModeText = document.getElementById('admin-mode-text');
+            const adminModeIcon = adminModeBtn.querySelector('i');
 
             if (isAdminModeActive && dashboardDataCache) {
                 monthlyRevenueEl.textContent = dashboardDataCache.monthlyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -175,13 +178,15 @@
                 } else { paymentDetailsContainer.innerHTML = '<p class="text-gray-500">Nenhuma venda hoje.</p>'; }
                 
                 chartContainer.style.opacity = 1;
-                adminModeBtn.innerHTML = `<i data-lucide="eye-off"></i> Desativar Modo ADM`;
+                adminModeIcon.setAttribute('data-lucide', 'eye-off');
+                adminModeText.textContent = 'Desativar Modo ADM';
             } else {
                 monthlyRevenueEl.textContent = 'R$ *******';
                 dailyRevenueEl.textContent = 'R$ *******';
                 paymentDetailsContainer.innerHTML = '<p class="text-gray-500">Dados ocultos. Ative o modo ADM.</p>';
                 chartContainer.style.opacity = 0;
-                adminModeBtn.innerHTML = `<i data-lucide="eye"></i> Ativar Modo ADM`;
+                adminModeIcon.setAttribute('data-lucide', 'eye');
+                adminModeText.textContent = 'Ativar Modo ADM';
             }
             lucide.createIcons();
         }
@@ -194,8 +199,6 @@
                 const user = auth.currentUser;
                 if (!user) return;
 
-                adminPasswordModal.classList.remove('hidden'); // Mostra o modal imediatamente
-
                 const configRef = doc(db, "admin_passwords", user.uid);
                 try {
                     const configSnap = await getDoc(configRef);
@@ -204,6 +207,7 @@
                     } else {
                         adminModalSubtitle.textContent = 'Insira a sua senha para ver os dados.';
                     }
+                    adminPasswordModal.classList.remove('hidden');
                 } catch (error) {
                     console.error("Erro ao verificar senha:", error);
                     adminModalSubtitle.textContent = 'Erro ao carregar. Tente novamente.';
