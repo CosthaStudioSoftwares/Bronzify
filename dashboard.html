@@ -194,15 +194,20 @@
                 const user = auth.currentUser;
                 if (!user) return;
 
+                adminPasswordModal.classList.remove('hidden'); // Mostra o modal imediatamente
+
                 const configRef = doc(db, "admin_passwords", user.uid);
-                const configSnap = await getDoc(configRef);
-                
-                if (!configSnap.exists()) {
-                    adminModalSubtitle.textContent = 'Primeiro acesso. Crie a sua senha de administrador.';
-                } else {
-                    adminModalSubtitle.textContent = 'Insira a sua senha para ver os dados.';
+                try {
+                    const configSnap = await getDoc(configRef);
+                    if (!configSnap.exists()) {
+                        adminModalSubtitle.textContent = 'Primeiro acesso. Crie a sua senha de administrador.';
+                    } else {
+                        adminModalSubtitle.textContent = 'Insira a sua senha para ver os dados.';
+                    }
+                } catch (error) {
+                    console.error("Erro ao verificar senha:", error);
+                    adminModalSubtitle.textContent = 'Erro ao carregar. Tente novamente.';
                 }
-                adminPasswordModal.classList.remove('hidden');
             }
         });
 
@@ -255,6 +260,9 @@
         const servicesChart = new Chart(ctx, { type: 'pie', data: { labels: [], datasets: [{ label: 'Vendas', data: [], backgroundColor: ['#B76E79', '#D49A9A', '#FADADD', '#A9606C', '#C98B8B', '#E3BDBD'], borderColor: '#FFF9F9', borderWidth: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } });
 
         async function fetchDashboardData() {
+            const user = auth.currentUser;
+            if (!user) return;
+
             const selectedMonth = parseInt(monthSelect.value);
             const selectedYear = parseInt(yearSelect.value);
             
@@ -277,7 +285,7 @@
             const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
             const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
 
-            const salesRef = collection(db, "sales");
+            const salesRef = collection(db, "businesses", user.uid, "sales");
             const periodQuery = query(salesRef, where("createdAt", ">=", Timestamp.fromDate(periodStartDate)), where("createdAt", "<=", Timestamp.fromDate(periodEndDate)));
             const dailyQuery = query(salesRef, where("createdAt", ">=", Timestamp.fromDate(todayStart)), where("createdAt", "<=", Timestamp.fromDate(todayEnd)));
 
