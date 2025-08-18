@@ -268,14 +268,77 @@
             }
         });
 
-        // --- LÓGICA DO MODAL (ADD/EDIT/DELETE) ---
-        // (Código do modal de cliente e exclusão permanece o mesmo)
+        // --- LÓGICA DO MODAL (ADD/EDIT) ---
+        const modal = document.getElementById('client-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const clientForm = document.getElementById('client-form');
+        const clientIdField = document.getElementById('client-id');
+        const clientNameField = document.getElementById('client-name');
+        const clientPhoneField = document.getElementById('client-phone');
+        const clientBirthdateField = document.getElementById('client-birthdate');
 
-        // --- LÓGICA DO SORTEIO (IMPLEMENTADA) ---
+        const openModalForNew = () => {
+            modalTitle.textContent = 'Cadastrar Nova Cliente';
+            clientForm.reset();
+            clientIdField.value = '';
+            modal.classList.remove('hidden');
+        };
+
+        const openModalForEdit = (client) => {
+            modalTitle.textContent = 'Editar Cliente';
+            clientForm.reset();
+            clientIdField.value = client.id;
+            clientNameField.value = client.name;
+            clientPhoneField.value = client.phone;
+            clientBirthdateField.value = client.birthdate;
+            modal.classList.remove('hidden');
+        };
+
+        document.getElementById('add-client-btn').addEventListener('click', openModalForNew);
+        document.getElementById('cancel-btn').addEventListener('click', () => modal.classList.add('hidden'));
+        
+        clientsListEl.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.edit-btn');
+            if (editBtn) {
+                const clientId = editBtn.dataset.id;
+                const clientToEdit = allClientsData.find(c => c.id === clientId);
+                if (clientToEdit) openModalForEdit(clientToEdit);
+            }
+            // A lógica de exclusão pode ser adicionada aqui se necessário
+        });
+
+        clientForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const clientId = clientIdField.value;
+            const clientData = {
+                name: clientNameField.value,
+                phone: clientPhoneField.value,
+                birthdate: clientBirthdateField.value,
+            };
+
+            try {
+                if (clientId) {
+                    const clientRef = doc(db, "clients", clientId);
+                    await updateDoc(clientRef, clientData);
+                    alert("Cliente atualizado com sucesso!");
+                } else {
+                    clientData.createdAt = new Date();
+                    await addDoc(collection(db, "clients"), clientData);
+                    alert("Cliente cadastrado com sucesso!");
+                }
+                modal.classList.add('hidden');
+                loadAllClients();
+            } catch (error) {
+                console.error("Erro ao salvar cliente: ", error);
+                alert("Erro ao salvar cliente.");
+            }
+        });
+
+        // --- LÓGICA DO SORTEIO ---
         const raffleMonthsSelect = document.getElementById('raffle-months');
         const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
         months.forEach((month, index) => {
-            raffleMonthsSelect.add(new Option(month, index)); // Usar índice 0-11
+            raffleMonthsSelect.add(new Option(month, index));
         });
 
         const winnerModal = document.getElementById('winner-modal');
@@ -292,7 +355,6 @@
             const salesInPeriod = [];
 
             try {
-                // Busca todas as vendas do ano para filtrar localmente
                 const yearStart = new Date(currentYear, 0, 1);
                 const yearEnd = new Date(currentYear, 11, 31, 23, 59, 59);
                 
@@ -315,7 +377,6 @@
                     return;
                 }
 
-                // Sorteia uma venda aleatória da lista de elegíveis
                 const winningSale = salesInPeriod[Math.floor(Math.random() * salesInPeriod.length)];
                 const winnerInfo = allClientsData.find(c => c.id === winningSale.clientId);
 
