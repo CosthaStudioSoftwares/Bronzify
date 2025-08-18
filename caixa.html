@@ -578,13 +578,78 @@
                         <td class="p-2">${(sale.total || 0).toLocaleString('pt-BR', {style:'currency', currency: 'BRL'})}</td>
                         <td class="p-2">${sale.paymentMethod}</td>
                         <td class="p-2 flex items-center gap-2">
-                            <button class="edit-sale-btn p-1 text-gray-500 hover:text-blue-600" data-id="${sale.id}"><i data-lucide="pencil" class="w-4 h-4"></i></button>
-                            <button class="delete-sale-btn p-1 text-gray-500 hover:text-red-600" data-id="${sale.id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            <button class="edit-sale-btn p-1 text-gray-500 hover:text-blue-600" data-id="${sale.id}"><i data-lucide="pencil" class="w-4 h-4 pointer-events-none"></i></button>
+                            <button class="delete-sale-btn p-1 text-gray-500 hover:text-red-600" data-id="${sale.id}"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button>
                         </td>
                     </tr>`;
                 tableBody.innerHTML += row;
             });
             lucide.createIcons();
+        }
+
+        const dailySalesTable = document.getElementById('daily-sales-table');
+        dailySalesTable.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.edit-sale-btn');
+            const deleteBtn = e.target.closest('.delete-sale-btn');
+            if (editBtn) handleEditSale(editBtn.dataset.id);
+            if (deleteBtn) handleDeleteSale(deleteBtn.dataset.id);
+        });
+
+        async function handleEditSale(id) {
+            if (!currentUser) return;
+            try {
+                const saleRef = doc(db, "businesses", currentUser.uid, "sales", id);
+                const saleDoc = await getDoc(saleRef);
+                if (!saleDoc.exists()) { alert('Venda não encontrada.'); return; }
+                const saleData = saleDoc.data();
+                
+                resetSaleForm();
+                editingSaleId = id;
+
+                if (saleData.clientId) {
+                    const client = allClients.find(c => c.id === saleData.clientId);
+                    if (client) selectClient(client);
+                } else {
+                    clientSearchInput.value = saleData.clientName;
+                }
+
+                document.querySelectorAll('.service-item input[type="checkbox"]').forEach(cb => cb.checked = false);
+                document.querySelectorAll('.quantity-input').forEach(input => input.value = 0);
+
+                saleData.items.forEach(saleItem => {
+                    const checkbox = Array.from(document.querySelectorAll('.service-item input[type="checkbox"]')).find(cb => cb.dataset.name === saleItem.name);
+                    if (checkbox) checkbox.checked = true;
+
+                    const consumable = Array.from(document.querySelectorAll('.consumable-item')).find(c => c.dataset.name === saleItem.name);
+                    if (consumable) {
+                        consumable.querySelector('.quantity-input').value = saleItem.quantity;
+                    }
+                });
+
+                discountEl.value = (saleData.discount || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                document.getElementById('payment-method').value = saleData.paymentMethod;
+
+                calculateTotal();
+                saveSaleBtn.textContent = 'Atualizar Venda';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (error) {
+                console.error("Erro ao carregar venda para edição:", error);
+                alert('Erro ao carregar venda.');
+            }
+        }
+
+        async function handleDeleteSale(id) {
+            if (!currentUser) return;
+            if (!confirm('Tem certeza que deseja excluir esta venda?')) return;
+            try {
+                const saleRef = doc(db, "businesses", currentUser.uid, "sales", id);
+                await deleteDoc(saleRef);
+                alert('Venda excluída com sucesso!');
+                loadDailySales();
+            } catch (error) {
+                console.error("Erro ao excluir venda:", error);
+                alert('Erro ao excluir venda.');
+            }
         }
     </script>
 </body>
