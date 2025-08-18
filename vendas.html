@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendas - Bronzify</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #FFF9F9; }
+        h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
+        .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1.25rem; border-radius: 0.75rem; color: #4A5568; transition: all 0.3s ease; font-weight: 500; }
+        .sidebar-link:hover, .sidebar-link.active { background-color: #FADADD; color: #B76E79; }
+        .sidebar-link svg { margin-right: 0.75rem; }
+    </style>
+</head>
+<body class="flex h-screen">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white shadow-lg flex-shrink-0">
+        <div class="p-6">
+            <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
+        </div>
+        <nav class="mt-6 px-4">
+            <a href="./dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+            <a href="./clientes.html" class="sidebar-link"><i data-lucide="users"></i> Clientes</a>
+            <a href="./caixa.html" class="sidebar-link"><i data-lucide="dollar-sign"></i> Caixa</a>
+            <a href="./vendas.html" class="sidebar-link active"><i data-lucide="shopping-cart"></i> Vendas</a>
+            <a href="./ordem-chegada.html" class="sidebar-link"><i data-lucide="list-ordered"></i> Ordem de Chegada</a>
+            <a href="./patio.html" class="sidebar-link"><i data-lucide="sun"></i> Pátio</a>
+        </nav>
+        <div class="absolute bottom-0 w-64 p-4">
+             <button id="logout-btn" class="w-full flex items-center justify-center gap-2 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors duration-300"><i data-lucide="log-out"></i> Sair</button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-8 overflow-y-auto">
+        <header class="flex justify-between items-center mb-8">
+            <h2 class="text-4xl text-gray-800">Histórico de Vendas</h2>
+        </header>
+
+        <!-- Filtros de Pesquisa -->
+        <div class="bg-white p-6 rounded-2xl shadow-md mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                <div>
+                    <label for="search-term" class="block text-gray-700 font-semibold mb-2">Buscar por Cliente</label>
+                    <input type="text" id="search-term" placeholder="Digite nome ou telefone..." class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Buscar por Período</label>
+                    <div class="flex items-center gap-4">
+                        <select id="filter-month" class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]"></select>
+                        <select id="filter-year" class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]"></select>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4 flex justify-end">
+                <button id="search-btn" class="bg-[#B76E79] text-white px-6 py-2 rounded-lg hover:opacity-90">Pesquisar</button>
+            </div>
+        </div>
+
+        <!-- Resultados da Pesquisa -->
+        <div class="bg-white p-6 rounded-2xl shadow-md">
+            <h3 class="text-2xl text-gray-800 mb-4">Resultados</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="border-b">
+                            <th class="p-2">Data</th>
+                            <th class="p-2">Cliente</th>
+                            <th class="p-2">Valor Total</th>
+                            <th class="p-2">Itens</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sales-results-table">
+                        <tr><td colspan="4" class="text-center p-8 text-gray-500">Faça uma pesquisa para ver os resultados.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+      lucide.createIcons();
+    </script>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, query, where, getDocs, Timestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
+            authDomain: "bronzify-b2491.firebaseapp.com",
+            projectId: "bronzify-b2491",
+            storageBucket: "bronzify-b2491.appspot.com",
+            messagingSenderId: "399230151633",
+            appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        onAuthStateChanged(auth, (user) => {
+            if (!user) { window.location.href = 'index.html'; }
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = 'index.html'));
+
+        // --- LÓGICA DOS FILTROS ---
+        const monthSelect = document.getElementById('filter-month');
+        const yearSelect = document.getElementById('filter-year');
+        const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+        const currentYear = new Date().getFullYear();
+        
+        monthSelect.add(new Option("Selecione o Mês", -1));
+        months.forEach((month, index) => monthSelect.add(new Option(month, index)));
+        for (let i = currentYear; i >= 2020; i--) yearSelect.add(new Option(i, i));
+
+        // --- LÓGICA DA PESQUISA ---
+        const searchBtn = document.getElementById('search-btn');
+        const searchTermInput = document.getElementById('search-term');
+        const resultsTable = document.getElementById('sales-results-table');
+
+        searchBtn.addEventListener('click', async () => {
+            const searchTerm = searchTermInput.value.trim();
+            const selectedMonth = parseInt(monthSelect.value);
+            const selectedYear = parseInt(yearSelect.value);
+
+            let salesQuery;
+            const salesRef = collection(db, "sales");
+
+            if (searchTerm) {
+                salesQuery = query(salesRef, 
+                    where("clientName", ">=", searchTerm),
+                    where("clientName", "<=", searchTerm + '\uf8ff'),
+                    orderBy("clientName"),
+                    orderBy("createdAt", "desc")
+                );
+            } else if (selectedMonth > -1) {
+                const startDate = new Date(selectedYear, selectedMonth, 1);
+                const endDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
+                salesQuery = query(salesRef, 
+                    where("createdAt", ">=", Timestamp.fromDate(startDate)),
+                    where("createdAt", "<=", Timestamp.fromDate(endDate)),
+                    orderBy("createdAt", "desc")
+                );
+            } else {
+                alert("Por favor, preencha um campo de busca (cliente ou período).");
+                return;
+            }
+
+            try {
+                const querySnapshot = await getDocs(salesQuery);
+                resultsTable.innerHTML = '';
+                if (querySnapshot.empty) {
+                    resultsTable.innerHTML = '<tr><td colspan="4" class="text-center p-8 text-gray-500">Nenhuma venda encontrada para esta pesquisa.</td></tr>';
+                    return;
+                }
+
+                querySnapshot.forEach(doc => {
+                    const sale = doc.data();
+                    const saleDate = sale.createdAt.toDate().toLocaleDateString('pt-BR');
+                    const itemsList = sale.items ? sale.items.map(item => item.name).join(', ') : 'N/A';
+                    const row = `
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="p-2">${saleDate}</td>
+                            <td class="p-2 font-semibold">${sale.clientName}</td>
+                            <td class="p-2">${(sale.total || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                            <td class="p-2 text-sm text-gray-600">${itemsList}</td>
+                        </tr>`;
+                    resultsTable.innerHTML += row;
+                });
+
+            } catch (error) {
+                console.error("Erro ao buscar vendas: ", error);
+                resultsTable.innerHTML = '<tr><td colspan="4" class="text-center p-8 text-red-500">Ocorreu um erro ao buscar as vendas. Pode ser necessário criar um índice no Firebase. Verifique o console.</td></tr>';
+            }
+        });
+    </script>
+</body>
+</html>
