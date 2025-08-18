@@ -104,9 +104,12 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        let currentUser = null;
+
         // --- LÓGICA DE AUTENTICAÇÃO ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
+                currentUser = user;
                 listenForWaitingClients();
             } else {
                 window.location.href = './index.html';
@@ -120,37 +123,31 @@
         const noClientsMessage = document.getElementById('no-clients-message');
 
         function listenForWaitingClients() {
+            if (!currentUser) return;
+
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
 
-            // Consulta que busca primeiro pelas vendas do dia, e depois filtra por status.
-            // Isso evita a necessidade de um índice composto manual no Firestore.
+            const salesRef = collection(db, "businesses", currentUser.uid, "sales");
             const q = query(
-                collection(db, "sales"),
+                salesRef,
+                where("status", "==", "waiting"),
                 where("createdAt", ">=", Timestamp.fromDate(todayStart)),
                 orderBy("createdAt", "asc")
             );
 
             onSnapshot(q, (querySnapshot) => {
-                const waitingSales = [];
-                querySnapshot.forEach(doc => {
-                    const sale = { id: doc.id, ...doc.data() };
-                    // Filtra os resultados para status "waiting" no lado do cliente
-                    if (sale.status === 'waiting') {
-                        waitingSales.push(sale);
-                    }
-                });
-
                 waitingListContainer.innerHTML = '';
                 waitingListContainer.appendChild(noClientsMessage);
 
-                if (waitingSales.length === 0) {
+                if (querySnapshot.empty) {
                     noClientsMessage.classList.remove('hidden');
                 } else {
                     noClientsMessage.classList.add('hidden');
                 }
 
-                waitingSales.forEach((sale) => {
+                querySnapshot.forEach((doc) => {
+                    const sale = { id: doc.id, ...doc.data() };
                     const clientElement = document.createElement('div');
                     clientElement.className = 'waiting-item flex items-center justify-between bg-gray-50 p-4 rounded-lg shadow-sm';
                     clientElement.id = `sale-${sale.id}`;
@@ -167,15 +164,19 @@
                     waitingListContainer.appendChild(clientElement);
                 });
                 lucide.createIcons();
+            }, (error) => {
+                console.error("Erro na consulta em tempo real:", error);
+                // Se o erro for de índice, a mensagem no console terá o link para criar.
             });
         }
 
         // Event listener para o botão "Chamar"
         waitingListContainer.addEventListener('click', async (e) => {
+            if (!currentUser) return;
             const callButton = e.target.closest('.call-client-btn');
             if (callButton) {
                 const saleId = callButton.dataset.id;
-                const saleRef = doc(db, "sales", saleId);
+                const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
                 
                 try {
                     const itemToRemove = document.getElementById(`sale-${saleId}`);
@@ -188,7 +189,7 @@
                 } catch (error) {
                     console.error("Erro ao atualizar status da venda: ", error);
                     alert("Ocorreu um erro ao chamar a cliente.");
-                    if(itemToRemove) itemToRemove.classList.remove('removing'); // Reverte a animação em caso de erro
+                    if(itemToRemove) itemToRemove.classList.remove('removing');
                 }
             }
         });
@@ -196,5 +197,3 @@
     </script>
 </body>
 </html>
-
-
