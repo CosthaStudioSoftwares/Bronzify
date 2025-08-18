@@ -205,42 +205,37 @@
             }
 
             const salesRef = collection(db, "sales");
-            let finalQuery;
+            let constraints = [orderBy("createdAt", "desc")]; // Começa com a ordenação
 
-            try {
-                // Define a base da consulta pelo período, se houver um selecionado
-                if (selectedMonth > -1) {
-                    let startDate, endDate;
-                    if (selectedMonth === 12) { // Ano Inteiro
-                        startDate = new Date(selectedYear, 0, 1);
-                        endDate = new Date(selectedYear, 11, 31, 23, 59, 59);
-                    } else { // Mês específico
-                        startDate = new Date(selectedYear, selectedMonth, 1);
-                        endDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
-                    }
-                    finalQuery = query(salesRef, 
-                        where("createdAt", ">=", Timestamp.fromDate(startDate)),
-                        where("createdAt", "<=", Timestamp.fromDate(endDate)),
-                        orderBy("createdAt", "desc")
-                    );
-                } else {
-                    // Se não houver período, a base é a coleção inteira ordenada
-                    finalQuery = query(salesRef, orderBy("createdAt", "desc"));
+            // Adiciona o filtro de período se um for selecionado
+            if (selectedMonth > -1) {
+                let startDate, endDate;
+                if (selectedMonth === 12) { // Ano Inteiro
+                    startDate = new Date(selectedYear, 0, 1);
+                    endDate = new Date(selectedYear, 11, 31, 23, 59, 59);
+                } else { // Mês específico
+                    startDate = new Date(selectedYear, selectedMonth, 1);
+                    endDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
                 }
-                
+                constraints.unshift(where("createdAt", "<=", Timestamp.fromDate(endDate)));
+                constraints.unshift(where("createdAt", ">=", Timestamp.fromDate(startDate)));
+            }
+            
+            // Adiciona o filtro de cliente se um for digitado
+            if (searchTerm) {
+                 constraints.unshift(where("clientName", "==", searchTermInput.value.trim()));
+            }
+            
+            const finalQuery = query(salesRef, ...constraints);
+            
+            try {
                 const querySnapshot = await getDocs(finalQuery);
                 let sales = querySnapshot.docs.map(doc => doc.data());
-
-                // Se houver um termo de busca, filtra os resultados já obtidos
-                if (searchTerm) {
-                    sales = sales.filter(sale => sale.clientName.toLowerCase().includes(searchTerm));
-                }
-                
                 renderResults(sales);
 
             } catch (error) {
                 console.error("Erro ao buscar vendas: ", error);
-                resultsTable.innerHTML = '<tr><td colspan="5" class="text-center p-8 text-red-500">Ocorreu um erro ao buscar as vendas.</td></tr>';
+                resultsTable.innerHTML = '<tr><td colspan="5" class="text-center p-8 text-red-500">Ocorreu um erro ao buscar as vendas. Pode ser necessário criar um índice no Firebase. Verifique o console.</td></tr>';
             }
         });
     </script>
