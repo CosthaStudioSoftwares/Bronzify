@@ -155,6 +155,7 @@
         const adminPasswordModal = document.getElementById('admin-password-modal');
         const adminPasswordForm = document.getElementById('admin-password-form');
         const adminPasswordInput = document.getElementById('admin-password-input');
+        const adminModalSubtitle = document.getElementById('admin-modal-subtitle');
         
         function updateUIVisibility() {
             const monthlyRevenueEl = document.getElementById('monthly-revenue');
@@ -185,11 +186,19 @@
             lucide.createIcons();
         }
 
-        adminModeBtn.addEventListener('click', () => {
+        adminModeBtn.addEventListener('click', async () => {
             if (isAdminModeActive) {
                 isAdminModeActive = false;
                 updateUIVisibility();
             } else {
+                // Verifica se a senha já foi definida para mostrar a mensagem correta
+                const configRef = doc(db, "admin_config", "password");
+                const configSnap = await getDoc(configRef);
+                if (!configSnap.exists()) {
+                    adminModalSubtitle.textContent = 'Primeiro acesso. Crie a sua senha de administrador.';
+                } else {
+                    adminModalSubtitle.textContent = 'Insira a senha para ver os dados.';
+                }
                 adminPasswordModal.classList.remove('hidden');
             }
         });
