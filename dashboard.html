@@ -19,10 +19,8 @@
         .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1.25rem; border-radius: 0.75rem; color: #4A5568; transition: all 0.3s ease; font-weight: 500; }
         .sidebar-link:hover, .sidebar-link.active { background-color: #FADADD; color: #B76E79; }
         .sidebar-link svg { margin-right: 0.75rem; }
-        .sensitive-data { filter: blur(5px); user-select: none; }
+        .sensitive-data { filter: blur(5px); user-select: none; transition: filter 0.3s ease-in-out; }
         .sensitive-data.visible { filter: none; }
-        .modal-backdrop { transition: opacity 0.3s ease; }
-        .modal-content { transition: transform 0.3s ease; }
     </style>
 </head>
 <body class="flex h-screen opacity-0 transition-opacity duration-300">
@@ -49,9 +47,6 @@
         <header class="flex flex-wrap justify-between items-center mb-8 gap-4">
             <h2 class="text-4xl text-gray-800">Dashboard</h2>
             <div class="flex items-center gap-4">
-                <button id="admin-mode-btn" class="bg-rose-100 text-[#B76E79] px-4 py-2 rounded-lg hover:bg-rose-200 flex items-center gap-2 font-semibold">
-                    <i data-lucide="eye"></i> Ativar Modo ADM
-                </button>
                 <span id="user-email" class="text-gray-600">carregando...</span>
                 <img src="https://placehold.co/40x40/FADADD/B76E79?text=B" alt="Avatar" class="rounded-full">
             </div>
@@ -103,19 +98,6 @@
         </div>
     </main>
 
-    <!-- Modal de Senha ADM -->
-    <div id="admin-password-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 modal-content transform scale-95">
-            <h3 id="admin-modal-title" class="text-2xl text-gray-800 mb-4 text-center">Modo Administrador</h3>
-            <p id="admin-modal-subtitle" class="text-center text-gray-500 mb-6">Insira a senha para ver os dados.</p>
-            <form id="admin-password-form">
-                <input type="password" id="admin-password-input" class="w-full text-center px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
-                <button type="submit" class="w-full mt-4 bg-[#B76E79] text-white py-2 rounded-lg hover:opacity-90">Confirmar</button>
-                <button type="button" id="cancel-admin-password" class="w-full mt-2 text-gray-600 py-2 rounded-lg hover:bg-gray-100">Cancelar</button>
-            </form>
-        </div>
-    </div>
-
     <script>
       lucide.createIcons();
       const { jsPDF } = window.jspdf;
@@ -124,7 +106,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, query, where, getDocs, Timestamp, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, query, where, getDocs, Timestamp, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
@@ -138,76 +120,38 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        let isAdminModeActive = false;
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 document.body.classList.remove('opacity-0');
                 document.getElementById('user-email').textContent = user.email;
+                checkAdminStatus(user); // Verifica se o usuário é admin
                 fetchDashboardData();
             } else { window.location.href = 'index.html'; }
         });
 
         document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = 'index.html'));
 
-        // --- LÓGICA DO MODO ADMINISTRADOR ---
-        const adminModeBtn = document.getElementById('admin-mode-btn');
-        const adminPasswordModal = document.getElementById('admin-password-modal');
-        const adminPasswordForm = document.getElementById('admin-password-form');
-        const adminPasswordInput = document.getElementById('admin-password-input');
-        const adminModalTitle = document.getElementById('admin-modal-title');
-        const adminModalSubtitle = document.getElementById('admin-modal-subtitle');
+        // --- LÓGICA DO MODO ADMINISTRADOR (NOVA) ---
         const sensitiveElements = document.querySelectorAll('.sensitive-data');
 
-        function toggleSensitiveData(visible) {
-            isAdminModeActive = visible;
-            sensitiveElements.forEach(el => {
-                if (visible) el.classList.add('visible');
-                else el.classList.remove('visible');
-            });
-            adminModeBtn.innerHTML = visible 
-                ? `<i data-lucide="eye-off"></i> Desativar Modo ADM` 
-                : `<i data-lucide="eye"></i> Ativar Modo ADM`;
-            lucide.createIcons();
-        }
-
-        adminModeBtn.addEventListener('click', () => {
-            if (isAdminModeActive) {
-                toggleSensitiveData(false);
-            } else {
-                adminPasswordModal.classList.remove('hidden');
-            }
-        });
-
-        document.getElementById('cancel-admin-password').addEventListener('click', () => adminPasswordModal.classList.add('hidden'));
-
-        adminPasswordForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const password = adminPasswordInput.value;
-            const configRef = doc(db, "admin_config", "password");
-            
+        async function checkAdminStatus(user) {
+            // INSTRUÇÃO: Para definir o admin, crie um documento no Firestore em:
+            // Coleção: admin_config -> Documento: main -> Campo: admin_email (string) com o seu email.
+            const configRef = doc(db, "admin_config", "main");
             try {
                 const configSnap = await getDoc(configRef);
-                if (!configSnap.exists()) {
-                    // Primeira vez: define a senha
-                    await setDoc(configRef, { value: password });
-                    alert("Senha de administrador definida com sucesso!");
-                    toggleSensitiveData(true);
+                if (configSnap.exists() && configSnap.data().admin_email === user.email) {
+                    // Se o email do usuário logado for o email do admin, mostra os dados
+                    sensitiveElements.forEach(el => el.classList.add('visible'));
                 } else {
-                    // Verifica a senha
-                    if (configSnap.data().value === password) {
-                        toggleSensitiveData(true);
-                    } else {
-                        alert("Senha incorreta!");
-                    }
+                    // Caso contrário, mantém os dados ocultos
+                    sensitiveElements.forEach(el => el.classList.remove('visible'));
                 }
-                adminPasswordForm.reset();
-                adminPasswordModal.classList.add('hidden');
             } catch (error) {
-                console.error("Erro ao verificar senha de ADM:", error);
-                alert("Ocorreu um erro. Tente novamente.");
+                console.error("Erro ao verificar status de admin:", error);
             }
-        });
+        }
 
         // --- LÓGICA DO DASHBOARD ---
         const monthSelect = document.getElementById('filter-month');
