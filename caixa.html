@@ -401,18 +401,26 @@
         }
         
         // --- LÓGICA PARA SALVAR VENDA ---
-        // (O código para salvar a venda precisa ser atualizado para incluir a quantidade)
         const saveSaleBtn = document.getElementById('save-sale-btn');
+        const passwordDisplay = document.getElementById('password-display');
+        const generatedPasswordEl = document.getElementById('generated-password');
+
         saveSaleBtn.addEventListener('click', async () => {
             if (!currentUser) return;
             const totalString = totalEl.textContent.replace(/\D/g, '');
             const totalValue = totalString ? parseInt(totalString, 10) / 100 : 0;
-            if (totalValue <= 0 && !editingSaleId) { alert("Nenhum item selecionado para a venda."); return; }
+            if (totalValue <= 0 && !editingSaleId) { 
+                alert("Nenhum item selecionado para a venda."); 
+                return; 
+            }
 
+            const subtotalString = subtotalEl.textContent.replace(/\D/g, '');
+            const subtotalValue = subtotalString ? parseInt(subtotalString, 10) / 100 : 0;
+            const discountString = discountEl.value.replace(/\D/g, '');
+            const discountValue = discountString ? parseInt(discountString, 10) / 100 : 0;
+            
             const saleItems = [];
-            // Adiciona itens de checkbox
             document.querySelectorAll('.service-item input:checked').forEach(i => saleItems.push({ name: i.dataset.name, price: parseFloat(i.dataset.price), quantity: 1 }));
-            // Adiciona itens de consumo
             document.querySelectorAll('.consumable-item').forEach(item => {
                 const quantity = parseInt(item.querySelector('.quantity-input').value);
                 if (quantity > 0) {
@@ -420,10 +428,47 @@
                 }
             });
             
-            // ... (resto do código para salvar a venda, que permanece o mesmo)
-        });
+            const salePayload = {
+                clientName: selectedClient ? selectedClient.name : "Cliente Avulso",
+                clientId: selectedClient ? selectedClient.id : null,
+                subtotal: subtotalValue,
+                discount: discountValue,
+                total: totalValue,
+                paymentMethod: document.getElementById('payment-method').value,
+                items: saleItems,
+                createdAt: Timestamp.now(),
+                status: 'waiting'
+            };
 
-        // ... (resto do seu código JavaScript)
+            const salesRef = collection(db, "businesses", currentUser.uid, "sales");
+
+            try {
+                if (editingSaleId) {
+                    const saleRef = doc(salesRef, editingSaleId);
+                    const existingDoc = await getDoc(saleRef);
+                    const existingData = existingDoc.data();
+                    salePayload.status = existingData.status;
+                    salePayload.password = existingData.password;
+                    salePayload.createdAt = existingData.createdAt;
+                    await updateDoc(saleRef, salePayload);
+                    alert('Venda atualizada com sucesso!');
+                } else {
+                    const password = await getNextPassword();
+                    salePayload.password = password;
+                    await addDoc(salesRef, salePayload);
+                    generatedPasswordEl.textContent = password;
+                    passwordDisplay.classList.remove('hidden');
+                    alert(`Venda salva! Senha do cliente: ${password}`);
+                }
+                loadDailySales();
+                resetSaleForm();
+            } catch (error) { 
+                console.error("Erro ao salvar venda:", error); 
+                alert("Ocorreu um erro ao salvar a venda."); 
+            }
+        });
+        
+        // ... (resto do seu código JavaScript, como loadDailySales, resetSaleForm, etc.)
     </script>
 </body>
 </html>
