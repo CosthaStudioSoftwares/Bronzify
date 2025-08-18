@@ -44,13 +44,25 @@
         <div class="p-6">
             <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
         </div>
-       <nav class="mt-6 px-4">
-            <a href="./dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a>
-            <a href="./clientes.html" class="sidebar-link active"><i data-lucide="users"></i> Clientes</a>
-            <a href="./caixa.html" class="sidebar-link"><i data-lucide="dollar-sign"></i> Caixa</a>
-            <a href="./vendas.html" class="sidebar-link"><i data-lucide="shopping-cart"></i> Vendas</a>
-            <a href="./ordem-chegada.html" class="sidebar-link"><i data-lucide="list-ordered"></i> Ordem de Chegada</a>
-            <a href="./patio.html" class="sidebar-link"><i data-lucide="sun"></i> Pátio</a>
+        <nav class="mt-6 px-4">
+            <a href="./dashboard.html" class="sidebar-link">
+                <i data-lucide="layout-dashboard"></i> Dashboard
+            </a>
+            <a href="./clientes.html" class="sidebar-link active">
+                <i data-lucide="users"></i> Clientes
+            </a>
+            <a href="./caixa.html" class="sidebar-link">
+                <i data-lucide="dollar-sign"></i> Caixa
+            </a>
+            <a href="./vendas.html" class="sidebar-link">
+                <i data-lucide="shopping-cart"></i> Vendas
+            </a>
+            <a href="./ordem-chegada.html" class="sidebar-link">
+                <i data-lucide="list-ordered"></i> Ordem de Chegada
+            </a>
+            <a href="./patio.html" class="sidebar-link">
+                <i data-lucide="sun"></i> Pátio
+            </a>
         </nav>
         <div class="absolute bottom-0 w-64 p-4">
              <button id="logout-btn" class="w-full flex items-center justify-center gap-2 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors duration-300">
@@ -169,8 +181,11 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        let currentUser = null;
+
         onAuthStateChanged(auth, (user) => {
             if (user) {
+                currentUser = user;
                 document.body.classList.remove('opacity-0');
                 loadPageData(); 
             } else {
@@ -216,7 +231,9 @@
         }
 
         async function loadAllClients() {
-            const q = query(collection(db, "clients"), orderBy("createdAt", "desc"));
+            if (!currentUser) return;
+            const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
+            const q = query(clientsRef, orderBy("createdAt", "desc"));
             try {
                 const querySnapshot = await getDocs(q);
                 allClientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -300,6 +317,8 @@
 
         clientForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (!currentUser) return;
+
             const clientId = clientIdField.value;
             const clientData = {
                 name: clientNameField.value,
@@ -307,14 +326,16 @@
                 birthdate: clientBirthdateField.value,
             };
 
+            const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
+
             try {
                 if (clientId) {
-                    const clientRef = doc(db, "clients", clientId);
+                    const clientRef = doc(clientsRef, clientId);
                     await updateDoc(clientRef, clientData);
                     alert("Cliente atualizado com sucesso!");
                 } else {
                     clientData.createdAt = new Date();
-                    await addDoc(collection(db, "clients"), clientData);
+                    await addDoc(clientsRef, clientData);
                     alert("Cliente cadastrado com sucesso!");
                 }
                 modal.classList.add('hidden');
@@ -336,6 +357,7 @@
         document.getElementById('close-winner-modal').addEventListener('click', () => winnerModal.classList.add('hidden'));
 
         document.getElementById('raffle-btn').addEventListener('click', async () => {
+            if (!currentUser) return;
             const selectedMonths = Array.from(raffleMonthsSelect.selectedOptions).map(opt => parseInt(opt.value));
             if (selectedMonths.length === 0) {
                 alert("Por favor, selecione pelo menos um mês para o sorteio.");
@@ -349,7 +371,8 @@
                 const yearStart = new Date(currentYear, 0, 1);
                 const yearEnd = new Date(currentYear, 11, 31, 23, 59, 59);
                 
-                const q = query(collection(db, "sales"), 
+                const salesRef = collection(db, "businesses", currentUser.uid, "sales");
+                const q = query(salesRef, 
                     where("createdAt", ">=", Timestamp.fromDate(yearStart)),
                     where("createdAt", "<=", Timestamp.fromDate(yearEnd))
                 );
@@ -389,5 +412,3 @@
     </script>
 </body>
 </html>
-
-
