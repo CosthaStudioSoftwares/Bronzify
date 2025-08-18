@@ -129,7 +129,7 @@
         
         monthSelect.add(new Option("Selecione o Mês", -1));
         months.forEach((month, index) => monthSelect.add(new Option(month, index)));
-        monthSelect.add(new Option("Ano Inteiro", 12)); // Adiciona a opção para o ano inteiro
+        monthSelect.add(new Option("Ano Inteiro", 12));
         for (let i = currentYear; i >= 2020; i--) yearSelect.add(new Option(i, i));
 
         // --- LÓGICA DA PESQUISA ---
@@ -170,70 +170,68 @@
         });
         document.addEventListener('click', (e) => { if (!searchTermInput.contains(e.target)) searchResultsContainer.classList.add('hidden'); });
 
-
-        searchBtn.addEventListener('click', async () => {
-            const searchTerm = searchTermInput.value.trim();
-            const selectedMonth = parseInt(monthSelect.value);
-            const selectedYear = parseInt(yearSelect.value);
-
-            let salesQuery;
-            const salesRef = collection(db, "sales");
-
-            if (searchTerm) {
-                // Limpa os filtros de período se estiver buscando por cliente
-                monthSelect.value = -1;
-                salesQuery = query(salesRef, 
-                    where("clientName", ">=", searchTerm),
-                    where("clientName", "<=", searchTerm + '\uf8ff'),
-                    orderBy("clientName"),
-                    orderBy("createdAt", "desc")
-                );
-            } else if (selectedMonth > -1) {
-                // Limpa a busca por cliente se estiver buscando por período
-                searchTermInput.value = '';
-                let startDate, endDate;
-                if (selectedMonth === 12) { // Ano Inteiro
-                    startDate = new Date(selectedYear, 0, 1);
-                    endDate = new Date(selectedYear, 11, 31, 23, 59, 59);
-                } else { // Mês específico
-                    startDate = new Date(selectedYear, selectedMonth, 1);
-                    endDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
-                }
-                salesQuery = query(salesRef, 
-                    where("createdAt", ">=", Timestamp.fromDate(startDate)),
-                    where("createdAt", "<=", Timestamp.fromDate(endDate)),
-                    orderBy("createdAt", "desc")
-                );
-            } else {
-                alert("Por favor, preencha um campo de busca (cliente ou período).");
+        function renderResults(sales) {
+            resultsTable.innerHTML = '';
+            if (sales.length === 0) {
+                resultsTable.innerHTML = '<tr><td colspan="4" class="text-center p-8 text-gray-500">Nenhuma venda encontrada para esta pesquisa.</td></tr>';
                 return;
             }
 
+            sales.forEach(sale => {
+                const saleDate = sale.createdAt.toDate().toLocaleDateString('pt-BR');
+                const itemsList = sale.items ? sale.items.map(item => item.name).join(', ') : 'N/A';
+                const row = `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="p-2">${saleDate}</td>
+                        <td class="p-2 font-semibold">${sale.clientName}</td>
+                        <td class="p-2">${(sale.total || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                        <td class="p-2 text-sm text-gray-600">${itemsList}</td>
+                    </tr>`;
+                resultsTable.innerHTML += row;
+            });
+        }
+
+        searchBtn.addEventListener('click', async () => {
+            const searchTerm = searchTermInput.value.trim().toLowerCase();
+            const selectedMonth = parseInt(monthSelect.value);
+            const selectedYear = parseInt(yearSelect.value);
+
+            const salesRef = collection(db, "sales");
+            let baseQuery = query(salesRef, orderBy("createdAt", "desc"));
+            
             try {
-                const querySnapshot = await getDocs(salesQuery);
-                resultsTable.innerHTML = '';
-                if (querySnapshot.empty) {
-                    resultsTable.innerHTML = '<tr><td colspan="4" class="text-center p-8 text-gray-500">Nenhuma venda encontrada para esta pesquisa.</td></tr>';
-                    return;
+                if (searchTerm) {
+                    monthSelect.value = -1;
+                    const querySnapshot = await getDocs(baseQuery);
+                    const allSales = querySnapshot.docs.map(doc => doc.data());
+                    const filteredSales = allSales.filter(sale => sale.clientName.toLowerCase().includes(searchTerm));
+                    renderResults(filteredSales);
+
+                } else if (selectedMonth > -1) {
+                    searchTermInput.value = '';
+                    let startDate, endDate;
+                    if (selectedMonth === 12) { // Ano Inteiro
+                        startDate = new Date(selectedYear, 0, 1);
+                        endDate = new Date(selectedYear, 11, 31, 23, 59, 59);
+                    } else { // Mês específico
+                        startDate = new Date(selectedYear, selectedMonth, 1);
+                        endDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
+                    }
+                    const periodQuery = query(salesRef, 
+                        where("createdAt", ">=", Timestamp.fromDate(startDate)),
+                        where("createdAt", "<=", Timestamp.fromDate(endDate)),
+                        orderBy("createdAt", "desc")
+                    );
+                    const querySnapshot = await getDocs(periodQuery);
+                    const sales = querySnapshot.docs.map(doc => doc.data());
+                    renderResults(sales);
+
+                } else {
+                    alert("Por favor, preencha um campo de busca (cliente ou período).");
                 }
-
-                querySnapshot.forEach(doc => {
-                    const sale = doc.data();
-                    const saleDate = sale.createdAt.toDate().toLocaleDateString('pt-BR');
-                    const itemsList = sale.items ? sale.items.map(item => item.name).join(', ') : 'N/A';
-                    const row = `
-                        <tr class="border-b hover:bg-gray-50">
-                            <td class="p-2">${saleDate}</td>
-                            <td class="p-2 font-semibold">${sale.clientName}</td>
-                            <td class="p-2">${(sale.total || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                            <td class="p-2 text-sm text-gray-600">${itemsList}</td>
-                        </tr>`;
-                    resultsTable.innerHTML += row;
-                });
-
             } catch (error) {
                 console.error("Erro ao buscar vendas: ", error);
-                resultsTable.innerHTML = '<tr><td colspan="4" class="text-center p-8 text-red-500">Ocorreu um erro ao buscar as vendas. Pode ser necessário criar um índice no Firebase. Verifique o console.</td></tr>';
+                resultsTable.innerHTML = '<tr><td colspan="4" class="text-center p-8 text-red-500">Ocorreu um erro ao buscar as vendas.</td></tr>';
             }
         });
     </script>
