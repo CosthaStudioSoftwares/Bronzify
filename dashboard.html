@@ -74,7 +74,7 @@
             <!-- Cards de Métricas Principais -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div class="bg-white p-6 rounded-2xl shadow-md">
-                    <h3 class="text-lg font-semibold text-gray-500">Faturamento Mensal</h3>
+                    <h3 id="revenue-title" class="text-lg font-semibold text-gray-500">Faturamento Mensal</h3>
                     <p id="monthly-revenue" class="text-4xl font-bold text-[#B76E79] mt-2">R$ *******</p>
                 </div>
                 <div class="bg-white p-6 rounded-2xl shadow-md">
@@ -94,7 +94,7 @@
                     <div id="payment-methods-details" class="space-y-4"><p class="text-gray-500">Dados ocultos. Ative o modo ADM.</p></div>
                 </div>
                 <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-md">
-                    <h3 class="text-2xl text-gray-800 mb-4">Tipos de Bronze e Serviços (Mês)</h3>
+                    <h3 id="services-chart-title" class="text-2xl text-gray-800 mb-4">Tipos de Bronze e Serviços (Mês)</h3>
                     <div id="chart-container" class="max-h-80 flex justify-center items-center"><canvas id="servicesChart"></canvas></div>
                 </div>
             </div>
@@ -150,7 +150,7 @@
 
         document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = 'index.html'));
 
-        // --- LÓGICA DO MODO ADMINISTRADOR (INDIVIDUAL POR USUÁRIO) ---
+        // --- LÓGICA DO MODO ADMINISTRADOR ---
         const adminModeBtn = document.getElementById('admin-mode-btn');
         const adminPasswordModal = document.getElementById('admin-password-modal');
         const adminPasswordForm = document.getElementById('admin-password-form');
@@ -191,16 +191,12 @@
                 isAdminModeActive = false;
                 updateUIVisibility();
             } else {
-                const user = auth.currentUser;
-                if (!user) return; // Sai se não houver usuário logado
-
-                const configRef = doc(db, "admin_passwords", user.uid);
+                const configRef = doc(db, "admin_config", "password");
                 const configSnap = await getDoc(configRef);
-                
                 if (!configSnap.exists()) {
                     adminModalSubtitle.textContent = 'Primeiro acesso. Crie a sua senha de administrador.';
                 } else {
-                    adminModalSubtitle.textContent = 'Insira a sua senha para ver os dados.';
+                    adminModalSubtitle.textContent = 'Insira a senha para ver os dados.';
                 }
                 adminPasswordModal.classList.remove('hidden');
             }
@@ -210,17 +206,14 @@
 
         adminPasswordForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const user = auth.currentUser;
-            if (!user) return;
-
             const password = adminPasswordInput.value;
-            const configRef = doc(db, "admin_passwords", user.uid);
+            const configRef = doc(db, "admin_config", "password");
             
             try {
                 const configSnap = await getDoc(configRef);
                 if (!configSnap.exists()) {
                     await setDoc(configRef, { value: password });
-                    alert("Sua senha de administrador individual foi definida com sucesso!");
+                    alert("Senha de administrador definida com sucesso!");
                     isAdminModeActive = true;
                 } else {
                     if (configSnap.data().value === password) {
@@ -245,6 +238,8 @@
         const currentYear = new Date().getFullYear();
         
         months.forEach((month, index) => monthSelect.add(new Option(month, index)));
+        monthSelect.add(new Option("Ano Inteiro", 12)); // Adiciona a opção para o ano inteiro
+        
         for (let i = currentYear; i >= 2020; i--) yearSelect.add(new Option(i, i));
         monthSelect.value = new Date().getMonth();
         yearSelect.value = currentYear;
@@ -255,23 +250,38 @@
         async function fetchDashboardData() {
             const selectedMonth = parseInt(monthSelect.value);
             const selectedYear = parseInt(yearSelect.value);
-            const monthStartDate = new Date(selectedYear, selectedMonth, 1);
-            const monthEndDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
+            
+            let periodStartDate, periodEndDate;
+            const revenueTitleEl = document.getElementById('revenue-title');
+            const servicesChartTitleEl = document.getElementById('services-chart-title');
+
+            if (selectedMonth === 12) { // Se "Ano Inteiro" for selecionado
+                periodStartDate = new Date(selectedYear, 0, 1);
+                periodEndDate = new Date(selectedYear, 11, 31, 23, 59, 59);
+                revenueTitleEl.textContent = 'Faturamento Anual';
+                servicesChartTitleEl.textContent = 'Tipos de Bronze e Serviços (Ano)';
+            } else {
+                periodStartDate = new Date(selectedYear, selectedMonth, 1);
+                periodEndDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
+                revenueTitleEl.textContent = 'Faturamento Mensal';
+                servicesChartTitleEl.textContent = 'Tipos de Bronze e Serviços (Mês)';
+            }
+
             const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
             const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
 
             const salesRef = collection(db, "sales");
-            const monthlyQuery = query(salesRef, where("createdAt", ">=", Timestamp.fromDate(monthStartDate)), where("createdAt", "<=", Timestamp.fromDate(monthEndDate)));
+            const periodQuery = query(salesRef, where("createdAt", ">=", Timestamp.fromDate(periodStartDate)), where("createdAt", "<=", Timestamp.fromDate(periodEndDate)));
             const dailyQuery = query(salesRef, where("createdAt", ">=", Timestamp.fromDate(todayStart)), where("createdAt", "<=", Timestamp.fromDate(todayEnd)));
 
             try {
-                const [monthlySnapshot, dailySnapshot] = await Promise.all([getDocs(monthlyQuery), getDocs(dailyQuery)]);
-                let monthlyRevenue = 0, dailyRevenue = 0;
+                const [periodSnapshot, dailySnapshot] = await Promise.all([getDocs(periodQuery), getDocs(dailyQuery)]);
+                let periodRevenue = 0, dailyRevenue = 0;
                 const serviceCounts = {}, paymentMethodTotals = {};
 
-                monthlySnapshot.forEach(doc => {
+                periodSnapshot.forEach(doc => {
                     const sale = doc.data();
-                    monthlyRevenue += sale.total || 0;
+                    periodRevenue += sale.total || 0;
                     if (sale.items) sale.items.forEach(item => serviceCounts[item.name] = (serviceCounts[item.name] || 0) + 1);
                 });
 
@@ -282,7 +292,7 @@
                     paymentMethodTotals[method] = (paymentMethodTotals[method] || 0) + sale.total;
                 });
                 
-                dashboardDataCache = { monthlyRevenue, dailyRevenue, paymentMethodTotals };
+                dashboardDataCache = { monthlyRevenue: periodRevenue, dailyRevenue, paymentMethodTotals };
                 
                 document.getElementById('daily-appointments').textContent = dailySnapshot.size;
                 
