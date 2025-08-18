@@ -50,7 +50,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, doc, getDoc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
@@ -67,67 +67,67 @@
 
         const activationForm = document.getElementById('activation-form');
         
-        const redirectTo = (page) => {
-            const path = window.location.pathname.split('/');
-            path.pop(); // Remove o nome do arquivo atual
-            path.push(page); // Adiciona o nome do novo arquivo
-            window.location.href = path.join('/');
-        };
-
-        activationForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const code = document.getElementById('activation-code').value.trim().toUpperCase();
-            
-            if (!code) {
-                alert("Por favor, insira um código.");
-                return;
-            }
-
-            const user = auth.currentUser;
-            if (!user) {
-                alert("Você precisa estar logado para ativar um código. Se ainda não tem conta, crie uma na tela de login.");
-                redirectTo('index.html');
-                return;
-            }
-
-            const codeRef = doc(db, "activationCodes", code);
-            
-            try {
-                const codeSnap = await getDoc(codeRef);
-
-                if (codeSnap.exists()) {
-                    const codeData = codeSnap.data();
-                    if (codeData.isUsed) {
-                        alert("Este código já foi utilizado.");
-                    } else {
-                        await updateDoc(codeRef, {
-                            isUsed: true,
-                            activatedBy: user.uid,
-                            activationDate: new Date()
-                        });
-
-                        const userProfileRef = doc(db, "users", user.uid);
-                        const expirationDate = new Date();
-                        expirationDate.setDate(expirationDate.getDate() + codeData.durationDays);
-                        
-                        await setDoc(userProfileRef, {
-                            email: user.email,
-                            plan: {
-                                type: `${codeData.durationDays} dias`,
-                                expiresAt: expirationDate
-                            },
-                            status: "active"
-                        }, { merge: true });
-
-                        alert("Seu acesso foi ativado com sucesso! Você será redirecionado para o dashboard.");
-                        redirectTo('dashboard.html');
+        // Espera o Firebase confirmar o estado de login do usuário
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // Se o usuário estiver logado, o formulário de ativação funcionará
+                activationForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const code = document.getElementById('activation-code').value.trim().toUpperCase();
+                    
+                    if (!code) {
+                        alert("Por favor, insira um código.");
+                        return;
                     }
-                } else {
-                    alert("Código de ativação inválido.");
-                }
-            } catch (error) {
-                console.error("Erro ao ativar código: ", error);
-                alert("Ocorreu um erro ao tentar ativar seu código. Tente novamente.");
+
+                    const codeRef = doc(db, "activationCodes", code);
+                    
+                    try {
+                        const codeSnap = await getDoc(codeRef);
+
+                        if (codeSnap.exists()) {
+                            const codeData = codeSnap.data();
+                            if (codeData.isUsed) {
+                                alert("Este código já foi utilizado.");
+                            } else {
+                                await updateDoc(codeRef, {
+                                    isUsed: true,
+                                    activatedBy: user.uid,
+                                    activationDate: new Date()
+                                });
+
+                                const userProfileRef = doc(db, "users", user.uid);
+                                const expirationDate = new Date();
+                                expirationDate.setDate(expirationDate.getDate() + codeData.durationDays);
+                                
+                                await setDoc(userProfileRef, {
+                                    email: user.email,
+                                    plan: {
+                                        type: `${codeData.durationDays} dias`,
+                                        expiresAt: expirationDate
+                                    },
+                                    status: "active"
+                                }, { merge: true });
+
+                                alert("Seu acesso foi ativado com sucesso! Você será redirecionado para o dashboard.");
+                                window.location.href = './dashboard.html';
+                            }
+                        } else {
+                            alert("Código de ativação inválido.");
+                        }
+                    } catch (error) {
+                        console.error("Erro ao ativar código: ", error);
+                        alert("Ocorreu um erro ao tentar ativar seu código. Tente novamente.");
+                    }
+                });
+            } else {
+                // Se o usuário não estiver logado, o formulário ainda funcionará,
+                // mas mostrará um alerta pedindo para fazer login primeiro.
+                activationForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    alert("Você precisa estar logado para ativar um código. Se ainda não tem conta, crie uma na tela de login.");
+                    window.location.href = './index.html';
+                });
             }
         });
     </script>
