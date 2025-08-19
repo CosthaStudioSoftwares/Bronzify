@@ -74,7 +74,7 @@
             <!-- Cards de clientes serão populados dinamicamente -->
         </div>
         
-        <div id="no-clients-patio" class="text-center py-16 text-gray-500 hidden">
+        <div id="no-clients-patio" class="text-center py-16 text-gray-500">
             <i data-lucide="sun" class="mx-auto w-16 h-16 mb-4"></i>
             <p class="text-xl">O pátio está vazio no momento.</p>
         </div>
@@ -101,11 +101,13 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        
+        let currentUser = null;
         let allProducts = [];
 
-        // --- LÓGICA DE AUTENTICAÇÃO E CARREGAMENTO ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
+                currentUser = user;
                 loadProductsAndListenForClients();
             } else {
                 window.location.href = './index.html';
@@ -114,10 +116,11 @@
 
         document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = './index.html'));
 
-        // Carrega os produtos uma vez para categorizar os itens da venda
         async function loadProductsAndListenForClients() {
+            if (!currentUser) return;
             try {
-                const productsSnapshot = await getDocs(collection(db, "products"));
+                const productsRef = collection(db, "businesses", currentUser.uid, "products");
+                const productsSnapshot = await getDocs(productsRef);
                 allProducts = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 listenForPatioClients();
             } catch (error) {
@@ -125,31 +128,28 @@
             }
         }
 
-        // --- LÓGICA DO PÁTIO ---
         const patioListContainer = document.getElementById('patio-list');
         const noClientsMessage = document.getElementById('no-clients-patio');
 
         function listenForPatioClients() {
+            if (!currentUser) return;
+
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
 
+            const salesRef = collection(db, "businesses", currentUser.uid, "sales");
             const q = query(
-                collection(db, "sales"),
-                where("createdAt", ">=", Timestamp.fromDate(todayStart)),
+                salesRef,
+                where("status", "==", "called"),
                 orderBy("createdAt", "asc")
             );
 
             onSnapshot(q, (querySnapshot) => {
-                const patioClients = [];
-                querySnapshot.forEach(doc => {
-                    const sale = { id: doc.id, ...doc.data() };
-                    // Filtra os resultados para status "called" no lado do cliente
-                    if (sale.status === 'called') {
-                        patioClients.push(sale);
-                    }
-                });
+                const patioClients = querySnapshot.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() }))
+                    .filter(sale => sale.createdAt.toDate() >= todayStart);
 
-                patioListContainer.innerHTML = ''; // Limpa a lista a cada atualização
+                patioListContainer.innerHTML = '';
 
                 if (patioClients.length === 0) {
                     noClientsMessage.classList.remove('hidden');
@@ -158,17 +158,14 @@
                 }
 
                 patioClients.forEach((sale) => {
-                    // Categoriza os itens da venda
-                    const bronzeItems = [];
-                    const consumableItems = [];
-                    const extraItems = [];
+                    const bronzeItems = [], consumableItems = [], extraItems = [];
 
                     if (sale.items && Array.isArray(sale.items)) {
                         sale.items.forEach(saleItem => {
                             const productDetails = allProducts.find(p => p.name === saleItem.name);
                             if (productDetails) {
                                 if (productDetails.category === 'bronze') bronzeItems.push(saleItem.name);
-                                else if (productDetails.category === 'consumable') consumableItems.push(saleItem.name);
+                                else if (productDetails.category === 'consumable') consumableItems.push(`${saleItem.name} (x${saleItem.quantity})`);
                                 else if (productDetails.category === 'extra') extraItems.push(saleItem.name);
                             }
                         });
@@ -181,24 +178,9 @@
                     card.innerHTML = `
                         <div class="flex-grow">
                             <h3 class="text-2xl text-gray-800 font-bold mb-4">${sale.clientName}</h3>
-                            
-                            ${bronzeItems.length > 0 ? `
-                            <div class="mb-3">
-                                <h4 class="font-semibold text-sm text-[#B76E79] mb-1">Bronze</h4>
-                                <p class="text-gray-600">${bronzeItems.join(', ')}</p>
-                            </div>` : ''}
-
-                            ${consumableItems.length > 0 ? `
-                            <div class="mb-3">
-                                <h4 class="font-semibold text-sm text-[#B76E79] mb-1">Consumo</h4>
-                                <p class="text-gray-600">${consumableItems.join(', ')}</p>
-                            </div>` : ''}
-
-                            ${extraItems.length > 0 ? `
-                            <div class="mb-3">
-                                <h4 class="font-semibold text-sm text-[#B76E79] mb-1">Adicionais</h4>
-                                <p class="text-gray-600">${extraItems.join(', ')}</p>
-                            </div>` : ''}
+                            ${bronzeItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Bronze</h4><p class="text-gray-600">${bronzeItems.join(', ')}</p></div>` : ''}
+                            ${consumableItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Consumo</h4><p class="text-gray-600">${consumableItems.join(', ')}</p></div>` : ''}
+                            ${extraItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Adicionais</h4><p class="text-gray-600">${extraItems.join(', ')}</p></div>` : ''}
                         </div>
                         <button data-id="${sale.id}" class="finish-btn mt-4 w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center justify-center gap-2">
                             <i data-lucide="party-popper" class="w-5 h-5"></i> Finalizar
@@ -210,14 +192,14 @@
             });
         }
 
-        // Event listener para o botão "Finalizar"
         patioListContainer.addEventListener('click', async (e) => {
+            if (!currentUser) return;
             const finishButton = e.target.closest('.finish-btn');
             if (finishButton) {
                 if (!confirm('Confirmar a finalização do serviço para esta cliente?')) return;
 
                 const saleId = finishButton.dataset.id;
-                const saleRef = doc(db, "sales", saleId);
+                const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
                 
                 try {
                     const cardToRemove = document.getElementById(`sale-${saleId}`);
@@ -234,10 +216,6 @@
                 }
             }
         });
-
     </script>
 </body>
 </html>
-
-
-
