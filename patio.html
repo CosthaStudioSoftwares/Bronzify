@@ -140,14 +140,16 @@
             const salesRef = collection(db, "businesses", currentUser.uid, "sales");
             const q = query(
                 salesRef,
-                where("status", "==", "called"),
                 orderBy("createdAt", "asc")
             );
 
             onSnapshot(q, (querySnapshot) => {
                 const patioClients = querySnapshot.docs
                     .map(doc => ({ id: doc.id, ...doc.data() }))
-                    .filter(sale => sale.createdAt.toDate() >= todayStart);
+                    .filter(sale => 
+                        sale.status === 'called' &&
+                        sale.createdAt.toDate() >= todayStart
+                    );
 
                 patioListContainer.innerHTML = '';
 
