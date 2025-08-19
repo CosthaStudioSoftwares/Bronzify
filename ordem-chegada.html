@@ -128,14 +128,16 @@
             const salesRef = collection(db, "businesses", currentUser.uid, "sales");
             const q = query(
                 salesRef,
-                where("status", "==", "waiting"),
                 orderBy("createdAt", "asc")
             );
 
             onSnapshot(q, (querySnapshot) => {
                 const salesToday = querySnapshot.docs
                     .map(doc => ({ id: doc.id, ...doc.data() }))
-                    .filter(sale => sale.createdAt.toDate() >= todayStart);
+                    .filter(sale => 
+                        sale.status === 'waiting' &&
+                        sale.createdAt.toDate() >= todayStart
+                    );
 
                 waitingListContainer.innerHTML = '';
                 
@@ -163,6 +165,9 @@
                     waitingListContainer.appendChild(clientElement);
                 });
                 lucide.createIcons();
+            }, (error) => {
+                console.error("Erro na consulta em tempo real:", error);
+                waitingListContainer.innerHTML = '<p class="text-red-500 text-center">Ocorreu um erro ao carregar a lista. Tente novamente.</p>';
             });
         }
 
