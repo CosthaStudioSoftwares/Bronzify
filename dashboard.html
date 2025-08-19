@@ -191,27 +191,13 @@
             lucide.createIcons();
         }
 
-        adminModeBtn.addEventListener('click', async () => {
+        adminModeBtn.addEventListener('click', () => {
             if (isAdminModeActive) {
                 isAdminModeActive = false;
                 updateUIVisibility();
             } else {
-                const user = auth.currentUser;
-                if (!user) return;
-
-                const configRef = doc(db, "admin_passwords", user.uid);
-                try {
-                    const configSnap = await getDoc(configRef);
-                    if (!configSnap.exists()) {
-                        adminModalSubtitle.textContent = 'Primeiro acesso. Crie a sua senha de administrador.';
-                    } else {
-                        adminModalSubtitle.textContent = 'Insira a sua senha para ver os dados.';
-                    }
-                    adminPasswordModal.classList.remove('hidden');
-                } catch (error) {
-                    console.error("Erro ao verificar senha:", error);
-                    adminModalSubtitle.textContent = 'Erro ao carregar. Tente novamente.';
-                }
+                adminModalSubtitle.textContent = 'Insira a sua senha de administrador.';
+                adminPasswordModal.classList.remove('hidden');
             }
         });
 
@@ -394,4 +380,3 @@
     </script>
 </body>
 </html>
-
