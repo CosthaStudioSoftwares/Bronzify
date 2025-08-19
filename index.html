@@ -43,7 +43,7 @@
                     Não tem uma conta? <a href="#" id="show-register" class="text-[#B76E79] hover:underline">Crie uma agora</a>
                 </p>
                 <p class="text-center text-gray-600 mt-2">
-                    Precisa ativar seu acesso? <a href="./ativacao.html" class="text-[#B76E79] hover:underline">Ative aqui</a>
+                    Precisa ativar seu acesso? <a href="/ativacao.html" class="text-[#B76E79] hover:underline">Ative aqui</a>
                 </p>
             </div>
             <div id="register-section" class="bg-white rounded-2xl shadow-xl p-8 hidden">
@@ -74,7 +74,7 @@
         // Objeto de configuração do Firebase com o authDomain atualizado
         const firebaseConfig = {
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
-            authDomain: "bronzify.costhastudiodesoftwares.com", // <-- ALTERAÇÃO FEITA AQUI
+            authDomain: "bronzify.costhastudiodesoftwares.com",
             projectId: "bronzify-b2491",
             storageBucket: "bronzify-b2491.firebasestorage.app",
             messagingSenderId: "399230151633",
@@ -90,9 +90,9 @@
             const userProfileRef = doc(db, "users", user.uid);
             const docSnap = await getDoc(userProfileRef);
             if (docSnap.exists() && docSnap.data().status === 'active') {
-                window.location.href = './dashboard.html';
+                window.location.href = '/dashboard.html'; // <-- ALTERAÇÃO AQUI
             } else {
-                window.location.href = './ativacao.html';
+                window.location.href = '/ativacao.html'; // <-- ALTERAÇÃO AQUI
             }
         }
 
@@ -127,7 +127,7 @@
             createUserWithEmailAndPassword(auth, email, password)
                 .then(() => {
                     alert('Conta criada com sucesso! Por favor, ative seu acesso.');
-                    window.location.href = './ativacao.html';
+                    window.location.href = '/ativacao.html'; // <-- ALTERAÇÃO AQUI
                 })
                 .catch((error) => alert('Erro ao criar conta: ' + error.message));
         });
