@@ -73,8 +73,7 @@
         <div class="bg-white p-6 rounded-2xl shadow-md">
             <h3 class="text-2xl text-gray-800 mb-4">Aguardando Atendimento</h3>
             <div id="waiting-list" class="space-y-4">
-                <!-- Lista de clientes será populada dinamicamente -->
-                <div id="no-clients-message" class="text-center py-8 text-gray-500 hidden">
+                <div id="no-clients-message" class="text-center py-8 text-gray-500">
                     <i data-lucide="users" class="mx-auto w-12 h-12 mb-2"></i>
                     <p>Nenhuma cliente aguardando no momento.</p>
                 </div>
@@ -95,7 +94,7 @@
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
             authDomain: "bronzify-b2491.firebaseapp.com",
             projectId: "bronzify-b2491",
-            storageBucket: "bronzify-b2491.appspot.com",
+            storageBucket: "bronzify-b2491.firebasestorage.app",
             messagingSenderId: "399230151633",
             appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
         };
@@ -106,7 +105,6 @@
 
         let currentUser = null;
 
-        // --- LÓGICA DE AUTENTICAÇÃO ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
@@ -118,7 +116,6 @@
 
         document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = './index.html'));
 
-        // --- LÓGICA DA ORDEM DE CHEGADA (CORRIGIDA) ---
         const waitingListContainer = document.getElementById('waiting-list');
         const noClientsMessage = document.getElementById('no-clients-message');
 
@@ -132,22 +129,24 @@
             const q = query(
                 salesRef,
                 where("status", "==", "waiting"),
-                where("createdAt", ">=", Timestamp.fromDate(todayStart)),
                 orderBy("createdAt", "asc")
             );
 
             onSnapshot(q, (querySnapshot) => {
-                waitingListContainer.innerHTML = '';
-                waitingListContainer.appendChild(noClientsMessage);
+                const salesToday = querySnapshot.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() }))
+                    .filter(sale => sale.createdAt.toDate() >= todayStart);
 
-                if (querySnapshot.empty) {
+                waitingListContainer.innerHTML = '';
+                
+                if (salesToday.length === 0) {
+                    waitingListContainer.appendChild(noClientsMessage);
                     noClientsMessage.classList.remove('hidden');
                 } else {
                     noClientsMessage.classList.add('hidden');
                 }
 
-                querySnapshot.forEach((doc) => {
-                    const sale = { id: doc.id, ...doc.data() };
+                salesToday.forEach((sale) => {
                     const clientElement = document.createElement('div');
                     clientElement.className = 'waiting-item flex items-center justify-between bg-gray-50 p-4 rounded-lg shadow-sm';
                     clientElement.id = `sale-${sale.id}`;
@@ -164,13 +163,9 @@
                     waitingListContainer.appendChild(clientElement);
                 });
                 lucide.createIcons();
-            }, (error) => {
-                console.error("Erro na consulta em tempo real:", error);
-                // Se o erro for de índice, a mensagem no console terá o link para criar.
             });
         }
 
-        // Event listener para o botão "Chamar"
         waitingListContainer.addEventListener('click', async (e) => {
             if (!currentUser) return;
             const callButton = e.target.closest('.call-client-btn');
@@ -193,8 +188,6 @@
                 }
             }
         });
-
     </script>
 </body>
 </html>
-
