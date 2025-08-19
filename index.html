@@ -71,9 +71,10 @@
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+        // Objeto de configuração do Firebase com o authDomain atualizado
         const firebaseConfig = {
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
-            authDomain: "bronzify-b2491.firebaseapp.com",
+            authDomain: "bronzify.costhastudiodesoftwares.com", // <-- ÚNICA ALTERAÇÃO NECESSÁRIA
             projectId: "bronzify-b2491",
             storageBucket: "bronzify-b2491.firebasestorage.app",
             messagingSenderId: "399230151633",
@@ -89,9 +90,9 @@
             const userProfileRef = doc(db, "users", user.uid);
             const docSnap = await getDoc(userProfileRef);
             if (docSnap.exists() && docSnap.data().status === 'active') {
-                window.location.href = './dashboard.html';
+                window.location.href = './dashboard.html'; // <-- Mantido como estava no original
             } else {
-                window.location.href = './ativacao.html';
+                window.location.href = './ativacao.html'; // <-- Mantido como estava no original
             }
         }
 
@@ -126,7 +127,7 @@
             createUserWithEmailAndPassword(auth, email, password)
                 .then(() => {
                     alert('Conta criada com sucesso! Por favor, ative seu acesso.');
-                    window.location.href = './ativacao.html';
+                    window.location.href = './ativacao.html'; // <-- Mantido como estava no original
                 })
                 .catch((error) => alert('Erro ao criar conta: ' + error.message));
         });
