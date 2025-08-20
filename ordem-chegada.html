@@ -68,6 +68,10 @@
     <main class="flex-1 p-8 overflow-y-auto">
         <header class="flex justify-between items-center mb-8">
             <h2 class="text-4xl text-gray-800">Ordem de Chegada</h2>
+            <!-- BOTÃO DE AJUDA ADICIONADO -->
+            <button id="help-btn" class="bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 flex items-center gap-2">
+                <i data-lucide="bell-ring"></i> Pedir Ajuda
+            </button>
         </header>
 
         <div class="bg-white p-6 rounded-2xl shadow-md">
@@ -88,7 +92,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, query, where, onSnapshot, orderBy, doc, updateDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, query, where, onSnapshot, orderBy, doc, updateDoc, Timestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
@@ -115,6 +119,22 @@
         });
 
         document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = './index.html'));
+
+        // --- LÓGICA DO BOTÃO DE AJUDA ---
+        document.getElementById('help-btn').addEventListener('click', async () => {
+            if (!currentUser) return;
+            try {
+                const helpRequestsRef = collection(db, "businesses", currentUser.uid, "help_requests");
+                await addDoc(helpRequestsRef, {
+                    page: "Ordem de Chegada",
+                    createdAt: Timestamp.now()
+                });
+                alert("Pedido de ajuda enviado para o Dashboard!");
+            } catch (error) {
+                console.error("Erro ao enviar pedido de ajuda:", error);
+                alert("Não foi possível enviar o pedido de ajuda.");
+            }
+        });
 
         const waitingListContainer = document.getElementById('waiting-list');
         const noClientsMessage = document.getElementById('no-clients-message');
@@ -185,7 +205,7 @@
                     setTimeout(async () => {
                          await updateDoc(saleRef, { status: "called" });
                     }, 500);
-                   
+                    
                 } catch (error) {
                     console.error("Erro ao atualizar status da venda: ", error);
                     alert("Ocorreu um erro ao chamar a cliente.");
