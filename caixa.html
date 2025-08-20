@@ -477,7 +477,6 @@
         }
 
         function rebindAllEvents() {
-            // *** CORREÇÃO APLICADA AQUI: Adicionado o seletor para os checkboxes de "adicionais" ***
             document.querySelectorAll('.service-checkbox, .package-checkbox, #extras .service-item-container input[type="checkbox"]').forEach(item => item.addEventListener('change', calculateTotal));
             discountEl.addEventListener('input', calculateTotal);
             
@@ -567,8 +566,6 @@
                     const clientRef = doc(db, "businesses", currentUser.uid, "clients", selectedClient.id);
                     await updateDoc(clientRef, { packages: packageUpdates });
                     await loadAllClients();
-                    const updatedClient = allClients.find(c => c.id === selectedClient.id);
-                    if(updatedClient) selectClient(updatedClient);
                 }
 
                 document.getElementById('generated-password').textContent = password;
@@ -600,6 +597,23 @@
             return String(nextNumber).padStart(3, '0');
         }
 
+        // *** CORREÇÃO APLICADA AQUI: Adicionada função para resetar a UI dos serviços ***
+        function resetServicesUI() {
+            document.querySelectorAll('#bronze-services .service-item').forEach(itemEl => {
+                const price = parseFloat(itemEl.dataset.price);
+                const priceFormatted = (price || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                const priceEl = itemEl.querySelector('.service-price-display');
+                const packageContainer = itemEl.querySelector('.package-option-container');
+
+                if (priceEl) {
+                    priceEl.textContent = priceFormatted;
+                }
+                if (packageContainer) {
+                    packageContainer.classList.remove('hidden');
+                }
+            });
+        }
+
         function resetSaleForm() {
             editingSaleId = null;
             selectedClient = null;
@@ -608,6 +622,7 @@
             document.querySelectorAll('.service-checkbox, .package-checkbox').forEach(cb => cb.checked = false);
             document.querySelectorAll('.quantity-input').forEach(input => input.value = 0);
             discountEl.value = '';
+            resetServicesUI(); // <-- Chamada da nova função de reset
             calculateTotal();
             document.getElementById('save-sale-btn').textContent = 'Salvar Venda';
             setTimeout(() => document.getElementById('password-display').classList.add('hidden'), 5000);
