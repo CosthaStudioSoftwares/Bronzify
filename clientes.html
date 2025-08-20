@@ -35,133 +35,175 @@
         }
         .modal-backdrop { transition: opacity 0.3s ease; }
         .modal-content { transition: transform 0.3s ease; }
+        /* Estilos para a barra lateral móvel */
+        .sidebar-mobile {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        .sidebar-mobile.open {
+            transform: translateX(0);
+        }
     </style>
 </head>
-<body class="flex h-screen opacity-0 transition-opacity duration-300">
+<body class="bg-gray-50 opacity-0 transition-opacity duration-300">
 
-    <!-- Sidebar -->
-    <aside class="w-64 bg-white shadow-lg flex-shrink-0">
-        <div class="p-6">
-            <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
-        </div>
-        <nav class="mt-6 px-4">
-            <a href="./dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a>
-            <a href="./clientes.html" class="sidebar-link active"><i data-lucide="users"></i> Clientes</a>
-            <a href="./caixa.html" class="sidebar-link"><i data-lucide="dollar-sign"></i> Caixa</a>
-            <a href="./vendas.html" class="sidebar-link"><i data-lucide="shopping-cart"></i> Vendas</a>
-            <a href="./ordem-chegada.html" class="sidebar-link"><i data-lucide="list-ordered"></i> Ordem de Chegada</a>
-            <a href="./patio.html" class="sidebar-link"><i data-lucide="sun"></i> Pátio</a>
-        </nav>
-        <div class="absolute bottom-0 w-64 p-4">
-             <button id="logout-btn" class="w-full flex items-center justify-center gap-2 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors duration-300">
-                <i data-lucide="log-out"></i> Sair
-            </button>
-        </div>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="flex-1 p-8 overflow-y-auto">
-        <header class="flex justify-between items-center mb-8">
-            <h2 class="text-4xl text-gray-800">Gestão de Clientes</h2>
-            <button id="add-client-btn" class="bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center gap-2">
-                <i data-lucide="user-plus"></i> Cadastrar Novo Cliente
-            </button>
-        </header>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Coluna Principal (Esquerda) -->
-            <div class="lg:col-span-2 space-y-8">
-                <!-- Pesquisa -->
-                <div class="bg-white p-6 rounded-2xl shadow-md">
-                    <h3 class="text-2xl text-gray-800 mb-4">Pesquisar Clientes</h3>
-                    <div class="flex flex-wrap gap-4">
-                        <div class="relative flex-grow">
-                            <input type="text" id="search-input" placeholder="Digite nome ou telefone para buscar..." class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]">
-                            <div id="search-results" class="absolute z-10 w-full bg-white border rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
-                        </div>
-                        <button id="birthday-filter-btn" class="bg-pink-100 text-[#B76E79] px-4 py-2 rounded-lg hover:bg-pink-200 flex items-center gap-2">
-                            <i data-lucide="cake"></i> Aniversariantes do Mês
-                        </button>
-                        <button id="package-filter-btn" class="bg-green-100 text-green-700 px-4 py-2 rounded-lg hover:bg-green-200 flex items-center gap-2">
-                            <i data-lucide="package-check"></i> Pacotes Ativos
-                        </button>
-                    </div>
-                    <p class="text-sm text-gray-500 mt-2">Clique novamente em um filtro para limpar e ver todos os clientes.</p>
-                </div>
-
-                <!-- Lista de Clientes -->
-                <div class="bg-white p-6 rounded-2xl shadow-md">
-                    <h3 class="text-2xl text-gray-800 mb-4">Lista de Clientes</h3>
-                    <div id="clients-list" class="space-y-4">
-                        <p class="text-gray-500">Nenhum cliente cadastrado.</p>
-                    </div>
-                </div>
+    <div class="flex h-screen">
+        <!-- Sidebar para Desktop -->
+        <aside class="w-64 bg-white shadow-lg flex-shrink-0 hidden lg:flex flex-col">
+            <div class="p-6">
+                <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
             </div>
+            <nav class="mt-6 px-4 flex-1">
+                <a href="./dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+                <a href="./clientes.html" class="sidebar-link active"><i data-lucide="users"></i> Clientes</a>
+                <a href="./caixa.html" class="sidebar-link"><i data-lucide="dollar-sign"></i> Caixa</a>
+                <a href="./vendas.html" class="sidebar-link"><i data-lucide="shopping-cart"></i> Vendas</a>
+                <a href="./ordem-chegada.html" class="sidebar-link"><i data-lucide="list-ordered"></i> Ordem de Chegada</a>
+                <a href="./patio.html" class="sidebar-link"><i data-lucide="sun"></i> Pátio</a>
+            </nav>
+            <div class="p-4">
+                 <button id="logout-btn" class="w-full flex items-center justify-center gap-2 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors duration-300">
+                    <i data-lucide="log-out"></i> Sair
+                </button>
+            </div>
+        </aside>
 
-            <!-- Coluna Lateral (Direita) -->
-            <div class="lg:col-span-1">
-                <div class="bg-white p-6 rounded-2xl shadow-md">
-                    <h3 class="text-2xl text-gray-800 mb-4">Sorteio de Clientes</h3>
-                    <label for="raffle-months" class="block text-gray-600 mb-2">Selecione os meses:</label>
-                    <select id="raffle-months" multiple class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79] h-32"></select>
-                    <button id="raffle-btn" class="w-full mt-4 bg-gradient-to-r from-pink-400 to-rose-400 text-white py-2 rounded-lg hover:opacity-90">
-                        Sortear Cliente
+        <!-- Sidebar para Mobile -->
+        <div id="mobile-sidebar" class="fixed inset-0 z-40 flex lg:hidden sidebar-mobile">
+            <aside class="w-64 bg-white shadow-lg flex-shrink-0 flex flex-col">
+                <div class="p-6 flex justify-between items-center">
+                    <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
+                    <button id="close-menu-btn" class="p-1">
+                        <i data-lucide="x" class="w-6 h-6"></i>
                     </button>
                 </div>
+               <nav class="mt-6 px-4 flex-1">
+                    <a href="./dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+                    <a href="./clientes.html" class="sidebar-link active"><i data-lucide="users"></i> Clientes</a>
+                    <a href="./caixa.html" class="sidebar-link"><i data-lucide="dollar-sign"></i> Caixa</a>
+                    <a href="./vendas.html" class="sidebar-link"><i data-lucide="shopping-cart"></i> Vendas</a>
+                    <a href="./ordem-chegada.html" class="sidebar-link"><i data-lucide="list-ordered"></i> Ordem de Chegada</a>
+                    <a href="./patio.html" class="sidebar-link"><i data-lucide="sun"></i> Pátio</a>
+                </nav>
+                <div class="p-4">
+                     <button id="logout-btn-mobile" class="w-full flex items-center justify-center gap-2 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors duration-300">
+                        <i data-lucide="log-out"></i> Sair
+                    </button>
+                </div>
+            </aside>
+            <div id="mobile-sidebar-overlay" class="flex-1 bg-black bg-opacity-50"></div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
+            <header class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+                <div class="flex items-center w-full">
+                    <button id="open-menu-btn" class="lg:hidden p-2 -ml-2">
+                        <i data-lucide="menu" class="w-6 h-6 text-gray-800"></i>
+                    </button>
+                    <h2 class="text-3xl lg:text-4xl text-gray-800 w-full text-center sm:text-left">Gestão de Clientes</h2>
+                </div>
+                <button id="add-client-btn" class="w-full sm:w-auto bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center justify-center gap-2 flex-shrink-0">
+                    <i data-lucide="user-plus"></i> <span>Cadastrar Cliente</span>
+                </button>
+            </header>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Coluna Principal (Esquerda) -->
+                <div class="lg:col-span-2 space-y-8">
+                    <!-- Pesquisa -->
+                    <div class="bg-white p-6 rounded-2xl shadow-md">
+                        <h3 class="text-2xl text-gray-800 mb-4">Pesquisar Clientes</h3>
+                        <div class="flex flex-col gap-4">
+                            <div class="relative flex-grow">
+                                <input type="text" id="search-input" placeholder="Digite nome ou telefone para buscar..." class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]">
+                                <div id="search-results" class="absolute z-10 w-full bg-white border rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
+                            </div>
+                            <div class="flex flex-col sm:flex-row gap-4">
+                                <button id="birthday-filter-btn" class="flex-1 bg-pink-100 text-[#B76E79] px-4 py-2 rounded-lg hover:bg-pink-200 flex items-center justify-center gap-2">
+                                    <i data-lucide="cake"></i> Aniversariantes do Mês
+                                </button>
+                                <button id="package-filter-btn" class="flex-1 bg-green-100 text-green-700 px-4 py-2 rounded-lg hover:bg-green-200 flex items-center justify-center gap-2">
+                                    <i data-lucide="package-check"></i> Pacotes Ativos
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-2">Clique novamente em um filtro para limpar e ver todos os clientes.</p>
+                    </div>
+
+                    <!-- Lista de Clientes -->
+                    <div class="bg-white p-6 rounded-2xl shadow-md">
+                        <h3 class="text-2xl text-gray-800 mb-4">Lista de Clientes</h3>
+                        <div id="clients-list" class="space-y-4">
+                            <p class="text-gray-500">Nenhum cliente cadastrado.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Coluna Lateral (Direita) -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white p-6 rounded-2xl shadow-md lg:sticky top-8">
+                        <h3 class="text-2xl text-gray-800 mb-4">Sorteio de Clientes</h3>
+                        <label for="raffle-months" class="block text-gray-600 mb-2">Selecione os meses:</label>
+                        <select id="raffle-months" multiple class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79] h-32"></select>
+                        <button id="raffle-btn" class="w-full mt-4 bg-gradient-to-r from-pink-400 to-rose-400 text-white py-2 rounded-lg hover:opacity-90">
+                            Sortear Cliente
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Modal de Cadastro/Edição de Cliente -->
+        <div id="client-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 modal-content transform scale-95">
+                <h3 id="modal-title" class="text-2xl text-gray-800 mb-6">Cadastrar Nova Cliente</h3>
+                <form id="client-form">
+                    <input type="hidden" id="client-id">
+                    <div class="mb-4">
+                        <label for="client-name" class="block text-gray-600 mb-2">Nome Completo</label>
+                        <input type="text" id="client-name" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="client-phone" class="block text-gray-600 mb-2">Telefone</label>
+                        <input type="tel" id="client-phone" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
+                    </div>
+                    <div class="mb-6">
+                        <label for="client-birthdate" class="block text-gray-600 mb-2">Data de Nascimento</label>
+                        <input type="date" id="client-birthdate" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
+                    </div>
+                    <div class="flex justify-end gap-4">
+                        <button type="button" id="cancel-btn" class="px-4 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Cancelar</button>
+                        <button type="submit" class="px-6 py-2 bg-[#B76E79] text-white rounded-lg hover:opacity-90">Salvar</button>
+                    </div>
+                </form>
             </div>
         </div>
-    </main>
-    
-    <!-- Modal de Cadastro/Edição de Cliente -->
-    <div id="client-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 modal-content transform scale-95">
-            <h3 id="modal-title" class="text-2xl text-gray-800 mb-6">Cadastrar Nova Cliente</h3>
-            <form id="client-form">
-                <input type="hidden" id="client-id">
-                <div class="mb-4">
-                    <label for="client-name" class="block text-gray-600 mb-2">Nome Completo</label>
-                    <input type="text" id="client-name" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
-                </div>
-                <div class="mb-4">
-                    <label for="client-phone" class="block text-gray-600 mb-2">Telefone</label>
-                    <input type="tel" id="client-phone" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
-                </div>
-                <div class="mb-6">
-                    <label for="client-birthdate" class="block text-gray-600 mb-2">Data de Nascimento</label>
-                    <input type="date" id="client-birthdate" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
-                </div>
-                <div class="flex justify-end gap-4">
-                    <button type="button" id="cancel-btn" class="px-4 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Cancelar</button>
-                    <button type="submit" class="px-6 py-2 bg-[#B76E79] text-white rounded-lg hover:opacity-90">Salvar</button>
-                </div>
-            </form>
-        </div>
-    </div>
 
-    <!-- Modal de Confirmação de Exclusão -->
-    <div id="delete-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 text-center modal-content transform scale-95">
-            <h3 class="text-xl text-gray-800 mb-4">Confirmar Exclusão</h3>
-            <p id="delete-modal-text" class="text-gray-600 mb-6"></p>
-            <div class="flex justify-center gap-4">
-                <button type="button" id="cancel-delete-btn" class="px-6 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Cancelar</button>
-                <button type="button" id="confirm-delete-btn" class="px-6 py-2 bg-red-600 text-white rounded-lg hover:opacity-90">Excluir</button>
+        <!-- Modal de Confirmação de Exclusão -->
+        <div id="delete-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 text-center modal-content transform scale-95">
+                <h3 class="text-xl text-gray-800 mb-4">Confirmar Exclusão</h3>
+                <p id="delete-modal-text" class="text-gray-600 mb-6"></p>
+                <div class="flex justify-center gap-4">
+                    <button type="button" id="cancel-delete-btn" class="px-6 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Cancelar</button>
+                    <button type="button" id="confirm-delete-btn" class="px-6 py-2 bg-red-600 text-white rounded-lg hover:opacity-90">Excluir</button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Modal de Vencedor do Sorteio -->
-    <div id="winner-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 text-center modal-content transform scale-95">
-            <i data-lucide="party-popper" class="mx-auto w-16 h-16 text-yellow-500 mb-4"></i>
-            <h3 class="text-2xl text-gray-800 mb-2">Parabéns!</h3>
-            <p class="text-gray-500 mb-4">A cliente sorteada é:</p>
-            <p id="winner-name" class="text-3xl font-bold text-[#B76E79]"></p>
-            <p id="winner-phone" class="text-lg text-gray-700 mt-1"></p>
-            <p id="winner-date" class="text-sm text-gray-500 mt-2"></p>
-            <button id="close-winner-modal" class="w-full mt-6 bg-[#B76E79] text-white py-2 rounded-lg hover:opacity-90">Fechar</button>
+        <!-- Modal de Vencedor do Sorteio -->
+        <div id="winner-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 text-center modal-content transform scale-95">
+                <i data-lucide="party-popper" class="mx-auto w-16 h-16 text-yellow-500 mb-4"></i>
+                <h3 class="text-2xl text-gray-800 mb-2">Parabéns!</h3>
+                <p class="text-gray-500 mb-4">A cliente sorteada é:</p>
+                <p id="winner-name" class="text-3xl font-bold text-[#B76E79]"></p>
+                <p id="winner-phone" class="text-lg text-gray-700 mt-1"></p>
+                <p id="winner-date" class="text-sm text-gray-500 mt-2"></p>
+                <button id="close-winner-modal" class="w-full mt-6 bg-[#B76E79] text-white py-2 rounded-lg hover:opacity-90">Fechar</button>
+            </div>
         </div>
-    </div>
 
     <script>
       lucide.createIcons();
@@ -191,6 +233,20 @@
         let isBirthdayFilterActive = false;
         let isPackageFilterActive = false;
 
+        // --- LÓGICA DO MENU MOBILE ---
+        const mobileSidebar = document.getElementById('mobile-sidebar');
+        const openMenuBtn = document.getElementById('open-menu-btn');
+        const closeMenuBtn = document.getElementById('close-menu-btn');
+        const mobileSidebarOverlay = document.getElementById('mobile-sidebar-overlay');
+
+        function openSidebar() { mobileSidebar.classList.add('open'); }
+        function closeSidebar() { mobileSidebar.classList.remove('open'); }
+
+        openMenuBtn.addEventListener('click', openSidebar);
+        closeMenuBtn.addEventListener('click', closeSidebar);
+        mobileSidebarOverlay.addEventListener('click', closeSidebar);
+
+
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
@@ -202,6 +258,8 @@
         });
 
         document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = 'index.html'));
+        document.getElementById('logout-btn-mobile').addEventListener('click', () => signOut(auth).then(() => window.location.href = 'index.html'));
+
 
         function renderClients(clientsToRender) {
             clientsListEl.innerHTML = '';
@@ -227,11 +285,11 @@
                 }
 
                 const clientElement = document.createElement('div');
-                clientElement.className = 'client-item flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+                clientElement.className = 'client-item flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 rounded-lg gap-4';
                 clientElement.innerHTML = `
                     <div>
                         <div class="flex items-center gap-3">
-                            ${isBirthdayMonth ? '<i data-lucide="cake" class="text-pink-500"></i>' : ''}
+                            ${isBirthdayMonth ? '<i data-lucide="cake" class="text-pink-500 flex-shrink-0"></i>' : '<div class="w-6 flex-shrink-0"></div>'}
                             <div>
                                 <p class="font-semibold text-gray-700">${client.name}</p>
                                 <p class="text-sm text-gray-500">${client.phone}</p>
@@ -240,7 +298,7 @@
                         </div>
                         ${packageInfoHtml}
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
                         <button class="edit-btn p-2 text-gray-500 hover:text-blue-600" data-id="${client.id}" title="Editar Cliente"><i data-lucide="file-pen-line" class="pointer-events-none"></i></button>
                         <button class="delete-btn p-2 text-gray-500 hover:text-red-600" data-id="${client.id}" data-name="${client.name}" title="Excluir Cliente"><i data-lucide="trash-2" class="pointer-events-none"></i></button>
                     </div>`;
@@ -524,4 +582,4 @@
         });
     </script>
 </body>
-</html>
+</ht
