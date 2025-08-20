@@ -252,18 +252,13 @@
         async function loadAllClients() {
             if (!currentUser) return;
             const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
-            // CORREÇÃO: Removido o orderBy da query para evitar erros de índice
             const q = query(clientsRef);
             try {
                 const querySnapshot = await getDocs(q);
                 allClientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                // CORREÇÃO: Ordenação feita no lado do cliente (mais seguro)
-                allClientsData.sort((a, b) => {
-                    const dateA = a.createdAt?.toDate() || 0;
-                    const dateB = b.createdAt?.toDate() || 0;
-                    return dateB - dateA; // Ordena do mais recente para o mais antigo
-                });
+                // ALTERAÇÃO: Ordena por nome em ordem alfabética
+                allClientsData.sort((a, b) => a.name.localeCompare(b.name));
 
                 renderClients(allClientsData);
             } catch (error) {
@@ -283,7 +278,7 @@
             const searchTerm = searchInput.value.toLowerCase();
             if (searchTerm.length < 2) {
                 searchResultsContainer.classList.add('hidden');
-                renderClients(allClientsData); // Mostra todos se a busca for curta
+                renderClients(allClientsData);
                 return;
             }
             const filteredClients = allClientsData.filter(client => 
@@ -300,7 +295,7 @@
                     item.onclick = () => {
                         searchInput.value = client.name;
                         searchResultsContainer.classList.add('hidden');
-                        renderClients([client]); // Filtra a lista principal para mostrar apenas o selecionado
+                        renderClients([client]);
                     };
                     searchResultsContainer.appendChild(item);
                 });
@@ -423,6 +418,14 @@
                     await updateDoc(clientRef, clientData);
                     alert("Cliente atualizado com sucesso!");
                 } else {
+                    // ALTERAÇÃO: Verifica se o telefone já existe antes de cadastrar
+                    const q = query(clientsRef, where("phone", "==", clientData.phone));
+                    const querySnapshot = await getDocs(q);
+                    if (!querySnapshot.empty) {
+                        alert("Erro: Já existe um cliente cadastrado com este número de telefone.");
+                        return;
+                    }
+                    
                     clientData.createdAt = new Date();
                     await addDoc(clientsRef, clientData);
                     alert("Cliente cadastrado com sucesso!");
