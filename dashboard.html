@@ -84,7 +84,7 @@
                     <p id="daily-revenue" class="text-4xl font-bold text-[#B76E79] mt-2">R$ *******</p>
                 </div>
                 <div class="bg-white p-6 rounded-2xl shadow-md">
-                    <h3 class="text-lg font-semibold text-gray-500">Atendimentos no Dia</h3>
+                    <h3 id="appointments-title" class="text-lg font-semibold text-gray-500">Atendimentos no Dia</h3>
                     <p id="daily-appointments" class="text-4xl font-bold text-[#B76E79] mt-2">0</p>
                 </div>
             </div>
@@ -92,7 +92,7 @@
             <!-- Gráficos e Detalhes -->
             <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
                 <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md">
-                    <h3 class="text-2xl text-gray-800 mb-4">Faturamento Diário por Pagamento</h3>
+                    <h3 id="payment-details-title" class="text-2xl text-gray-800 mb-4">Faturamento Diário por Pagamento</h3>
                     <div id="payment-methods-details" class="space-y-4"><p class="text-gray-500">Dados ocultos. Ative o modo ADM.</p></div>
                 </div>
                 <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-md">
@@ -183,17 +183,41 @@
             const chartContainer = document.getElementById('chart-container');
             const adminModeText = document.getElementById('admin-mode-text');
             const adminModeIcon = adminModeBtn.querySelector('i');
+            
+            // Elementos dinâmicos
+            const appointmentsTitle = document.getElementById('appointments-title');
+            const appointmentsValue = document.getElementById('daily-appointments');
+            const paymentDetailsTitle = document.getElementById('payment-details-title');
 
             if (isAdminModeActive && dashboardDataCache) {
                 monthlyRevenueEl.textContent = dashboardDataCache.monthlyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                 dailyRevenueEl.textContent = dashboardDataCache.dailyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                 
-                paymentDetailsContainer.innerHTML = '';
-                if (Object.keys(dashboardDataCache.paymentMethodTotals).length > 0) {
-                    for (const method in dashboardDataCache.paymentMethodTotals) {
-                        paymentDetailsContainer.innerHTML += `<div class="flex justify-between items-center"><span class="text-gray-600">${method}</span><span class="font-bold text-gray-800">${dashboardDataCache.paymentMethodTotals[method].toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>`;
-                    }
-                } else { paymentDetailsContainer.innerHTML = '<p class="text-gray-500">Nenhuma venda hoje.</p>'; }
+                // Lógica para exibir dados diários ou do período
+                if (dashboardDataCache.isFilteredPeriod) {
+                    appointmentsTitle.textContent = 'Atendimentos no Período';
+                    appointmentsValue.textContent = dashboardDataCache.periodAppointments;
+                    paymentDetailsTitle.textContent = 'Faturamento no Período por Pagamento';
+                    
+                    paymentDetailsContainer.innerHTML = '';
+                    if (Object.keys(dashboardDataCache.periodPaymentMethodTotals).length > 0) {
+                        for (const method in dashboardDataCache.periodPaymentMethodTotals) {
+                            paymentDetailsContainer.innerHTML += `<div class="flex justify-between items-center"><span class="text-gray-600">${method}</span><span class="font-bold text-gray-800">${dashboardDataCache.periodPaymentMethodTotals[method].toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>`;
+                        }
+                    } else { paymentDetailsContainer.innerHTML = '<p class="text-gray-500">Nenhuma venda no período.</p>'; }
+
+                } else {
+                    appointmentsTitle.textContent = 'Atendimentos no Dia';
+                    appointmentsValue.textContent = dashboardDataCache.dailyAppointments;
+                    paymentDetailsTitle.textContent = 'Faturamento Diário por Pagamento';
+
+                    paymentDetailsContainer.innerHTML = '';
+                    if (Object.keys(dashboardDataCache.dailyPaymentMethodTotals).length > 0) {
+                        for (const method in dashboardDataCache.dailyPaymentMethodTotals) {
+                            paymentDetailsContainer.innerHTML += `<div class="flex justify-between items-center"><span class="text-gray-600">${method}</span><span class="font-bold text-gray-800">${dashboardDataCache.dailyPaymentMethodTotals[method].toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>`;
+                        }
+                    } else { paymentDetailsContainer.innerHTML = '<p class="text-gray-500">Nenhuma venda hoje.</p>'; }
+                }
                 
                 chartContainer.style.opacity = 1;
                 adminModeIcon.setAttribute('data-lucide', 'eye-off');
@@ -201,10 +225,14 @@
             } else {
                 monthlyRevenueEl.textContent = 'R$ *******';
                 dailyRevenueEl.textContent = 'R$ *******';
+                appointmentsValue.textContent = '***';
                 paymentDetailsContainer.innerHTML = '<p class="text-gray-500">Dados ocultos. Ative o modo ADM.</p>';
                 chartContainer.style.opacity = 0;
                 adminModeIcon.setAttribute('data-lucide', 'eye');
                 adminModeText.textContent = 'Ativar Modo ADM';
+                // Resetar títulos para o padrão
+                appointmentsTitle.textContent = 'Atendimentos no Dia';
+                paymentDetailsTitle.textContent = 'Faturamento Diário por Pagamento';
             }
             lucide.createIcons();
         }
@@ -306,24 +334,37 @@
             try {
                 const [periodSnapshot, dailySnapshot] = await Promise.all([getDocs(periodQuery), getDocs(dailyQuery)]);
                 let periodRevenue = 0, dailyRevenue = 0;
-                const serviceCounts = {}, paymentMethodTotals = {};
+                const serviceCounts = {}, periodPaymentMethodTotals = {}, dailyPaymentMethodTotals = {};
+                let periodAppointments = 0;
 
                 periodSnapshot.forEach(doc => {
                     const sale = doc.data();
                     periodRevenue += sale.total || 0;
                     if (sale.items) sale.items.forEach(item => serviceCounts[item.name] = (serviceCounts[item.name] || 0) + 1);
+                    const method = sale.paymentMethod || 'N/A';
+                    periodPaymentMethodTotals[method] = (periodPaymentMethodTotals[method] || 0) + sale.total;
                 });
+                periodAppointments = periodSnapshot.size;
 
                 dailySnapshot.forEach(doc => {
                     const sale = doc.data();
                     dailyRevenue += sale.total || 0;
                     const method = sale.paymentMethod || 'N/A';
-                    paymentMethodTotals[method] = (paymentMethodTotals[method] || 0) + sale.total;
+                    dailyPaymentMethodTotals[method] = (dailyPaymentMethodTotals[method] || 0) + sale.total;
                 });
                 
-                dashboardDataCache = { monthlyRevenue: periodRevenue, dailyRevenue, paymentMethodTotals, serviceCounts };
-                
-                document.getElementById('daily-appointments').textContent = dailySnapshot.size;
+                const isFiltered = selectedMonth !== new Date().getMonth() || selectedYear !== new Date().getFullYear();
+
+                dashboardDataCache = { 
+                    monthlyRevenue: periodRevenue, 
+                    dailyRevenue, 
+                    dailyPaymentMethodTotals, 
+                    dailyAppointments: dailySnapshot.size,
+                    serviceCounts,
+                    periodAppointments,
+                    periodPaymentMethodTotals,
+                    isFilteredPeriod: isFiltered
+                };
                 
                 servicesChart.data.labels = Object.keys(serviceCounts);
                 servicesChart.data.datasets[0].data = Object.values(serviceCounts);
@@ -336,7 +377,7 @@
 
         document.getElementById('filter-apply').addEventListener('click', fetchDashboardData);
 
-        // --- LÓGICA DE COMPARTILHAR E BAIXAR ---
+        // --- LÓGICA DE COMPARTILHAR E BAIXAR (ATUALIZADA) ---
         document.getElementById('download-btn').addEventListener('click', () => {
             if (!isAdminModeActive || !dashboardDataCache) {
                 alert("Ative o Modo ADM para baixar o relatório.");
@@ -345,18 +386,16 @@
             const pdf = new jsPDF();
             const periodText = monthSelect.options[monthSelect.selectedIndex].text + " de " + yearSelect.value;
 
-            // Título e subtítulo
             pdf.setFontSize(18);
             pdf.text("Relatório de Faturamento - Bronzify", 14, 22);
             pdf.setFontSize(11);
             pdf.setTextColor(100);
             pdf.text(`Período do Relatório: ${periodText}`, 14, 30);
 
-            // Resumo Financeiro
             const summaryData = [
                 ["Faturamento do Período", dashboardDataCache.monthlyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })],
                 ["Faturamento de Hoje", dashboardDataCache.dailyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })],
-                ["Atendimentos Hoje", document.getElementById('daily-appointments').textContent]
+                [dashboardDataCache.isFilteredPeriod ? "Atendimentos no Período" : "Atendimentos Hoje", dashboardDataCache.isFilteredPeriod ? dashboardDataCache.periodAppointments : dashboardDataCache.dailyAppointments]
             ];
             pdf.autoTable({
                 head: [['Resumo Financeiro', 'Valor']],
@@ -365,27 +404,31 @@
                 headStyles: { fillColor: [183, 110, 121] },
             });
 
-            // Faturamento por Pagamento
-            const paymentBody = Object.entries(dashboardDataCache.paymentMethodTotals).map(([method, total]) => {
+            const paymentData = dashboardDataCache.isFilteredPeriod ? dashboardDataCache.periodPaymentMethodTotals : dashboardDataCache.dailyPaymentMethodTotals;
+            const paymentTitle = dashboardDataCache.isFilteredPeriod ? "Faturamento no Período por Pagamento" : "Faturamento Diário por Pagamento";
+            const paymentBody = Object.entries(paymentData).map(([method, total]) => {
                 return [method, total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })];
             });
-            pdf.autoTable({
-                head: [['Faturamento Diário por Pagamento', 'Total']],
-                body: paymentBody,
-                startY: pdf.autoTable.previous.finalY + 10,
-                headStyles: { fillColor: [183, 110, 121] },
-            });
+            if (paymentBody.length > 0) {
+                pdf.autoTable({
+                    head: [[paymentTitle, 'Total']],
+                    body: paymentBody,
+                    startY: pdf.autoTable.previous.finalY + 10,
+                    headStyles: { fillColor: [183, 110, 121] },
+                });
+            }
 
-            // Serviços Realizados
             const servicesBody = Object.entries(dashboardDataCache.serviceCounts).map(([service, count]) => {
                 return [service, count];
             });
-            pdf.autoTable({
-                head: [['Serviços Realizados no Período', 'Quantidade']],
-                body: servicesBody,
-                startY: pdf.autoTable.previous.finalY + 10,
-                headStyles: { fillColor: [183, 110, 121] },
-            });
+             if (servicesBody.length > 0) {
+                pdf.autoTable({
+                    head: [['Serviços Realizados no Período', 'Quantidade']],
+                    body: servicesBody,
+                    startY: pdf.autoTable.previous.finalY + 10,
+                    headStyles: { fillColor: [183, 110, 121] },
+                });
+            }
 
             pdf.save(`relatorio_dashboard_bronzify_${yearSelect.value}_${monthSelect.options[monthSelect.selectedIndex].text}.pdf`);
         });
@@ -399,7 +442,7 @@
             
             let shareText = `*Relatório Bronzify - ${periodText}*\n\n`;
             shareText += `*Faturamento:* ${dashboardDataCache.monthlyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n`;
-            shareText += `*Atendimentos (hoje):* ${document.getElementById('daily-appointments').textContent}\n\n`;
+            shareText += `*Atendimentos (hoje):* ${dashboardDataCache.dailyAppointments}\n\n`;
             shareText += `*Serviços mais realizados:*\n`;
             for (const service in dashboardDataCache.serviceCounts) {
                 shareText += `- ${service}: ${dashboardDataCache.serviceCounts[service]}\n`;
