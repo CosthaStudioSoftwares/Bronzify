@@ -43,7 +43,7 @@
                     Não tem uma conta? <a href="#" id="show-register" class="text-[#B76E79] hover:underline">Crie uma agora</a>
                 </p>
                 <p class="text-center text-gray-600 mt-2">
-                    Precisa ativar seu acesso? <a href="/ativacao.html" class="text-[#B76E79] hover:underline">Ative aqui</a>
+                    Precisa ativar seu acesso? <a href="./ativacao.html" class="text-[#B76E79] hover:underline">Ative aqui</a>
                 </p>
             </div>
             <div id="register-section" class="bg-white rounded-2xl shadow-xl p-8 hidden">
@@ -67,14 +67,14 @@
     </div>
 
     <script type="module">
+        // Importa os novos métodos necessários para o fluxo de redirecionamento
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // Objeto de configuração do Firebase com o authDomain atualizado
         const firebaseConfig = {
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
-            authDomain: "bronzify.costhastudiodesoftwares.com", // <-- Correção do domínio
+            authDomain: "bronzify.costhastudiodesoftwares.com", // Mantém o domínio personalizado
             projectId: "bronzify-b2491",
             storageBucket: "bronzify-b2491.firebasestorage.app",
             messagingSenderId: "399230151633",
@@ -90,13 +90,24 @@
             const userProfileRef = doc(db, "users", user.uid);
             const docSnap = await getDoc(userProfileRef);
             if (docSnap.exists() && docSnap.data().status === 'active') {
-                // Constrói a URL completa para o redirecionamento
-                window.location.href = window.location.origin + '/dashboard.html';
+                window.location.href = './dashboard.html'; // Usando caminho relativo que funciona
             } else {
-                // Constrói a URL completa para o redirecionamento
-                window.location.href = window.location.origin + '/ativacao.html';
+                window.location.href = './ativacao.html'; // Usando caminho relativo que funciona
             }
         }
+
+        // NOVO: Verifica o resultado do redirecionamento quando a página carrega
+        getRedirectResult(auth)
+            .then((result) => {
+                if (result) {
+                    // Se houver um resultado, significa que o usuário acabou de fazer login
+                    handleUserLogin(result.user);
+                }
+            }).catch((error) => {
+                // Lida com erros do redirecionamento
+                console.error('Erro no resultado do redirecionamento do Google: ', error);
+                alert('Erro no login com Google: ' + error.message);
+            });
 
         const loginForm = document.getElementById('login-form');
         loginForm.addEventListener('submit', (e) => {
@@ -116,9 +127,8 @@
 
         const googleLoginBtn = document.getElementById('google-login');
         googleLoginBtn.addEventListener('click', () => {
-            signInWithPopup(auth, provider)
-                .then((result) => handleUserLogin(result.user))
-                .catch((error) => alert('Erro no login com Google: ' + error.message));
+            // ALTERADO: Em vez de signInWithPopup, usamos signInWithRedirect
+            signInWithRedirect(auth, provider);
         });
 
         const registerForm = document.getElementById('register-form');
@@ -129,13 +139,11 @@
             createUserWithEmailAndPassword(auth, email, password)
                 .then(() => {
                     alert('Conta criada com sucesso! Por favor, ative seu acesso.');
-                    // Constrói a URL completa para o redirecionamento
-                    window.location.href = window.location.origin + '/ativacao.html';
+                    window.location.href = './ativacao.html';
                 })
                 .catch((error) => alert('Erro ao criar conta: ' + error.message));
         });
         
-        // Lógica para alternar entre login e cadastro
         const loginSection = document.getElementById('login-section');
         const registerSection = document.getElementById('register-section');
         const showRegisterBtn = document.getElementById('show-register');
