@@ -57,119 +57,160 @@
             -webkit-appearance: none;
             margin: 0;
         }
+        /* Estilos para a barra lateral móvel */
+        .sidebar-mobile {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        .sidebar-mobile.open {
+            transform: translateX(0);
+        }
     </style>
 </head>
-<body class="flex h-screen">
+<body class="bg-gray-50">
 
-    <!-- Sidebar -->
-    <aside class="w-64 bg-white shadow-lg flex-shrink-0">
-        <div class="p-6">
-            <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
-        </div>
-       <nav class="mt-6 px-4">
-            <a href="./dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a>
-            <a href="./clientes.html" class="sidebar-link"><i data-lucide="users"></i> Clientes</a>
-            <a href="./caixa.html" class="sidebar-link active"><i data-lucide="dollar-sign"></i> Caixa</a>
-            <a href="./vendas.html" class="sidebar-link"><i data-lucide="shopping-cart"></i> Vendas</a>
-            <a href="./ordem-chegada.html" class="sidebar-link"><i data-lucide="list-ordered"></i> Ordem de Chegada</a>
-            <a href="./patio.html" class="sidebar-link"><i data-lucide="sun"></i> Pátio</a>
-        </nav>
-        <div class="absolute bottom-0 w-64 p-4">
-             <button id="logout-btn" class="w-full flex items-center justify-center gap-2 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors duration-300">
-                <i data-lucide="log-out"></i> Sair
-            </button>
-        </div>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="flex-1 p-8 overflow-y-auto">
-        <header class="flex justify-between items-center mb-8">
-            <h2 class="text-4xl text-gray-800">Frente de Caixa</h2>
-        </header>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Coluna de Venda (Esquerda) -->
-            <div class="lg:col-span-2 space-y-6">
-                <!-- 1. Cliente -->
-                <div class="bg-white p-6 rounded-2xl shadow-md">
-                    <h3 class="text-2xl text-gray-800 mb-4">1. Selecionar Cliente</h3>
-                    <div class="relative">
-                        <input type="text" id="client-search" placeholder="Digite o nome ou telefone da cliente..." class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]">
-                        <div id="search-results" class="absolute z-10 w-full bg-white border rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
-                    </div>
-                    <div id="selected-client-display" class="mt-4 hidden items-center gap-3 bg-rose-50 p-3 rounded-lg">
-                        <p class="font-semibold text-gray-700">Cliente: <span id="selected-client-name"></span></p>
-                        <div id="birthday-alert" class="hidden items-center gap-1 text-sm text-pink-600 font-semibold">
-                            <i data-lucide="cake" class="w-4 h-4"></i>
-                            <span>Aniversariante do mês!</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 2. Serviços -->
-                <div class="bg-white p-6 rounded-2xl shadow-md">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-2xl text-gray-800">2. Serviços e Produtos</h3>
-                        <button id="add-new-item-btn" class="text-sm text-[#B76E79] hover:underline font-semibold flex items-center gap-1"><i data-lucide="plus-circle" class="w-4 h-4"></i> Adicionar novo</button>
-                    </div>
-                    
-                    <!-- Categorias de Serviços -->
-                    <div id="services-container" class="space-y-4">
-                        <h4 class="font-semibold text-gray-600">Tipos de Bronze</h4>
-                        <div id="bronze-services" class="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[50px]"></div>
-                        <h4 class="font-semibold text-gray-600">Consumo</h4>
-                        <div id="consumables" class="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[50px]"></div>
-                        <h4 class="font-semibold text-gray-600">Adicionais</h4>
-                        <div id="extras" class="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[50px]"></div>
-                    </div>
-                </div>
+    <div class="flex h-screen">
+        <!-- Sidebar para Desktop -->
+        <aside class="w-64 bg-white shadow-lg flex-shrink-0 hidden lg:flex flex-col">
+            <div class="p-6">
+                <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
             </div>
+           <nav class="mt-6 px-4 flex-1">
+                <a href="./dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+                <a href="./clientes.html" class="sidebar-link"><i data-lucide="users"></i> Clientes</a>
+                <a href="./caixa.html" class="sidebar-link active"><i data-lucide="dollar-sign"></i> Caixa</a>
+                <a href="./vendas.html" class="sidebar-link"><i data-lucide="shopping-cart"></i> Vendas</a>
+                <a href="./ordem-chegada.html" class="sidebar-link"><i data-lucide="list-ordered"></i> Ordem de Chegada</a>
+                <a href="./patio.html" class="sidebar-link"><i data-lucide="sun"></i> Pátio</a>
+            </nav>
+            <div class="p-4">
+                 <button id="logout-btn" class="w-full flex items-center justify-center gap-2 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors duration-300">
+                    <i data-lucide="log-out"></i> Sair
+                </button>
+            </div>
+        </aside>
 
-            <!-- Coluna de Resumo (Direita) -->
-            <div class="lg:col-span-1">
-                <div class="bg-white p-6 rounded-2xl shadow-md sticky top-8">
-                    <h3 class="text-2xl text-gray-800 mb-4">3. Resumo da Venda</h3>
-                    <div class="space-y-3 mb-4">
-                        <div class="flex justify-between text-gray-600">
-                            <span>Subtotal</span>
-                            <span id="subtotal">R$ 0,00</span>
+        <!-- Sidebar para Mobile -->
+        <div id="mobile-sidebar" class="fixed inset-0 z-40 flex lg:hidden sidebar-mobile">
+            <aside class="w-64 bg-white shadow-lg flex-shrink-0 flex flex-col">
+                <div class="p-6 flex justify-between items-center">
+                    <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
+                    <button id="close-menu-btn" class="p-1">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+               <nav class="mt-6 px-4 flex-1">
+                    <a href="./dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+                    <a href="./clientes.html" class="sidebar-link"><i data-lucide="users"></i> Clientes</a>
+                    <a href="./caixa.html" class="sidebar-link active"><i data-lucide="dollar-sign"></i> Caixa</a>
+                    <a href="./vendas.html" class="sidebar-link"><i data-lucide="shopping-cart"></i> Vendas</a>
+                    <a href="./ordem-chegada.html" class="sidebar-link"><i data-lucide="list-ordered"></i> Ordem de Chegada</a>
+                    <a href="./patio.html" class="sidebar-link"><i data-lucide="sun"></i> Pátio</a>
+                </nav>
+                <div class="p-4">
+                     <button id="logout-btn-mobile" class="w-full flex items-center justify-center gap-2 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors duration-300">
+                        <i data-lucide="log-out"></i> Sair
+                    </button>
+                </div>
+            </aside>
+            <div id="mobile-sidebar-overlay" class="flex-1 bg-black bg-opacity-50"></div>
+        </div>
+
+
+        <!-- Main Content -->
+        <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
+            <header class="flex justify-between items-center mb-8">
+                <button id="open-menu-btn" class="lg:hidden p-2 -ml-2">
+                    <i data-lucide="menu" class="w-6 h-6 text-gray-800"></i>
+                </button>
+                <h2 class="text-3xl lg:text-4xl text-gray-800">Frente de Caixa</h2>
+                <div class="w-6 lg:hidden"></div> <!-- Espaçador para centralizar o título -->
+            </header>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Coluna de Venda (Esquerda) -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- 1. Cliente -->
+                    <div class="bg-white p-6 rounded-2xl shadow-md">
+                        <h3 class="text-2xl text-gray-800 mb-4">1. Selecionar Cliente</h3>
+                        <div class="relative">
+                            <input type="text" id="client-search" placeholder="Digite o nome ou telefone da cliente..." class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]">
+                            <div id="search-results" class="absolute z-10 w-full bg-white border rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
                         </div>
-                        <div class="flex justify-between items-center text-gray-600">
-                            <div class="flex items-center gap-2">
-                                <span>Desconto</span>
-                                <div class="flex border border-gray-200 rounded-md text-xs font-medium">
-                                    <button id="discount-type-value" class="px-2 py-1 bg-rose-100 text-rose-700 rounded-l-md transition-colors">R$</button>
-                                    <button id="discount-type-percent" class="px-2 py-1 bg-gray-100 text-gray-500 rounded-r-md transition-colors">%</button>
-                                </div>
+                        <div id="selected-client-display" class="mt-4 hidden items-center gap-3 bg-rose-50 p-3 rounded-lg">
+                            <p class="font-semibold text-gray-700">Cliente: <span id="selected-client-name"></span></p>
+                            <div id="birthday-alert" class="hidden items-center gap-1 text-sm text-pink-600 font-semibold">
+                                <i data-lucide="cake" class="w-4 h-4"></i>
+                                <span>Aniversariante do mês!</span>
                             </div>
-                            <input type="text" id="discount-input" placeholder="0,00" class="w-24 p-1 border rounded-md text-right focus:outline-none focus:ring-1 focus:ring-[#B76E79]">
-                        </div>
-                        <div class="flex justify-between text-gray-500 text-sm pr-1">
-                            <span>&nbsp;</span>
-                            <span id="discount-applied">- R$ 0,00</span>
-                        </div>
-                        <hr>
-                        <div class="flex justify-between font-bold text-xl text-gray-800">
-                            <span>TOTAL</span>
-                            <span id="total">R$ 0,00</span>
                         </div>
                     </div>
-                    <h4 class="font-semibold text-gray-600 mb-2">Forma de Pagamento</h4>
-                    <select id="payment-method" class="w-full p-2 border rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-[#B76E79]">
-                        <option>Dinheiro</option><option>PIX</option><option>Débito</option><option>Crédito</option><option>A Prazo</option><option>Parceria</option>
-                    </select>
-                    <button id="save-sale-btn" class="w-full bg-gradient-to-r from-pink-500 to-[#B76E79] text-white py-3 rounded-lg hover:opacity-90 font-bold text-lg">Salvar Venda</button>
-                    <div id="password-display" class="mt-4 text-center hidden"><p class="text-gray-600">Senha Gerada:</p><p id="generated-password" class="text-4xl font-bold text-[#B76E79]"></p></div>
+
+                    <!-- 2. Serviços -->
+                    <div class="bg-white p-6 rounded-2xl shadow-md">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-2xl text-gray-800">2. Serviços e Produtos</h3>
+                            <button id="add-new-item-btn" class="text-sm text-[#B76E79] hover:underline font-semibold flex items-center gap-1"><i data-lucide="plus-circle" class="w-4 h-4"></i> Adicionar novo</button>
+                        </div>
+                        
+                        <!-- Categorias de Serviços -->
+                        <div id="services-container" class="space-y-4">
+                            <h4 class="font-semibold text-gray-600">Tipos de Bronze</h4>
+                            <div id="bronze-services" class="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[50px]"></div>
+                            <h4 class="font-semibold text-gray-600">Consumo</h4>
+                            <div id="consumables" class="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[50px]"></div>
+                            <h4 class="font-semibold text-gray-600">Adicionais</h4>
+                            <div id="extras" class="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[50px]"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Coluna de Resumo (Direita) -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white p-6 rounded-2xl shadow-md lg:sticky top-8">
+                        <h3 class="text-2xl text-gray-800 mb-4">3. Resumo da Venda</h3>
+                        <div class="space-y-3 mb-4">
+                            <div class="flex justify-between text-gray-600">
+                                <span>Subtotal</span>
+                                <span id="subtotal">R$ 0,00</span>
+                            </div>
+                            <div class="flex justify-between items-center text-gray-600">
+                                <div class="flex items-center gap-2">
+                                    <span>Desconto</span>
+                                    <div class="flex border border-gray-200 rounded-md text-xs font-medium">
+                                        <button id="discount-type-value" class="px-2 py-1 bg-rose-100 text-rose-700 rounded-l-md transition-colors">R$</button>
+                                        <button id="discount-type-percent" class="px-2 py-1 bg-gray-100 text-gray-500 rounded-r-md transition-colors">%</button>
+                                    </div>
+                                </div>
+                                <input type="text" id="discount-input" placeholder="0,00" class="w-24 p-1 border rounded-md text-right focus:outline-none focus:ring-1 focus:ring-[#B76E79]">
+                            </div>
+                            <div class="flex justify-between text-gray-500 text-sm pr-1">
+                                <span>&nbsp;</span>
+                                <span id="discount-applied">- R$ 0,00</span>
+                            </div>
+                            <hr>
+                            <div class="flex justify-between font-bold text-xl text-gray-800">
+                                <span>TOTAL</span>
+                                <span id="total">R$ 0,00</span>
+                            </div>
+                        </div>
+                        <h4 class="font-semibold text-gray-600 mb-2">Forma de Pagamento</h4>
+                        <select id="payment-method" class="w-full p-2 border rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-[#B76E79]">
+                            <option>Dinheiro</option><option>PIX</option><option>Débito</option><option>Crédito</option><option>A Prazo</option><option>Parceria</option>
+                        </select>
+                        <button id="save-sale-btn" class="w-full bg-gradient-to-r from-pink-500 to-[#B76E79] text-white py-3 rounded-lg hover:opacity-90 font-bold text-lg">Salvar Venda</button>
+                        <div id="password-display" class="mt-4 text-center hidden"><p class="text-gray-600">Senha Gerada:</p><p id="generated-password" class="text-4xl font-bold text-[#B76E79]"></p></div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Atendimentos do Dia -->
-        <div class="mt-8 bg-white p-6 rounded-2xl shadow-md">
-            <h3 class="text-2xl text-gray-800 mb-4">Atendimentos do Dia</h3>
-            <div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="border-b"><th class="p-2">Senha</th><th class="p-2">Cliente</th><th class="p-2">Horário</th><th class="p-2">Valor</th><th class="p-2">Pagamento</th><th class="p-2">Ações</th></tr></thead><tbody id="daily-sales-table"></tbody></table></div>
-        </div>
-    </main>
+            <!-- Atendimentos do Dia -->
+            <div class="mt-8 bg-white p-6 rounded-2xl shadow-md">
+                <h3 class="text-2xl text-gray-800 mb-4">Atendimentos do Dia</h3>
+                <div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="border-b"><th class="p-2">Senha</th><th class="p-2">Cliente</th><th class="p-2">Horário</th><th class="p-2">Valor</th><th class="p-2">Pagamento</th><th class="p-2">Ações</th></tr></thead><tbody id="daily-sales-table"></tbody></table></div>
+            </div>
+        </main>
+    </div>
 
     <!-- Modal de Novo/Editar Item -->
     <div id="item-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
@@ -230,6 +271,20 @@
         let synth = null;
         let discountType = 'value'; // 'value' or 'percent'
 
+        // --- LÓGICA DO MENU MOBILE ---
+        const mobileSidebar = document.getElementById('mobile-sidebar');
+        const openMenuBtn = document.getElementById('open-menu-btn');
+        const closeMenuBtn = document.getElementById('close-menu-btn');
+        const mobileSidebarOverlay = document.getElementById('mobile-sidebar-overlay');
+
+        function openSidebar() { mobileSidebar.classList.add('open'); }
+        function closeSidebar() { mobileSidebar.classList.remove('open'); }
+
+        openMenuBtn.addEventListener('click', openSidebar);
+        closeMenuBtn.addEventListener('click', closeSidebar);
+        mobileSidebarOverlay.addEventListener('click', closeSidebar);
+
+
         // Inicia o contexto de áudio com uma interação do usuário
         document.body.addEventListener('click', async () => {
             if (!isAudioContextStarted && typeof Tone !== 'undefined') {
@@ -253,7 +308,8 @@
         });
 
         document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = './index.html'));
-        
+        document.getElementById('logout-btn-mobile').addEventListener('click', () => signOut(auth).then(() => window.location.href = './index.html'));
+
         // --- LÓGICA DO ALERTA DE AJUDA ---
         const helpAlertModal = document.getElementById('help-alert-modal');
         const helpAlertMessage = document.getElementById('help-alert-message');
@@ -964,4 +1020,4 @@
 
     </script>
 </body>
-</html>
+</ht
