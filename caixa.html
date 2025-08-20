@@ -44,7 +44,7 @@
             opacity: 0;
             transition: opacity 0.2s ease-in-out;
         }
-        .service-item:hover .item-actions {
+        .service-item:hover .item-actions, .consumable-item:hover .item-actions {
             opacity: 1;
         }
         .quantity-input {
@@ -301,7 +301,25 @@
                         </div>
                     `;
                 } else if (item.category === 'consumable') {
-                    // Lógica para consumíveis (mantida do código original)
+                    // *** CORREÇÃO APLICADA AQUI: Adicionada a lógica de renderização para consumíveis ***
+                    itemHtml = `
+                        <div class="consumable-item border rounded-lg p-3" data-price="${item.price}" data-name="${item.name}" data-id="${item.id}">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <span class="font-semibold">${item.name}</span>
+                                    <div class="item-actions flex items-center gap-2 ml-2">
+                                        <button class="edit-item-btn p-1 text-gray-500 hover:text-blue-600" data-id="${item.id}"><i data-lucide="pencil" class="w-4 h-4 pointer-events-none"></i></button>
+                                        <button class="delete-item-btn p-1 text-gray-500 hover:text-red-600" data-id="${item.id}"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button>
+                                    </div>
+                                </div>
+                                <span class="text-gray-500 text-sm">(${priceFormatted})</span>
+                            </div>
+                            <div class="flex items-center gap-2 mt-2 justify-end">
+                                <button type="button" class="quantity-btn minus-btn bg-rose-200 text-rose-700 rounded-full w-7 h-7 flex items-center justify-center font-bold">-</button>
+                                <input type="number" value="0" min="0" class="quantity-input w-12 text-center border rounded-md">
+                                <button type="button" class="quantity-btn plus-btn bg-rose-200 text-rose-700 rounded-full w-7 h-7 flex items-center justify-center font-bold">+</button>
+                            </div>
+                        </div>`;
                 } else { // extras
                     itemHtml = `
                         <div class="service-item-container" id="item-container-${item.id}">
@@ -442,6 +460,13 @@
                 }
             });
             
+            // *** CORREÇÃO APLICADA AQUI: Adicionada a lógica de cálculo para consumíveis ***
+            document.querySelectorAll('.consumable-item').forEach(item => {
+                const quantity = parseInt(item.querySelector('.quantity-input').value) || 0;
+                const price = parseFloat(item.dataset.price);
+                currentSubtotal += quantity * price;
+            });
+            
             document.querySelectorAll('#extras .service-item-container input:checked').forEach(item => {
                 currentSubtotal += parseFloat(item.dataset.price);
             });
@@ -456,6 +481,20 @@
         function rebindAllEvents() {
             document.querySelectorAll('.service-checkbox, .package-checkbox').forEach(item => item.addEventListener('change', calculateTotal));
             discountEl.addEventListener('input', calculateTotal);
+            
+            // *** CORREÇÃO APLICADA AQUI: Adicionados os event listeners para consumíveis ***
+            document.querySelectorAll('.quantity-input').forEach(input => input.addEventListener('input', calculateTotal));
+            document.querySelectorAll('.minus-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                const input = e.target.nextElementSibling;
+                let value = parseInt(input.value);
+                if (value > 0) input.value = value - 1;
+                calculateTotal();
+            }));
+            document.querySelectorAll('.plus-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                const input = e.target.previousElementSibling;
+                input.value = parseInt(input.value) + 1;
+                calculateTotal();
+            }));
         }
         
         // --- LÓGICA PARA SALVAR VENDA ---
@@ -489,6 +528,13 @@
                 }
             });
             
+            document.querySelectorAll('.consumable-item').forEach(item => {
+                const quantity = parseInt(item.querySelector('.quantity-input').value);
+                if (quantity > 0) {
+                    saleItems.push({ name: item.dataset.name, price: parseFloat(item.dataset.price), quantity: quantity });
+                }
+            });
+
             document.querySelectorAll('#extras .service-item-container input:checked').forEach(i => saleItems.push({ name: i.dataset.name, price: parseFloat(i.dataset.price), quantity: 1 }));
 
             if (saleItems.length === 0) {
@@ -541,8 +587,6 @@
         });
         
         // --- FUNÇÕES AUXILIARES, ATENDIMENTOS DO DIA, ETC ---
-        // (O restante do código JS continua aqui, sem alterações na sua funcionalidade principal)
-        
         async function getNextPassword() {
             if (!currentUser) return '000';
             const today = new Date();
