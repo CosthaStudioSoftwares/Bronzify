@@ -25,94 +25,85 @@
         .modal-content { transition: transform 0.3s ease; }
     </style>
 </head>
-<body class="bg-gray-100">
+<body class="flex h-screen opacity-0 transition-opacity duration-300">
 
-    <div class="relative min-h-screen lg:flex">
-        <!-- Sidebar -->
-        <aside id="sidebar" class="bg-white shadow-lg fixed inset-y-0 left-0 w-64 z-30 transform -translate-x-full lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out">
-            <div class="p-6 text-center">
-                <h1 class="text-3xl text-[#B76E79]">Bronzify</h1>
-            </div>
-            <nav class="mt-6 px-4">
-                <a href="./dashboard.html" class="sidebar-link active"><i data-lucide="layout-dashboard"></i> Dashboard</a>
-                <a href="./clientes.html" class="sidebar-link"><i data-lucide="users"></i> Clientes</a>
-                <a href="./caixa.html" class="sidebar-link"><i data-lucide="dollar-sign"></i> Caixa</a>
-                <a href="./vendas.html" class="sidebar-link"><i data-lucide="shopping-cart"></i> Vendas</a>
-                <a href="./ordem-chegada.html" class="sidebar-link"><i data-lucide="list-ordered"></i> Ordem de Chegada</a>
-                <a href="./patio.html" class="sidebar-link"><i data-lucide="sun"></i> Pátio</a>
-            </nav>
-            <div class="absolute bottom-0 w-64 p-4">
-                 <button id="logout-btn" class="w-full flex items-center justify-center gap-2 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors duration-300"><i data-lucide="log-out"></i> Sair</button>
-            </div>
-        </aside>
-
-        <!-- Main Content -->
-        <div class="flex-1">
-            <main class="p-4 sm:p-8">
-                <header class="flex flex-wrap justify-between items-center mb-8 gap-4">
-                    <div class="flex items-center gap-4">
-                        <button id="menu-btn" class="lg:hidden p-2 rounded-md hover:bg-gray-200">
-                            <i data-lucide="menu"></i>
-                        </button>
-                        <h2 class="text-3xl sm:text-4xl text-gray-800">Dashboard</h2>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <button id="admin-mode-btn" class="bg-rose-100 text-[#B76E79] px-4 py-2 rounded-lg hover:bg-rose-200 flex items-center gap-2 font-semibold">
-                            <i data-lucide="eye"></i>
-                            <span id="admin-mode-text" class="hidden sm:inline">Ativar Modo ADM</span>
-                        </button>
-                        <span id="user-email" class="text-gray-600 hidden sm:inline">carregando...</span>
-                        <img src="https://placehold.co/40x40/FADADD/B76E79?text=B" alt="Avatar" class="rounded-full">
-                    </div>
-                </header>
-
-                <!-- Filtros e Ações -->
-                <div class="bg-white p-4 rounded-2xl shadow-md mb-8 flex flex-col sm:flex-row flex-wrap items-center justify-between gap-4">
-                    <div class="flex items-center gap-3 flex-wrap">
-                         <h3 class="text-lg font-semibold text-gray-700">Filtros:</h3>
-                         <select id="filter-month" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]"></select>
-                         <select id="filter-year" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]"></select>
-                         <button id="filter-apply" class="bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90">Aplicar</button>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <button id="share-btn" class="flex items-center gap-2 p-2 border rounded-lg text-gray-600 hover:bg-gray-100"><i data-lucide="share-2"></i> <span class="hidden sm:inline">Compartilhar</span></button>
-                        <button id="download-btn" class="flex items-center gap-2 p-2 border rounded-lg text-gray-600 hover:bg-gray-100"><i data-lucide="download"></i> <span class="hidden sm:inline">Baixar PDF</span></button>
-                    </div>
-                </div>
-                
-                <!-- Área do Relatório -->
-                <div id="report-content">
-                    <!-- Cards de Métricas Principais -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <div class="bg-white p-6 rounded-2xl shadow-md">
-                            <h3 id="revenue-title" class="text-lg font-semibold text-gray-500">Faturamento Mensal</h3>
-                            <p id="monthly-revenue" class="text-4xl font-bold text-[#B76E79] mt-2">R$ *******</p>
-                        </div>
-                        <div class="bg-white p-6 rounded-2xl shadow-md">
-                            <h3 class="text-lg font-semibold text-gray-500">Faturamento Diário</h3>
-                            <p id="daily-revenue" class="text-4xl font-bold text-[#B76E79] mt-2">R$ *******</p>
-                        </div>
-                        <div class="bg-white p-6 rounded-2xl shadow-md">
-                            <h3 id="appointments-title" class="text-lg font-semibold text-gray-500">Atendimentos no Dia</h3>
-                            <p id="daily-appointments" class="text-4xl font-bold text-[#B76E79] mt-2">***</p>
-                        </div>
-                    </div>
-
-                    <!-- Gráficos e Detalhes -->
-                    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                        <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md">
-                            <h3 id="payment-details-title" class="text-2xl text-gray-800 mb-4">Faturamento Diário por Pagamento</h3>
-                            <div id="payment-methods-details" class="space-y-4"><p class="text-gray-500">Dados ocultos. Ative o modo ADM.</p></div>
-                        </div>
-                        <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-md">
-                            <h3 id="services-chart-title" class="text-2xl text-gray-800 mb-4">Tipos de Bronze e Serviços (Mês)</h3>
-                            <div id="chart-container" class="max-h-80 flex justify-center items-center"><canvas id="servicesChart"></canvas></div>
-                        </div>
-                    </div>
-                </div>
-            </main>
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white shadow-lg flex-shrink-0">
+        <div class="p-6">
+            <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
         </div>
-    </div>
+        <nav class="mt-6 px-4">
+            <a href="./dashboard.html" class="sidebar-link active"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+            <a href="./clientes.html" class="sidebar-link"><i data-lucide="users"></i> Clientes</a>
+            <a href="./caixa.html" class="sidebar-link"><i data-lucide="dollar-sign"></i> Caixa</a>
+            <a href="./vendas.html" class="sidebar-link"><i data-lucide="shopping-cart"></i> Vendas</a>
+            <a href="./ordem-chegada.html" class="sidebar-link"><i data-lucide="list-ordered"></i> Ordem de Chegada</a>
+            <a href="./patio.html" class="sidebar-link"><i data-lucide="sun"></i> Pátio</a>
+        </nav>
+        <div class="absolute bottom-0 w-64 p-4">
+             <button id="logout-btn" class="w-full flex items-center justify-center gap-2 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors duration-300"><i data-lucide="log-out"></i> Sair</button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-8 overflow-y-auto">
+        <header class="flex flex-wrap justify-between items-center mb-8 gap-4">
+            <h2 class="text-4xl text-gray-800">Dashboard</h2>
+            <div class="flex items-center gap-4">
+                <button id="admin-mode-btn" class="bg-rose-100 text-[#B76E79] px-4 py-2 rounded-lg hover:bg-rose-200 flex items-center gap-2 font-semibold">
+                    <i data-lucide="eye"></i>
+                    <span id="admin-mode-text">Ativar Modo ADM</span>
+                </button>
+                <span id="user-email" class="text-gray-600">carregando...</span>
+                <img src="https://placehold.co/40x40/FADADD/B76E79?text=B" alt="Avatar" class="rounded-full">
+            </div>
+        </header>
+
+        <!-- Filtros e Ações -->
+        <div class="bg-white p-4 rounded-2xl shadow-md mb-8 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                 <h3 class="text-lg font-semibold text-gray-700">Filtros:</h3>
+                 <select id="filter-month" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]"></select>
+                 <select id="filter-year" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]"></select>
+                 <button id="filter-apply" class="bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90">Aplicar</button>
+            </div>
+            <div class="flex items-center gap-3">
+                <button id="share-btn" class="flex items-center gap-2 p-2 border rounded-lg text-gray-600 hover:bg-gray-100"><i data-lucide="share-2"></i> Compartilhar</button>
+                <button id="download-btn" class="flex items-center gap-2 p-2 border rounded-lg text-gray-600 hover:bg-gray-100"><i data-lucide="download"></i> Baixar PDF</button>
+            </div>
+        </div>
+        
+        <!-- Área do Relatório -->
+        <div id="report-content">
+            <!-- Cards de Métricas Principais -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-2xl shadow-md">
+                    <h3 id="revenue-title" class="text-lg font-semibold text-gray-500">Faturamento Mensal</h3>
+                    <p id="monthly-revenue" class="text-4xl font-bold text-[#B76E79] mt-2">R$ *******</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-md">
+                    <h3 class="text-lg font-semibold text-gray-500">Faturamento Diário</h3>
+                    <p id="daily-revenue" class="text-4xl font-bold text-[#B76E79] mt-2">R$ *******</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-md">
+                    <h3 id="appointments-title" class="text-lg font-semibold text-gray-500">Atendimentos no Dia</h3>
+                    <p id="daily-appointments" class="text-4xl font-bold text-[#B76E79] mt-2">***</p>
+                </div>
+            </div>
+
+            <!-- Gráficos e Detalhes -->
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md">
+                    <h3 id="payment-details-title" class="text-2xl text-gray-800 mb-4">Faturamento Diário por Pagamento</h3>
+                    <div id="payment-methods-details" class="space-y-4"><p class="text-gray-500">Dados ocultos. Ative o modo ADM.</p></div>
+                </div>
+                <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-md">
+                    <h3 id="services-chart-title" class="text-2xl text-gray-800 mb-4">Tipos de Bronze e Serviços (Mês)</h3>
+                    <div id="chart-container" class="max-h-80 flex justify-center items-center"><canvas id="servicesChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <!-- Modal de Senha ADM -->
     <div id="admin-password-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
@@ -154,14 +145,421 @@
         import { getAuth, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, query, where, getDocs, Timestamp, doc, getDoc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // ... (Todo o código JavaScript anterior permanece aqui, sem alterações na funcionalidade)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
+            authDomain: "bronzify-b2491.firebaseapp.com",
+            projectId: "bronzify-b2491",
+            storageBucket: "bronzify-b2491.appspot.com",
+            messagingSenderId: "399230151633",
+            appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        let isAdminModeActive = false;
+        let dashboardDataCache = null;
+        let isAudioContextStarted = false;
+        let synth = null;
 
-        // --- LÓGICA DO MENU RESPONSIVO ---
-        const sidebar = document.getElementById('sidebar');
-        const menuBtn = document.getElementById('menu-btn');
+        // *** CORREÇÃO APLICADA AQUI: Inicia o contexto de áudio com uma interação do usuário ***
+        document.body.addEventListener('click', async () => {
+            if (!isAudioContextStarted && typeof Tone !== 'undefined') {
+                await Tone.start();
+                synth = new Tone.Synth().toDestination();
+                isAudioContextStarted = true;
+                console.log("Audio context started.");
+            }
+        }, { once: true });
 
-        menuBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('-translate-x-full');
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                document.body.classList.remove('opacity-0');
+                document.getElementById('user-email').textContent = user.email;
+                await checkAdminPasswordSetup(user);
+                await fetchDashboardData();
+                listenForHelpRequests(user);
+            } else { window.location.href = 'index.html'; }
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = 'index.html'));
+
+        // --- LÓGICA DO ALERTA DE AJUDA ---
+        const helpAlertModal = document.getElementById('help-alert-modal');
+        const helpAlertMessage = document.getElementById('help-alert-message');
+        const closeHelpAlertBtn = document.getElementById('close-help-alert');
+        let currentHelpRequestId = null;
+
+        function listenForHelpRequests(user) {
+            const helpRequestsRef = collection(db, "businesses", user.uid, "help_requests");
+            onSnapshot(helpRequestsRef, (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === "added") {
+                        const helpRequest = change.doc.data();
+                        currentHelpRequestId = change.doc.id;
+
+                        if (isAudioContextStarted && synth) {
+                            synth.triggerAttackRelease("C5", "8n");
+                        } else {
+                            console.warn("Audio context not started. User must click the page first.");
+                        }
+
+                        helpAlertMessage.textContent = `Um pedido de ajuda foi enviado da página ${helpRequest.page}.`;
+                        helpAlertModal.classList.remove('opacity-0', 'translate-y-full');
+                        lucide.createIcons();
+                    }
+                });
+            });
+        }
+
+        closeHelpAlertBtn.addEventListener('click', async () => {
+            if (currentHelpRequestId && auth.currentUser) {
+                try {
+                    const helpRequestRef = doc(db, "businesses", auth.currentUser.uid, "help_requests", currentHelpRequestId);
+                    await deleteDoc(helpRequestRef);
+                    helpAlertModal.classList.add('opacity-0', 'translate-y-full');
+                    currentHelpRequestId = null;
+                } catch (error) {
+                    console.error("Erro ao remover pedido de ajuda:", error);
+                }
+            }
+        });
+
+        // O restante do código JS (modo ADM, dashboard, etc.) permanece o mesmo...
+        const adminModeBtn = document.getElementById('admin-mode-btn');
+        const adminPasswordModal = document.getElementById('admin-password-modal');
+        const adminPasswordForm = document.getElementById('admin-password-form');
+        const adminPasswordInput = document.getElementById('admin-password-input');
+        const adminModalTitle = document.getElementById('admin-modal-title');
+        const adminModalSubtitle = document.getElementById('admin-modal-subtitle');
+        const forgotAdminPasswordLink = document.getElementById('forgot-admin-password-link');
+        
+        async function checkAdminPasswordSetup(user) {
+            const configRef = doc(db, "admin_passwords", user.uid);
+            try {
+                const configSnap = await getDoc(configRef);
+                if (!configSnap.exists()) {
+                    adminModalTitle.textContent = 'Bem-vindo(a)!';
+                    adminModalSubtitle.textContent = 'Este parece ser seu primeiro acesso ou sua senha foi redefinida. Por favor, crie uma nova senha de administrador.';
+                    document.getElementById('cancel-admin-password').classList.add('hidden');
+                    forgotAdminPasswordLink.classList.add('hidden');
+                    adminPasswordModal.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error("Erro ao verificar configuração de senha ADM:", error);
+            }
+        }
+
+        function updateUIVisibility() {
+            const monthlyRevenueEl = document.getElementById('monthly-revenue');
+            const dailyRevenueEl = document.getElementById('daily-revenue');
+            const paymentDetailsContainer = document.getElementById('payment-methods-details');
+            const chartContainer = document.getElementById('chart-container');
+            const adminModeText = document.getElementById('admin-mode-text');
+            const adminModeIcon = adminModeBtn.querySelector('i');
+            
+            const appointmentsTitle = document.getElementById('appointments-title');
+            const appointmentsValue = document.getElementById('daily-appointments');
+            const paymentDetailsTitle = document.getElementById('payment-details-title');
+
+            if (isAdminModeActive && dashboardDataCache) {
+                monthlyRevenueEl.textContent = dashboardDataCache.monthlyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                dailyRevenueEl.textContent = dashboardDataCache.dailyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                
+                if (dashboardDataCache.isFilteredPeriod) {
+                    appointmentsTitle.textContent = 'Atendimentos no Período';
+                    appointmentsValue.textContent = dashboardDataCache.periodAppointments;
+                    paymentDetailsTitle.textContent = 'Faturamento por Pagamento no Período';
+                    
+                    paymentDetailsContainer.innerHTML = '';
+                    if (Object.keys(dashboardDataCache.periodPaymentMethodTotals).length > 0) {
+                        for (const method in dashboardDataCache.periodPaymentMethodTotals) {
+                            paymentDetailsContainer.innerHTML += `<div class="flex justify-between items-center"><span class="text-gray-600">${method}</span><span class="font-bold text-gray-800">${dashboardDataCache.periodPaymentMethodTotals[method].toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>`;
+                        }
+                    } else { paymentDetailsContainer.innerHTML = '<p class="text-gray-500">Nenhuma venda no período.</p>'; }
+
+                } else {
+                    appointmentsTitle.textContent = 'Atendimentos no Dia';
+                    appointmentsValue.textContent = dashboardDataCache.dailyAppointments;
+                    paymentDetailsTitle.textContent = 'Faturamento Diário por Pagamento';
+
+                    paymentDetailsContainer.innerHTML = '';
+                    if (Object.keys(dashboardDataCache.dailyPaymentMethodTotals).length > 0) {
+                        for (const method in dashboardDataCache.dailyPaymentMethodTotals) {
+                            paymentDetailsContainer.innerHTML += `<div class="flex justify-between items-center"><span class="text-gray-600">${method}</span><span class="font-bold text-gray-800">${dashboardDataCache.dailyPaymentMethodTotals[method].toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>`;
+                        }
+                    } else { paymentDetailsContainer.innerHTML = '<p class="text-gray-500">Nenhuma venda hoje.</p>'; }
+                }
+                
+                chartContainer.style.opacity = 1;
+                adminModeIcon.setAttribute('data-lucide', 'eye-off');
+                adminModeText.textContent = 'Desativar Modo ADM';
+            } else {
+                monthlyRevenueEl.textContent = 'R$ *******';
+                dailyRevenueEl.textContent = 'R$ *******';
+                appointmentsValue.textContent = '***';
+                paymentDetailsContainer.innerHTML = '<p class="text-gray-500">Dados ocultos. Ative o modo ADM.</p>';
+                chartContainer.style.opacity = 0;
+                adminModeIcon.setAttribute('data-lucide', 'eye');
+                adminModeText.textContent = 'Ativar Modo ADM';
+                appointmentsTitle.textContent = 'Atendimentos no Dia';
+                paymentDetailsTitle.textContent = 'Faturamento Diário por Pagamento';
+            }
+            lucide.createIcons();
+        }
+
+        adminModeBtn.addEventListener('click', async () => {
+            if (isAdminModeActive) {
+                isAdminModeActive = false;
+                updateUIVisibility();
+            } else {
+                adminModalTitle.textContent = 'Modo Administrador';
+                adminModalSubtitle.textContent = 'Insira a sua senha de administrador.';
+                document.getElementById('cancel-admin-password').classList.remove('hidden');
+                forgotAdminPasswordLink.classList.remove('hidden');
+                adminPasswordModal.classList.remove('hidden');
+            }
+        });
+
+        forgotAdminPasswordLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const user = auth.currentUser;
+            if (!user) return;
+
+            if (!confirm("Isso enviará um link para o seu e-mail para redefinir sua senha de LOGIN PRINCIPAL. Após redefinir e entrar novamente, sua senha de ADM será apagada e você poderá criar uma nova. Deseja continuar?")) {
+                return;
+            }
+
+            try {
+                await sendPasswordResetEmail(auth, user.email);
+                const configRef = doc(db, "admin_passwords", user.uid);
+                await setDoc(configRef, { reset_pending: true }, { merge: true });
+                alert("Enviamos um link para o seu e-mail. Siga as instruções para redefinir sua senha de login. Após entrar novamente, você será solicitado(a) a criar uma nova senha de ADM.");
+                adminPasswordModal.classList.add('hidden');
+            } catch (error) {
+                console.error("Erro ao enviar e-mail de redefinição:", error);
+                alert("Ocorreu um erro ao tentar enviar o e-mail. Tente novamente.");
+            }
+        });
+
+        document.getElementById('cancel-admin-password').addEventListener('click', () => adminPasswordModal.classList.add('hidden'));
+
+        adminPasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = auth.currentUser;
+            if (!user) return;
+
+            const password = adminPasswordInput.value;
+            const configRef = doc(db, "admin_passwords", user.uid);
+            
+            try {
+                let passwordCorrect = false;
+                const configSnap = await getDoc(configRef);
+                if (!configSnap.exists()) {
+                    await setDoc(configRef, { value: password });
+                    alert("Sua senha de administrador individual foi definida com sucesso!");
+                    passwordCorrect = true;
+                } else {
+                    if (configSnap.data().value === password) {
+                        passwordCorrect = true;
+                    } else {
+                        alert("Senha incorreta!");
+                    }
+                }
+                
+                if (passwordCorrect) {
+                    isAdminModeActive = true;
+                    adminPasswordForm.reset();
+                    adminPasswordModal.classList.add('hidden');
+                    await fetchDashboardData(false); 
+                }
+            } catch (error) {
+                console.error("Erro ao verificar/definir senha de ADM:", error);
+                alert("Ocorreu um erro. Tente novamente.");
+            }
+        });
+
+        // --- LÓGICA DO DASHBOARD ---
+        const monthSelect = document.getElementById('filter-month');
+        const yearSelect = document.getElementById('filter-year');
+        const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+        const currentYear = new Date().getFullYear();
+        
+        months.forEach((month, index) => monthSelect.add(new Option(month, index)));
+        monthSelect.add(new Option("Ano Inteiro", 12));
+        
+        for (let i = currentYear; i >= 2020; i--) yearSelect.add(new Option(i, i));
+        monthSelect.value = new Date().getMonth();
+        yearSelect.value = currentYear;
+
+        const ctx = document.getElementById('servicesChart').getContext('2d');
+        const servicesChart = new Chart(ctx, { type: 'pie', data: { labels: [], datasets: [{ label: 'Vendas', data: [], backgroundColor: ['#B76E79', '#D49A9A', '#FADADD', '#A9606C', '#C98B8B', '#E3BDBD'], borderColor: '#FFF9F9', borderWidth: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } });
+
+        async function fetchDashboardData(isFilterAction = false) {
+            const user = auth.currentUser;
+            if (!user) return;
+
+            const selectedMonth = parseInt(monthSelect.value);
+            const selectedYear = parseInt(yearSelect.value);
+            
+            let periodStartDate, periodEndDate;
+            const revenueTitleEl = document.getElementById('revenue-title');
+            const servicesChartTitleEl = document.getElementById('services-chart-title');
+
+            if (selectedMonth === 12) {
+                periodStartDate = new Date(selectedYear, 0, 1);
+                periodEndDate = new Date(selectedYear, 11, 31, 23, 59, 59);
+                revenueTitleEl.textContent = 'Faturamento Anual';
+                servicesChartTitleEl.textContent = 'Tipos de Bronze e Serviços (Ano)';
+            } else {
+                periodStartDate = new Date(selectedYear, selectedMonth, 1);
+                periodEndDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
+                revenueTitleEl.textContent = 'Faturamento Mensal';
+                servicesChartTitleEl.textContent = 'Tipos de Bronze e Serviços (Mês)';
+            }
+
+            const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+            const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+
+            const salesRef = collection(db, "businesses", user.uid, "sales");
+            const periodQuery = query(salesRef, where("createdAt", ">=", Timestamp.fromDate(periodStartDate)), where("createdAt", "<=", Timestamp.fromDate(periodEndDate)));
+            const dailyQuery = query(salesRef, where("createdAt", ">=", Timestamp.fromDate(todayStart)), where("createdAt", "<=", Timestamp.fromDate(todayEnd)));
+
+            try {
+                const [periodSnapshot, dailySnapshot] = await Promise.all([getDocs(periodQuery), getDocs(dailyQuery)]);
+                let periodRevenue = 0, dailyRevenue = 0;
+                const serviceCounts = {}, periodPaymentMethodTotals = {}, dailyPaymentMethodTotals = {};
+                let periodAppointments = 0;
+
+                periodSnapshot.forEach(doc => {
+                    const sale = doc.data();
+                    periodRevenue += sale.total || 0;
+                    if (sale.items) sale.items.forEach(item => serviceCounts[item.name] = (serviceCounts[item.name] || 0) + 1);
+                    const method = sale.paymentMethod || 'N/A';
+                    periodPaymentMethodTotals[method] = (periodPaymentMethodTotals[method] || 0) + sale.total;
+                });
+                periodAppointments = periodSnapshot.size;
+
+                dailySnapshot.forEach(doc => {
+                    const sale = doc.data();
+                    dailyRevenue += sale.total || 0;
+                    const method = sale.paymentMethod || 'N/A';
+                    dailyPaymentMethodTotals[method] = (dailyPaymentMethodTotals[method] || 0) + sale.total;
+                });
+                
+                dashboardDataCache = { 
+                    monthlyRevenue: periodRevenue, 
+                    dailyRevenue, 
+                    dailyPaymentMethodTotals, 
+                    dailyAppointments: dailySnapshot.size,
+                    serviceCounts,
+                    periodAppointments,
+                    periodPaymentMethodTotals,
+                    isFilteredPeriod: isFilterAction
+                };
+                
+                servicesChart.data.labels = Object.keys(serviceCounts);
+                servicesChart.data.datasets[0].data = Object.values(serviceCounts);
+                servicesChart.update();
+                
+                updateUIVisibility();
+
+            } catch (error) { console.error("Erro ao buscar dados do dashboard: ", error); }
+        }
+
+        document.getElementById('filter-apply').addEventListener('click', () => {
+            if (!isAdminModeActive) {
+                alert("Por favor, ative o Modo ADM para poder usar os filtros.");
+                return;
+            }
+            fetchDashboardData(true);
+        });
+
+        // --- LÓGICA DE COMPARTILHAR E BAIXAR (ATUALIZADA) ---
+        document.getElementById('download-btn').addEventListener('click', () => {
+            if (!isAdminModeActive || !dashboardDataCache) {
+                alert("Ative o Modo ADM para baixar o relatório.");
+                return;
+            }
+            const pdf = new jsPDF();
+            const periodText = monthSelect.options[monthSelect.selectedIndex].text + " de " + yearSelect.value;
+
+            pdf.setFontSize(18);
+            pdf.text("Relatório de Faturamento - Bronzify", 14, 22);
+            pdf.setFontSize(11);
+            pdf.setTextColor(100);
+            pdf.text(`Período do Relatório: ${periodText}`, 14, 30);
+
+            const summaryData = [
+                ["Faturamento do Período", dashboardDataCache.monthlyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })],
+                ["Faturamento de Hoje", dashboardDataCache.dailyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })],
+                [dashboardDataCache.isFilteredPeriod ? "Atendimentos no Período" : "Atendimentos Hoje", dashboardDataCache.isFilteredPeriod ? dashboardDataCache.periodAppointments : dashboardDataCache.dailyAppointments]
+            ];
+            pdf.autoTable({
+                head: [['Resumo Financeiro', 'Valor']],
+                body: summaryData,
+                startY: 40,
+                headStyles: { fillColor: [183, 110, 121] },
+            });
+
+            const paymentData = dashboardDataCache.isFilteredPeriod ? dashboardDataCache.periodPaymentMethodTotals : dashboardDataCache.dailyPaymentMethodTotals;
+            const paymentTitle = dashboardDataCache.isFilteredPeriod ? "Faturamento por Pagamento no Período" : "Faturamento Diário por Pagamento";
+            const paymentBody = Object.entries(paymentData).map(([method, total]) => {
+                return [method, total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })];
+            });
+            if (paymentBody.length > 0) {
+                pdf.autoTable({
+                    head: [[paymentTitle, 'Total']],
+                    body: paymentBody,
+                    startY: pdf.autoTable.previous.finalY + 10,
+                    headStyles: { fillColor: [183, 110, 121] },
+                });
+            }
+
+            const servicesBody = Object.entries(dashboardDataCache.serviceCounts).map(([service, count]) => {
+                return [service, count];
+            });
+             if (servicesBody.length > 0) {
+                pdf.autoTable({
+                    head: [['Serviços Realizados no Período', 'Quantidade']],
+                    body: servicesBody,
+                    startY: pdf.autoTable.previous.finalY + 10,
+                    headStyles: { fillColor: [183, 110, 121] },
+                });
+            }
+
+            pdf.save(`relatorio_dashboard_bronzify_${yearSelect.value}_${monthSelect.options[monthSelect.selectedIndex].text}.pdf`);
+        });
+        
+        document.getElementById('share-btn').addEventListener('click', async () => {
+            if (!isAdminModeActive || !dashboardDataCache) {
+                alert("Ative o Modo ADM para compartilhar o relatório.");
+                return;
+            }
+            const periodText = monthSelect.options[monthSelect.selectedIndex].text + " de " + yearSelect.value;
+            
+            let shareText = `*Relatório Bronzify - ${periodText}*\n\n`;
+            shareText += `*Faturamento:* ${dashboardDataCache.monthlyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n`;
+            
+            if(dashboardDataCache.isFilteredPeriod) {
+                shareText += `*Atendimentos no Período:* ${dashboardDataCache.periodAppointments}\n\n`;
+            } else {
+                shareText += `*Atendimentos (hoje):* ${dashboardDataCache.dailyAppointments}\n\n`;
+            }
+
+            shareText += `*Serviços mais realizados:*\n`;
+            for (const service in dashboardDataCache.serviceCounts) {
+                shareText += `- ${service}: ${dashboardDataCache.serviceCounts[service]}\n`;
+            }
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title: `Relatório Bronzify - ${periodText}`, text: shareText });
+                } catch (err) { console.error("Erro ao compartilhar:", err); }
+            } else {
+                alert("Função de compartilhamento não suportada neste navegador.");
+            }
         });
     </script>
 </body>
