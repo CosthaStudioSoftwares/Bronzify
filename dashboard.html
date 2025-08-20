@@ -145,6 +145,7 @@
             if (user) {
                 document.body.classList.remove('opacity-0');
                 document.getElementById('user-email').textContent = user.email;
+                checkAdminPasswordSetup(user); // <-- NOVO: Verifica se a senha ADM precisa ser criada
                 fetchDashboardData();
             } else { window.location.href = 'index.html'; }
         });
@@ -156,8 +157,27 @@
         const adminPasswordModal = document.getElementById('admin-password-modal');
         const adminPasswordForm = document.getElementById('admin-password-form');
         const adminPasswordInput = document.getElementById('admin-password-input');
+        const adminModalTitle = document.getElementById('admin-modal-title');
         const adminModalSubtitle = document.getElementById('admin-modal-subtitle');
         
+        // NOVO: Função para verificar se a senha de ADM já foi criada
+        async function checkAdminPasswordSetup(user) {
+            const configRef = doc(db, "admin_passwords", user.uid);
+            try {
+                const configSnap = await getDoc(configRef);
+                if (!configSnap.exists()) {
+                    // Se não existe, é o primeiro acesso. Mostra o modal para criar a senha.
+                    adminModalTitle.textContent = 'Bem-vindo(a)!';
+                    adminModalSubtitle.textContent = 'Este parece ser seu primeiro acesso. Por favor, crie uma senha de administrador para proteger seus dados financeiros.';
+                    // O botão de cancelar é desabilitado no primeiro acesso para forçar a criação da senha
+                    document.getElementById('cancel-admin-password').classList.add('hidden');
+                    adminPasswordModal.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error("Erro ao verificar configuração de senha ADM:", error);
+            }
+        }
+
         function updateUIVisibility() {
             const monthlyRevenueEl = document.getElementById('monthly-revenue');
             const dailyRevenueEl = document.getElementById('daily-revenue');
@@ -191,12 +211,15 @@
             lucide.createIcons();
         }
 
-        adminModeBtn.addEventListener('click', () => {
+        adminModeBtn.addEventListener('click', async () => {
             if (isAdminModeActive) {
                 isAdminModeActive = false;
                 updateUIVisibility();
             } else {
+                // Ao clicar no botão, restaura os textos padrão do modal
+                adminModalTitle.textContent = 'Modo Administrador';
                 adminModalSubtitle.textContent = 'Insira a sua senha de administrador.';
+                document.getElementById('cancel-admin-password').classList.remove('hidden');
                 adminPasswordModal.classList.remove('hidden');
             }
         });
@@ -214,10 +237,12 @@
             try {
                 const configSnap = await getDoc(configRef);
                 if (!configSnap.exists()) {
+                    // Se a senha não existe, este formulário a define
                     await setDoc(configRef, { value: password });
                     alert("Sua senha de administrador individual foi definida com sucesso!");
                     isAdminModeActive = true;
                 } else {
+                    // Se a senha já existe, este formulário a verifica
                     if (configSnap.data().value === password) {
                         isAdminModeActive = true;
                     } else {
@@ -228,7 +253,7 @@
                 adminPasswordModal.classList.add('hidden');
                 updateUIVisibility();
             } catch (error) {
-                console.error("Erro ao verificar senha de ADM:", error);
+                console.error("Erro ao verificar/definir senha de ADM:", error);
                 alert("Ocorreu um erro. Tente novamente.");
             }
         });
