@@ -533,12 +533,15 @@
                 const remainingSessions = selectedClient && selectedClient.packages && selectedClient.packages[itemName] ? selectedClient.packages[itemName] : 0;
                 
                 if (remainingSessions > 0) {
-                    saleItems.push({ name: `${itemName} (Pacote)`, price: 0, quantity: 1 });
+                    // *** CORREÇÃO APLICADA AQUI: Salva a contagem da sessão ***
+                    const sessionNumber = 3 - remainingSessions + 1;
+                    saleItems.push({ name: `${itemName} (Uso de Pacote ${sessionNumber}/3)`, price: 0, quantity: 1 });
                     packageUpdatePayload[`packages.${itemName}`] = increment(-1);
                 } else {
                     const isPackagePurchase = itemEl.querySelector('.package-checkbox').checked;
                     if (isPackagePurchase) {
-                        saleItems.push({ name: `${itemName} (Pacote x3)`, price: price * 3, quantity: 1 });
+                        // *** CORREÇÃO APLICADA AQUI: Salva a compra como 1/3 ***
+                        saleItems.push({ name: `${itemName} (Compra de Pacote 1/3)`, price: price * 3, quantity: 1 });
                         if(selectedClient) packageUpdatePayload[`packages.${itemName}`] = increment(2);
                     } else {
                         saleItems.push({ name: itemName, price: price, quantity: 1 });
@@ -579,20 +582,18 @@
 
             try {
                 if (editingSaleId) {
-                    // Lógica de ATUALIZAÇÃO de venda
                     const saleRef = doc(db, "businesses", currentUser.uid, "sales", editingSaleId);
                     const originalSaleDoc = await getDoc(saleRef);
                     const originalSaleData = originalSaleDoc.data();
 
-                    // Reverte o pacote da venda original
                     const reversalPayload = {};
                     if (originalSaleData.clientId && originalSaleData.items) {
                         originalSaleData.items.forEach(item => {
-                            if (item.name.includes('(Pacote x3)')) {
-                                const baseName = item.name.replace(' (Pacote x3)', '');
+                            if (item.name.includes('(Compra de Pacote 1/3)')) {
+                                const baseName = item.name.split(' (')[0];
                                 reversalPayload[`packages.${baseName}`] = increment(-2);
-                            } else if (item.name.includes('(Pacote)')) {
-                                const baseName = item.name.replace(' (Pacote)', '');
+                            } else if (item.name.includes('(Uso de Pacote')) {
+                                const baseName = item.name.split(' (')[0];
                                 reversalPayload[`packages.${baseName}`] = increment(1);
                             }
                         });
@@ -602,7 +603,6 @@
                         }
                     }
                     
-                    // Aplica o novo pacote e atualiza a venda
                     if (selectedClient && Object.keys(packageUpdatePayload).length > 0) {
                         const clientRef = doc(db, "businesses", currentUser.uid, "clients", selectedClient.id);
                         await updateDoc(clientRef, packageUpdatePayload);
@@ -611,7 +611,6 @@
                     alert('Venda atualizada com sucesso!');
 
                 } else {
-                    // Lógica de CRIAÇÃO de nova venda
                     const password = await getNextPassword();
                     salePayload.password = password;
                     const salesRef = collection(db, "businesses", currentUser.uid, "sales");
@@ -742,12 +741,23 @@
                 document.querySelectorAll('.quantity-input').forEach(input => input.value = 0);
 
                 saleData.items.forEach(saleItem => {
-                    const checkbox = Array.from(document.querySelectorAll('.service-checkbox, #extras input[type="checkbox"]')).find(cb => cb.dataset.name === saleItem.name);
-                    if (checkbox) checkbox.checked = true;
+                    const baseName = saleItem.name.split(' (')[0];
+                    const serviceItemEl = Array.from(document.querySelectorAll('.service-item, .consumable-item')).find(el => el.dataset.name === baseName);
 
-                    const consumable = Array.from(document.querySelectorAll('.consumable-item')).find(c => c.dataset.name === saleItem.name);
-                    if (consumable) {
-                        consumable.querySelector('.quantity-input').value = saleItem.quantity;
+                    if (serviceItemEl) {
+                        if (serviceItemEl.classList.contains('consumable-item')) {
+                            serviceItemEl.querySelector('.quantity-input').value = saleItem.quantity;
+                        } else {
+                            serviceItemEl.querySelector('.service-checkbox').checked = true;
+                            if (saleItem.name.includes('(Compra de Pacote 1/3)')) {
+                                const packageCheckbox = serviceItemEl.querySelector('.package-checkbox');
+                                if (packageCheckbox) packageCheckbox.checked = true;
+                            }
+                        }
+                    }
+                    const extraCheckbox = document.getElementById(saleItem.id);
+                    if(extraCheckbox && !extraCheckbox.classList.contains('service-checkbox')) {
+                        extraCheckbox.checked = true;
                     }
                 });
 
@@ -775,15 +785,14 @@
                 }
                 const saleData = saleDoc.data();
 
-                // Reverte o pacote, se houver
                 if (saleData.clientId && saleData.items) {
                     const reversalPayload = {};
                     saleData.items.forEach(item => {
-                        if (item.name.includes('(Pacote x3)')) {
-                            const baseName = item.name.replace(' (Pacote x3)', '');
+                        if (item.name.includes('(Compra de Pacote 1/3)')) {
+                            const baseName = item.name.split(' (')[0];
                             reversalPayload[`packages.${baseName}`] = increment(-2);
-                        } else if (item.name.includes('(Pacote)')) {
-                            const baseName = item.name.replace(' (Pacote)', '');
+                        } else if (item.name.includes('(Uso de Pacote')) {
+                            const baseName = item.name.split(' (')[0];
                             reversalPayload[`packages.${baseName}`] = increment(1);
                         }
                     });
