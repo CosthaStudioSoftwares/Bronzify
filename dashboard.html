@@ -12,6 +12,7 @@
     <!-- Bibliotecas para Gráfico e PDF -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #FFF9F9; }
         h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
@@ -247,14 +248,10 @@
                 adminPasswordModal.classList.add('hidden');
                 updateUIVisibility();
             } catch (error) {
-                // *** CORREÇÃO APLICADA AQUI ***
-                // Só mostra o erro genérico se o modo ADM não foi ativado com sucesso.
                 if (!isAdminModeActive) {
                     console.error("Erro ao verificar/definir senha de ADM:", error);
                     alert("Ocorreu um erro. Tente novamente.");
                 } else {
-                    // Se o modo ADM foi ativado, o erro é secundário.
-                    // Apenas registramos no console para depuração, sem alertar o usuário.
                     console.warn("Um erro não crítico ocorreu após a ativação do modo ADM:", error);
                 }
             }
@@ -345,40 +342,52 @@
                 alert("Ative o Modo ADM para baixar o relatório.");
                 return;
             }
-            const { jsPDF } = window.jspdf;
             const pdf = new jsPDF();
             const periodText = monthSelect.options[monthSelect.selectedIndex].text + " de " + yearSelect.value;
-            let y = 22;
 
+            // Título e subtítulo
             pdf.setFontSize(18);
-            pdf.text("Relatório de Faturamento - Bronzify", 14, y);
-            y += 10;
-            pdf.setFontSize(12);
-            pdf.text(`Período: ${periodText}`, 14, y);
-            y += 15;
-
-            pdf.setFontSize(14);
-            pdf.text("Resumo Financeiro", 14, y);
-            y += 8;
+            pdf.text("Relatório de Faturamento - Bronzify", 14, 22);
             pdf.setFontSize(11);
-            pdf.text(`Faturamento do Período: ${dashboardDataCache.monthlyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, 14, y);
-            y += 7;
-            pdf.text(`Faturamento de Hoje: ${dashboardDataCache.dailyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, 14, y);
-            y += 7;
-            pdf.text(`Atendimentos Hoje: ${document.getElementById('daily-appointments').textContent}`, 14, y);
-            y += 15;
+            pdf.setTextColor(100);
+            pdf.text(`Período do Relatório: ${periodText}`, 14, 30);
 
-            pdf.setFontSize(14);
-            pdf.text("Serviços Realizados no Período", 14, y);
-            y += 8;
-            pdf.setFontSize(11);
-            for (const service in dashboardDataCache.serviceCounts) {
-                const count = dashboardDataCache.serviceCounts[service];
-                pdf.text(`- ${service}: ${count}`, 14, y);
-                y += 7;
-            }
+            // Resumo Financeiro
+            const summaryData = [
+                ["Faturamento do Período", dashboardDataCache.monthlyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })],
+                ["Faturamento de Hoje", dashboardDataCache.dailyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })],
+                ["Atendimentos Hoje", document.getElementById('daily-appointments').textContent]
+            ];
+            pdf.autoTable({
+                head: [['Resumo Financeiro', 'Valor']],
+                body: summaryData,
+                startY: 40,
+                headStyles: { fillColor: [183, 110, 121] },
+            });
 
-            pdf.save(`relatorio_bronzify_${yearSelect.value}_${monthSelect.options[monthSelect.selectedIndex].text}.pdf`);
+            // Faturamento por Pagamento
+            const paymentBody = Object.entries(dashboardDataCache.paymentMethodTotals).map(([method, total]) => {
+                return [method, total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })];
+            });
+            pdf.autoTable({
+                head: [['Faturamento Diário por Pagamento', 'Total']],
+                body: paymentBody,
+                startY: pdf.autoTable.previous.finalY + 10,
+                headStyles: { fillColor: [183, 110, 121] },
+            });
+
+            // Serviços Realizados
+            const servicesBody = Object.entries(dashboardDataCache.serviceCounts).map(([service, count]) => {
+                return [service, count];
+            });
+            pdf.autoTable({
+                head: [['Serviços Realizados no Período', 'Quantidade']],
+                body: servicesBody,
+                startY: pdf.autoTable.previous.finalY + 10,
+                headStyles: { fillColor: [183, 110, 121] },
+            });
+
+            pdf.save(`relatorio_dashboard_bronzify_${yearSelect.value}_${monthSelect.options[monthSelect.selectedIndex].text}.pdf`);
         });
         
         document.getElementById('share-btn').addEventListener('click', async () => {
