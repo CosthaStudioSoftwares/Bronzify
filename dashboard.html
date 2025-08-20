@@ -150,12 +150,10 @@
                 document.body.classList.remove('opacity-0');
                 document.getElementById('user-email').textContent = user.email;
                 
-                const resetRef = doc(db, "admin_resets", user.uid);
-                const resetSnap = await getDoc(resetRef);
-                if (resetSnap.exists() && resetSnap.data().pending) {
-                    const configRef = doc(db, "admin_passwords", user.uid);
+                const configRef = doc(db, "admin_passwords", user.uid);
+                const configSnap = await getDoc(configRef);
+                if (configSnap.exists() && configSnap.data().reset_pending) {
                     await deleteDoc(configRef);
-                    await deleteDoc(resetRef);
                     alert("Sua senha de login foi redefinida. Agora, por favor, crie uma nova senha de administrador.");
                 }
 
@@ -272,9 +270,13 @@
             }
 
             try {
-                const resetRef = doc(db, "admin_resets", user.uid);
-                await setDoc(resetRef, { pending: true });
+                // Envia o e-mail primeiro, pois é a ação que pode falhar
                 await sendPasswordResetEmail(auth, user.email);
+                
+                // Se o e-mail foi enviado com sucesso, marca o reset como pendente
+                const configRef = doc(db, "admin_passwords", user.uid);
+                await setDoc(configRef, { reset_pending: true }, { merge: true });
+                
                 alert("Enviamos um link para o seu e-mail. Siga as instruções para redefinir sua senha de login. Após entrar novamente, você será solicitado(a) a criar uma nova senha de ADM.");
                 adminPasswordModal.classList.add('hidden');
             } catch (error) {
