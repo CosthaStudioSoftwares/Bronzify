@@ -97,12 +97,85 @@
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, query, where, getDocs, Timestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // ... (Configuração do Firebase - sem alterações)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
+            authDomain: "bronzify-b2491.firebaseapp.com",
+            projectId: "bronzify-b2491",
+            storageBucket: "bronzify-b2491.appspot.com",
+            messagingSenderId: "399230151633",
+            appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
         
-        // ... (onAuthStateChanged, logout, filtros, busca de clientes - sem alterações)
+        let currentUser = null;
+        let allClients = [];
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                loadAllClients();
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = 'index.html'));
+
+        // --- LÓGICA DOS FILTROS ---
+        const monthSelect = document.getElementById('filter-month');
+        const yearSelect = document.getElementById('filter-year');
+        const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+        const currentYear = new Date().getFullYear();
+        
+        monthSelect.add(new Option("Selecione o Mês", -1));
+        months.forEach((month, index) => monthSelect.add(new Option(month, index)));
+        monthSelect.add(new Option("Ano Inteiro", 12));
+        for (let i = currentYear; i >= 2020; i--) yearSelect.add(new Option(i, i));
+
+        // --- LÓGICA DA PESQUISA ---
+        const searchBtn = document.getElementById('search-btn');
+        const searchTermInput = document.getElementById('search-term');
+        const searchResultsContainer = document.getElementById('search-results');
+        const resultsTable = document.getElementById('sales-results-table');
+
+        async function loadAllClients() {
+            if (!currentUser) return;
+            const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
+            const querySnapshot = await getDocs(clientsRef);
+            allClients = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }
+
+        searchTermInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.trim().toLowerCase();
+            if (searchTerm.length < 2) {
+                searchResultsContainer.classList.add('hidden');
+                return;
+            }
+            const filteredClients = allClients.filter(client => 
+                client.name.toLowerCase().includes(searchTerm) || 
+                (client.phone && client.phone.includes(searchTerm))
+            );
+            searchResultsContainer.innerHTML = '';
+            if (filteredClients.length > 0) {
+                filteredClients.forEach(client => {
+                    const item = document.createElement('div');
+                    item.className = 'p-3 hover:bg-gray-100 cursor-pointer';
+                    item.textContent = `${client.name} - ${client.phone}`;
+                    item.onclick = () => {
+                        searchTermInput.value = client.name;
+                        searchResultsContainer.classList.add('hidden');
+                    };
+                    searchResultsContainer.appendChild(item);
+                });
+                searchResultsContainer.classList.remove('hidden');
+            }
+        });
+        document.addEventListener('click', (e) => { if (!searchTermInput.contains(e.target)) searchResultsContainer.classList.add('hidden'); });
 
         function renderResults(sales) {
-            const resultsTable = document.getElementById('sales-results-table');
             resultsTable.innerHTML = '';
             if (sales.length === 0) {
                 resultsTable.innerHTML = '<tr><td colspan="5" class="text-center p-8 text-gray-500">Nenhuma venda encontrada para esta pesquisa.</td></tr>';
@@ -112,16 +185,13 @@
             sales.forEach(sale => {
                 const saleDate = sale.createdAt.toDate().toLocaleDateString('pt-BR');
                 const saleTime = sale.createdAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                
-                // LÓGICA ATUALIZADA PARA EXIBIR DETALHES DO PACOTE
                 const itemsList = sale.items ? sale.items.map(item => {
                     let itemName = item.name;
                     if (item.name.includes('(Pacote)')) {
-                        return `${itemName}`; // O nome já contém a informação
+                        return `${itemName}`;
                     }
                     return `${itemName} (x${item.quantity || 1})`;
                 }).join(', ') : 'N/A';
-                
                 const row = `
                     <tr class="border-b hover:bg-gray-50">
                         <td class="p-2">${saleDate}</td>
@@ -134,7 +204,54 @@
             });
         }
 
-        // ... (Restante do código JS da busca - sem alterações)
+        searchBtn.addEventListener('click', async () => {
+            if (!currentUser) return;
+            const searchTerm = searchTermInput.value.trim().toLowerCase();
+            const selectedMonth = parseInt(monthSelect.value);
+            const selectedYear = parseInt(yearSelect.value);
+
+            if (!searchTerm && selectedMonth === -1) {
+                alert("Por favor, preencha um campo de busca (cliente ou período).");
+                return;
+            }
+
+            const salesRef = collection(db, "businesses", currentUser.uid, "sales");
+            let constraints = [];
+
+            if (selectedMonth > -1) {
+                let startDate, endDate;
+                if (selectedMonth === 12) { // Ano Inteiro
+                    startDate = new Date(selectedYear, 0, 1);
+                    endDate = new Date(selectedYear, 11, 31, 23, 59, 59);
+                } else { // Mês específico
+                    startDate = new Date(selectedYear, selectedMonth, 1);
+                    endDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
+                }
+                constraints.push(where("createdAt", ">=", Timestamp.fromDate(startDate)));
+                constraints.push(where("createdAt", "<=", Timestamp.fromDate(endDate)));
+            }
+            
+            const finalQuery = query(salesRef, ...constraints);
+            
+            try {
+                const querySnapshot = await getDocs(finalQuery);
+                let sales = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                // Ordena os resultados por data no lado do cliente (mais seguro)
+                sales.sort((a, b) => b.createdAt.toDate() - a.createdAt.toDate());
+
+                // Se houver um termo de busca, filtra os resultados já obtidos do período
+                if (searchTerm) {
+                    sales = sales.filter(sale => sale.clientName.toLowerCase().includes(searchTerm));
+                }
+                
+                renderResults(sales);
+
+            } catch (error) {
+                console.error("Erro ao buscar vendas: ", error);
+                resultsTable.innerHTML = '<tr><td colspan="5" class="text-center p-8 text-red-500">Ocorreu um erro ao buscar as vendas.</td></tr>';
+            }
+        });
     </script>
 </body>
 </html>
