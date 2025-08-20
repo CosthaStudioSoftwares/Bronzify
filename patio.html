@@ -164,7 +164,9 @@
 
                     if (sale.items && Array.isArray(sale.items)) {
                         sale.items.forEach(saleItem => {
-                            const productDetails = allProducts.find(p => p.name === saleItem.name);
+                            // *** CORREÇÃO APLICADA AQUI: Procura pelo início do nome para encontrar o produto base ***
+                            const productDetails = allProducts.find(p => saleItem.name.startsWith(p.name));
+                            
                             if (productDetails) {
                                 if (productDetails.category === 'bronze') bronzeItems.push(saleItem.name);
                                 else if (productDetails.category === 'consumable') consumableItems.push(`${saleItem.name} (x${saleItem.quantity})`);
@@ -210,7 +212,7 @@
                     setTimeout(async () => {
                         await updateDoc(saleRef, { status: "finished" });
                     }, 500);
-                   
+                    
                 } catch (error) {
                     console.error("Erro ao finalizar serviço: ", error);
                     alert("Ocorreu um erro ao finalizar o serviço.");
