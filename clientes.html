@@ -37,89 +37,80 @@
         .modal-content { transition: transform 0.3s ease; }
     </style>
 </head>
-<body class="bg-gray-100">
+<body class="flex h-screen opacity-0 transition-opacity duration-300">
 
-    <div class="relative min-h-screen lg:flex">
-        <!-- Sidebar -->
-        <aside id="sidebar" class="bg-white shadow-lg fixed inset-y-0 left-0 w-64 z-30 transform -translate-x-full lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out">
-            <div class="p-6 text-center">
-                <h1 class="text-3xl text-[#B76E79]">Bronzify</h1>
-            </div>
-            <nav class="mt-6 px-4">
-                <a href="./dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a>
-                <a href="./clientes.html" class="sidebar-link active"><i data-lucide="users"></i> Clientes</a>
-                <a href="./caixa.html" class="sidebar-link"><i data-lucide="dollar-sign"></i> Caixa</a>
-                <a href="./vendas.html" class="sidebar-link"><i data-lucide="shopping-cart"></i> Vendas</a>
-                <a href="./ordem-chegada.html" class="sidebar-link"><i data-lucide="list-ordered"></i> Ordem de Chegada</a>
-                <a href="./patio.html" class="sidebar-link"><i data-lucide="sun"></i> Pátio</a>
-            </nav>
-            <div class="absolute bottom-0 w-64 p-4">
-                 <button id="logout-btn" class="w-full flex items-center justify-center gap-2 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors duration-300">
-                    <i data-lucide="log-out"></i> Sair
-                </button>
-            </div>
-        </aside>
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white shadow-lg flex-shrink-0">
+        <div class="p-6">
+            <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
+        </div>
+        <nav class="mt-6 px-4">
+            <a href="./dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+            <a href="./clientes.html" class="sidebar-link active"><i data-lucide="users"></i> Clientes</a>
+            <a href="./caixa.html" class="sidebar-link"><i data-lucide="dollar-sign"></i> Caixa</a>
+            <a href="./vendas.html" class="sidebar-link"><i data-lucide="shopping-cart"></i> Vendas</a>
+            <a href="./ordem-chegada.html" class="sidebar-link"><i data-lucide="list-ordered"></i> Ordem de Chegada</a>
+            <a href="./patio.html" class="sidebar-link"><i data-lucide="sun"></i> Pátio</a>
+        </nav>
+        <div class="absolute bottom-0 w-64 p-4">
+             <button id="logout-btn" class="w-full flex items-center justify-center gap-2 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors duration-300">
+                <i data-lucide="log-out"></i> Sair
+            </button>
+        </div>
+    </aside>
 
-        <!-- Main Content -->
-        <div class="flex-1">
-            <main class="p-4 sm:p-8">
-                <header class="flex justify-between items-center mb-8">
-                    <div class="flex items-center gap-4">
-                        <button id="menu-btn" class="lg:hidden p-2 rounded-md hover:bg-gray-200">
-                            <i data-lucide="menu"></i>
+    <!-- Main Content -->
+    <main class="flex-1 p-8 overflow-y-auto">
+        <header class="flex justify-between items-center mb-8">
+            <h2 class="text-4xl text-gray-800">Gestão de Clientes</h2>
+            <button id="add-client-btn" class="bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center gap-2">
+                <i data-lucide="user-plus"></i> Cadastrar Novo Cliente
+            </button>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Coluna Principal (Esquerda) -->
+            <div class="lg:col-span-2 space-y-8">
+                <!-- Pesquisa -->
+                <div class="bg-white p-6 rounded-2xl shadow-md">
+                    <h3 class="text-2xl text-gray-800 mb-4">Pesquisar Clientes</h3>
+                    <div class="flex flex-wrap gap-4">
+                        <div class="relative flex-grow">
+                            <input type="text" id="search-input" placeholder="Digite nome ou telefone para buscar..." class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]">
+                            <div id="search-results" class="absolute z-10 w-full bg-white border rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
+                        </div>
+                        <button id="birthday-filter-btn" class="bg-pink-100 text-[#B76E79] px-4 py-2 rounded-lg hover:bg-pink-200 flex items-center gap-2">
+                            <i data-lucide="cake"></i> Aniversariantes do Mês
                         </button>
-                        <h2 class="text-3xl sm:text-4xl text-gray-800">Gestão de Clientes</h2>
+                        <button id="package-filter-btn" class="bg-green-100 text-green-700 px-4 py-2 rounded-lg hover:bg-green-200 flex items-center gap-2">
+                            <i data-lucide="package-check"></i> Pacotes Ativos
+                        </button>
                     </div>
-                    <button id="add-client-btn" class="bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center gap-2">
-                        <i data-lucide="user-plus" class="w-4 h-4"></i> <span class="hidden sm:inline">Cadastrar Novo Cliente</span>
-                    </button>
-                </header>
+                    <p class="text-sm text-gray-500 mt-2">Clique novamente em um filtro para limpar e ver todos os clientes.</p>
+                </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <!-- Coluna Principal (Esquerda) -->
-                    <div class="lg:col-span-2 space-y-8">
-                        <!-- Pesquisa -->
-                        <div class="bg-white p-6 rounded-2xl shadow-md">
-                            <h3 class="text-2xl text-gray-800 mb-4">Pesquisar Clientes</h3>
-                            <div class="flex flex-col sm:flex-row flex-wrap gap-4">
-                                <div class="relative flex-grow">
-                                    <input type="text" id="search-input" placeholder="Digite nome ou telefone para buscar..." class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]">
-                                    <div id="search-results" class="absolute z-10 w-full bg-white border rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
-                                </div>
-                                <button id="birthday-filter-btn" class="bg-pink-100 text-[#B76E79] px-4 py-2 rounded-lg hover:bg-pink-200 flex items-center justify-center gap-2">
-                                    <i data-lucide="cake"></i> Aniversariantes
-                                </button>
-                                <button id="package-filter-btn" class="bg-green-100 text-green-700 px-4 py-2 rounded-lg hover:bg-green-200 flex items-center justify-center gap-2">
-                                    <i data-lucide="package-check"></i> Pacotes Ativos
-                                </button>
-                            </div>
-                            <p class="text-sm text-gray-500 mt-2">Clique novamente em um filtro para limpar e ver todos os clientes.</p>
-                        </div>
-
-                        <!-- Lista de Clientes -->
-                        <div class="bg-white p-6 rounded-2xl shadow-md">
-                            <h3 class="text-2xl text-gray-800 mb-4">Lista de Clientes</h3>
-                            <div id="clients-list" class="space-y-4">
-                                <p class="text-gray-500">Nenhum cliente cadastrado.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Coluna Lateral (Direita) -->
-                    <div class="lg:col-span-1">
-                        <div class="bg-white p-6 rounded-2xl shadow-md">
-                            <h3 class="text-2xl text-gray-800 mb-4">Sorteio de Clientes</h3>
-                            <label for="raffle-months" class="block text-gray-600 mb-2">Selecione os meses:</label>
-                            <select id="raffle-months" multiple class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79] h-32"></select>
-                            <button id="raffle-btn" class="w-full mt-4 bg-gradient-to-r from-pink-400 to-rose-400 text-white py-2 rounded-lg hover:opacity-90">
-                                Sortear Cliente
-                            </button>
-                        </div>
+                <!-- Lista de Clientes -->
+                <div class="bg-white p-6 rounded-2xl shadow-md">
+                    <h3 class="text-2xl text-gray-800 mb-4">Lista de Clientes</h3>
+                    <div id="clients-list" class="space-y-4">
+                        <p class="text-gray-500">Nenhum cliente cadastrado.</p>
                     </div>
                 </div>
-            </main>
+            </div>
+
+            <!-- Coluna Lateral (Direita) -->
+            <div class="lg:col-span-1">
+                <div class="bg-white p-6 rounded-2xl shadow-md">
+                    <h3 class="text-2xl text-gray-800 mb-4">Sorteio de Clientes</h3>
+                    <label for="raffle-months" class="block text-gray-600 mb-2">Selecione os meses:</label>
+                    <select id="raffle-months" multiple class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79] h-32"></select>
+                    <button id="raffle-btn" class="w-full mt-4 bg-gradient-to-r from-pink-400 to-rose-400 text-white py-2 rounded-lg hover:opacity-90">
+                        Sortear Cliente
+                    </button>
+                </div>
+            </div>
         </div>
-    </div>
+    </main>
     
     <!-- Modal de Cadastro/Edição de Cliente -->
     <div id="client-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
@@ -181,14 +172,355 @@
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, getDocs, doc, updateDoc, deleteDoc, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // ... (Todo o código JavaScript anterior permanece aqui, sem alterações na funcionalidade)
-        
-        // --- LÓGICA DO MENU RESPONSIVO ---
-        const sidebar = document.getElementById('sidebar');
-        const menuBtn = document.getElementById('menu-btn');
+        const firebaseConfig = {
+            apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
+            authDomain: "bronzify-b2491.firebaseapp.com",
+            projectId: "bronzify-b2491",
+            storageBucket: "bronzify-b2491.appspot.com",
+            messagingSenderId: "399230151633",
+            appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
+        };
 
-        menuBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('-translate-x-full');
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        const clientsListEl = document.getElementById('clients-list');
+        let allClientsData = []; 
+        let isBirthdayFilterActive = false;
+        let isPackageFilterActive = false;
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                document.body.classList.remove('opacity-0');
+                loadPageData(); 
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = 'index.html'));
+
+        function renderClients(clientsToRender) {
+            clientsListEl.innerHTML = '';
+            if (clientsToRender.length === 0) {
+                clientsListEl.innerHTML = '<p class="text-gray-500">Nenhum cliente encontrado.</p>';
+                return;
+            }
+            const currentMonth = new Date().getMonth() + 1;
+            clientsToRender.forEach(client => {
+                const clientBirthMonth = client.birthdate ? new Date(client.birthdate + 'T00:00:00').getMonth() + 1 : 0;
+                const isBirthdayMonth = clientBirthMonth === currentMonth;
+                const birthDateFormatted = client.birthdate ? new Date(client.birthdate + 'T00:00:00').toLocaleDateString('pt-BR') : 'Não informada';
+                
+                let packageInfoHtml = '';
+                if (client.packages) {
+                    const activePackages = Object.entries(client.packages).filter(([name, count]) => count > 0);
+                    if (activePackages.length > 0) {
+                        const packageBadges = activePackages.map(([name, count]) => 
+                            `<span class="text-xs bg-green-100 text-green-800 font-medium mr-2 px-2.5 py-0.5 rounded-full">${name}: ${count}</span>`
+                        ).join('');
+                        packageInfoHtml = `<div class="mt-2 flex flex-wrap gap-1">${packageBadges}</div>`;
+                    }
+                }
+
+                const clientElement = document.createElement('div');
+                clientElement.className = 'client-item flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+                clientElement.innerHTML = `
+                    <div>
+                        <div class="flex items-center gap-3">
+                            ${isBirthdayMonth ? '<i data-lucide="cake" class="text-pink-500"></i>' : ''}
+                            <div>
+                                <p class="font-semibold text-gray-700">${client.name}</p>
+                                <p class="text-sm text-gray-500">${client.phone}</p>
+                                <p class="text-xs text-gray-400">Nasc: ${birthDateFormatted}</p>
+                            </div>
+                        </div>
+                        ${packageInfoHtml}
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button class="edit-btn p-2 text-gray-500 hover:text-blue-600" data-id="${client.id}" title="Editar Cliente"><i data-lucide="file-pen-line" class="pointer-events-none"></i></button>
+                        <button class="delete-btn p-2 text-gray-500 hover:text-red-600" data-id="${client.id}" data-name="${client.name}" title="Excluir Cliente"><i data-lucide="trash-2" class="pointer-events-none"></i></button>
+                    </div>`;
+                clientsListEl.appendChild(clientElement);
+            });
+            lucide.createIcons();
+        }
+
+        async function loadAllClients() {
+            if (!currentUser) return;
+            const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
+            const q = query(clientsRef);
+            try {
+                const querySnapshot = await getDocs(q);
+                allClientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                // ALTERAÇÃO: Ordena por nome em ordem alfabética
+                allClientsData.sort((a, b) => a.name.localeCompare(b.name));
+
+                renderClients(allClientsData);
+            } catch (error) {
+                console.error("Erro ao carregar clientes: ", error);
+                clientsListEl.innerHTML = '<p class="text-red-500">Erro ao carregar a lista de clientes.</p>';
+            }
+        }
+
+        function loadPageData() {
+            loadAllClients();
+        }
+
+        // --- LÓGICA DE PESQUISA E FILTROS ---
+        const searchInput = document.getElementById('search-input');
+        const searchResultsContainer = document.getElementById('search-results');
+        searchInput.addEventListener('input', () => {
+            const searchTerm = searchInput.value.toLowerCase();
+            if (searchTerm.length < 2) {
+                searchResultsContainer.classList.add('hidden');
+                renderClients(allClientsData);
+                return;
+            }
+            const filteredClients = allClientsData.filter(client => 
+                client.name.toLowerCase().includes(searchTerm) || 
+                client.phone.includes(searchTerm)
+            );
+            
+            searchResultsContainer.innerHTML = '';
+            if (filteredClients.length > 0) {
+                filteredClients.forEach(client => {
+                    const item = document.createElement('div');
+                    item.className = 'p-3 hover:bg-gray-100 cursor-pointer';
+                    item.textContent = `${client.name} - ${client.phone}`;
+                    item.onclick = () => {
+                        searchInput.value = client.name;
+                        searchResultsContainer.classList.add('hidden');
+                        renderClients([client]);
+                    };
+                    searchResultsContainer.appendChild(item);
+                });
+                searchResultsContainer.classList.remove('hidden');
+            }
+        });
+        document.addEventListener('click', (e) => { if (!searchInput.contains(e.target)) searchResultsContainer.classList.add('hidden'); });
+
+        document.getElementById('birthday-filter-btn').addEventListener('click', () => {
+            isPackageFilterActive = false;
+            isBirthdayFilterActive = !isBirthdayFilterActive;
+            searchInput.value = '';
+            applyFilters();
+        });
+
+        document.getElementById('package-filter-btn').addEventListener('click', () => {
+            isBirthdayFilterActive = false;
+            isPackageFilterActive = !isPackageFilterActive;
+            searchInput.value = '';
+            applyFilters();
+        });
+
+        function applyFilters() {
+            if (isBirthdayFilterActive) {
+                const currentMonth = new Date().getMonth() + 1;
+                const birthdayClients = allClientsData.filter(client => {
+                    if (!client.birthdate) return false;
+                    const birthMonth = new Date(client.birthdate + 'T00:00:00').getMonth() + 1;
+                    return birthMonth === currentMonth;
+                });
+                renderClients(birthdayClients);
+            } else if (isPackageFilterActive) {
+                const packageClients = allClientsData.filter(client => {
+                    if (!client.packages) return false;
+                    return Object.values(client.packages).some(count => count > 0);
+                });
+                renderClients(packageClients);
+            } else {
+                renderClients(allClientsData);
+            }
+        }
+
+        // --- LÓGICA DO MODAL (ADD/EDIT/DELETE) ---
+        const modal = document.getElementById('client-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const clientForm = document.getElementById('client-form');
+        const clientIdField = document.getElementById('client-id');
+        const clientNameField = document.getElementById('client-name');
+        const clientPhoneField = document.getElementById('client-phone');
+        const clientBirthdateField = document.getElementById('client-birthdate');
+        const deleteModal = document.getElementById('delete-confirm-modal');
+        let clientIdToDelete = null;
+
+        // ALTERAÇÃO: Adiciona a máscara de telefone
+        clientPhoneField.addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, '');
+            value = value.substring(0, 11);
+            let formattedValue = '';
+
+            if (value.length > 0) {
+                formattedValue = '(' + value.substring(0, 2);
+            }
+            if (value.length > 2) {
+                formattedValue += ') ' + value.substring(2, 3);
+            }
+            if (value.length > 3) {
+                formattedValue += ' ' + value.substring(3, 7);
+            }
+            if (value.length > 7) {
+                formattedValue += '-' + value.substring(7, 11);
+            }
+            e.target.value = formattedValue;
+        });
+
+        const openModalForNew = () => {
+            modalTitle.textContent = 'Cadastrar Nova Cliente';
+            clientForm.reset();
+            clientIdField.value = '';
+            modal.classList.remove('hidden');
+        };
+
+        const openModalForEdit = (client) => {
+            modalTitle.textContent = 'Editar Cliente';
+            clientForm.reset();
+            clientIdField.value = client.id;
+            clientNameField.value = client.name;
+            clientPhoneField.value = client.phone;
+            clientBirthdateField.value = client.birthdate;
+            modal.classList.remove('hidden');
+        };
+
+        document.getElementById('add-client-btn').addEventListener('click', openModalForNew);
+        document.getElementById('cancel-btn').addEventListener('click', () => modal.classList.add('hidden'));
+        
+        clientsListEl.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.edit-btn');
+            const deleteBtn = e.target.closest('.delete-btn');
+            if (editBtn) {
+                const clientId = editBtn.dataset.id;
+                const clientToEdit = allClientsData.find(c => c.id === clientId);
+                if (clientToEdit) openModalForEdit(clientToEdit);
+            }
+            if (deleteBtn) {
+                clientIdToDelete = deleteBtn.dataset.id;
+                document.getElementById('delete-modal-text').textContent = `Você tem certeza que deseja excluir "${deleteBtn.dataset.name}"?`;
+                deleteModal.classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('cancel-delete-btn').addEventListener('click', () => deleteModal.classList.add('hidden'));
+        document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
+            if (!clientIdToDelete || !currentUser) return;
+            const clientRef = doc(db, "businesses", currentUser.uid, "clients", clientIdToDelete);
+            try {
+                await deleteDoc(clientRef);
+                alert("Cliente excluído com sucesso!");
+                deleteModal.classList.add('hidden');
+                loadAllClients();
+            } catch (error) {
+                console.error("Erro ao excluir cliente:", error);
+                alert("Erro ao excluir cliente.");
+            }
+        });
+
+        clientForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentUser) return;
+
+            const clientId = clientIdField.value;
+            const clientData = {
+                name: clientNameField.value,
+                phone: clientPhoneField.value,
+                birthdate: clientBirthdateField.value,
+            };
+
+            const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
+
+            try {
+                if (clientId) {
+                    const clientRef = doc(clientsRef, clientId);
+                    await updateDoc(clientRef, clientData);
+                    alert("Cliente atualizado com sucesso!");
+                } else {
+                    // ALTERAÇÃO: Verifica se o telefone já existe antes de cadastrar
+                    const q = query(clientsRef, where("phone", "==", clientData.phone));
+                    const querySnapshot = await getDocs(q);
+                    if (!querySnapshot.empty) {
+                        alert("Erro: Já existe um cliente cadastrado com este número de telefone.");
+                        return;
+                    }
+                    
+                    clientData.createdAt = new Date();
+                    await addDoc(clientsRef, clientData);
+                    alert("Cliente cadastrado com sucesso!");
+                }
+                modal.classList.add('hidden');
+                loadAllClients();
+            } catch (error) {
+                console.error("Erro ao salvar cliente: ", error);
+                alert("Erro ao salvar cliente.");
+            }
+        });
+
+        // --- LÓGICA DO SORTEIO ---
+        const raffleMonthsSelect = document.getElementById('raffle-months');
+        const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+        months.forEach((month, index) => {
+            raffleMonthsSelect.add(new Option(month, index));
+        });
+
+        const winnerModal = document.getElementById('winner-modal');
+        document.getElementById('close-winner-modal').addEventListener('click', () => winnerModal.classList.add('hidden'));
+
+        document.getElementById('raffle-btn').addEventListener('click', async () => {
+            if (!currentUser) return;
+            const selectedMonths = Array.from(raffleMonthsSelect.selectedOptions).map(opt => parseInt(opt.value));
+            if (selectedMonths.length === 0) {
+                alert("Por favor, selecione pelo menos um mês para o sorteio.");
+                return;
+            }
+
+            const currentYear = new Date().getFullYear();
+            const salesInPeriod = [];
+
+            try {
+                const yearStart = new Date(currentYear, 0, 1);
+                const yearEnd = new Date(currentYear, 11, 31, 23, 59, 59);
+                
+                const salesRef = collection(db, "businesses", currentUser.uid, "sales");
+                const q = query(salesRef, 
+                    where("createdAt", ">=", Timestamp.fromDate(yearStart)),
+                    where("createdAt", "<=", Timestamp.fromDate(yearEnd))
+                );
+                
+                const querySnapshot = await getDocs(q);
+                querySnapshot.forEach(doc => {
+                    const sale = doc.data();
+                    const saleMonth = sale.createdAt.toDate().getMonth();
+                    if (selectedMonths.includes(saleMonth) && sale.clientId) {
+                        salesInPeriod.push(sale);
+                    }
+                });
+
+                if (salesInPeriod.length === 0) {
+                    alert("Nenhum cliente elegível encontrado para os meses selecionados.");
+                    return;
+                }
+
+                const winningSale = salesInPeriod[Math.floor(Math.random() * salesInPeriod.length)];
+                const winnerInfo = allClientsData.find(c => c.id === winningSale.clientId);
+
+                if (winnerInfo) {
+                    document.getElementById('winner-name').textContent = winnerInfo.name;
+                    document.getElementById('winner-phone').textContent = winnerInfo.phone;
+                    document.getElementById('winner-date').textContent = `Compra em: ${winningSale.createdAt.toDate().toLocaleDateString('pt-BR')}`;
+                    winnerModal.classList.remove('hidden');
+                    lucide.createIcons();
+                } else {
+                    alert("Cliente sorteado não encontrado no cadastro.");
+                }
+
+            } catch (error) {
+                console.error("Erro ao realizar sorteio: ", error);
+                alert("Ocorreu um erro ao buscar os dados para o sorteio.");
+            }
         });
     </script>
 </body>
