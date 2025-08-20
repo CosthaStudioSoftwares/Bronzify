@@ -578,21 +578,56 @@
             };
 
             try {
-                const password = await getNextPassword();
-                salePayload.password = password;
-                const salesRef = collection(db, "businesses", currentUser.uid, "sales");
-                await addDoc(salesRef, salePayload);
+                if (editingSaleId) {
+                    // Lógica de ATUALIZAÇÃO de venda
+                    const saleRef = doc(db, "businesses", currentUser.uid, "sales", editingSaleId);
+                    const originalSaleDoc = await getDoc(saleRef);
+                    const originalSaleData = originalSaleDoc.data();
 
-                if (selectedClient && Object.keys(packageUpdatePayload).length > 0) {
-                    const clientRef = doc(db, "businesses", currentUser.uid, "clients", selectedClient.id);
-                    await updateDoc(clientRef, packageUpdatePayload);
-                    await loadAllClients();
+                    // Reverte o pacote da venda original
+                    const reversalPayload = {};
+                    if (originalSaleData.clientId && originalSaleData.items) {
+                        originalSaleData.items.forEach(item => {
+                            if (item.name.includes('(Pacote x3)')) {
+                                const baseName = item.name.replace(' (Pacote x3)', '');
+                                reversalPayload[`packages.${baseName}`] = increment(-2);
+                            } else if (item.name.includes('(Pacote)')) {
+                                const baseName = item.name.replace(' (Pacote)', '');
+                                reversalPayload[`packages.${baseName}`] = increment(1);
+                            }
+                        });
+                        if (Object.keys(reversalPayload).length > 0) {
+                            const clientRef = doc(db, "businesses", currentUser.uid, "clients", originalSaleData.clientId);
+                            await updateDoc(clientRef, reversalPayload);
+                        }
+                    }
+                    
+                    // Aplica o novo pacote e atualiza a venda
+                    if (selectedClient && Object.keys(packageUpdatePayload).length > 0) {
+                        const clientRef = doc(db, "businesses", currentUser.uid, "clients", selectedClient.id);
+                        await updateDoc(clientRef, packageUpdatePayload);
+                    }
+                    await updateDoc(saleRef, salePayload);
+                    alert('Venda atualizada com sucesso!');
+
+                } else {
+                    // Lógica de CRIAÇÃO de nova venda
+                    const password = await getNextPassword();
+                    salePayload.password = password;
+                    const salesRef = collection(db, "businesses", currentUser.uid, "sales");
+                    await addDoc(salesRef, salePayload);
+
+                    if (selectedClient && Object.keys(packageUpdatePayload).length > 0) {
+                        const clientRef = doc(db, "businesses", currentUser.uid, "clients", selectedClient.id);
+                        await updateDoc(clientRef, packageUpdatePayload);
+                    }
+
+                    document.getElementById('generated-password').textContent = password;
+                    document.getElementById('password-display').classList.remove('hidden');
+                    alert(`Venda salva! Senha do cliente: ${password}`);
                 }
 
-                document.getElementById('generated-password').textContent = password;
-                document.getElementById('password-display').classList.remove('hidden');
-                alert(`Venda salva! Senha do cliente: ${password}`);
-                
+                await loadAllClients();
                 loadDailySales();
                 resetSaleForm();
 
@@ -733,8 +768,34 @@
             if (!confirm('Tem certeza que deseja excluir esta venda?')) return;
             try {
                 const saleRef = doc(db, "businesses", currentUser.uid, "sales", id);
+                const saleDoc = await getDoc(saleRef);
+                if (!saleDoc.exists()) {
+                    alert("Venda não encontrada para excluir.");
+                    return;
+                }
+                const saleData = saleDoc.data();
+
+                // Reverte o pacote, se houver
+                if (saleData.clientId && saleData.items) {
+                    const reversalPayload = {};
+                    saleData.items.forEach(item => {
+                        if (item.name.includes('(Pacote x3)')) {
+                            const baseName = item.name.replace(' (Pacote x3)', '');
+                            reversalPayload[`packages.${baseName}`] = increment(-2);
+                        } else if (item.name.includes('(Pacote)')) {
+                            const baseName = item.name.replace(' (Pacote)', '');
+                            reversalPayload[`packages.${baseName}`] = increment(1);
+                        }
+                    });
+                    if (Object.keys(reversalPayload).length > 0) {
+                        const clientRef = doc(db, "businesses", currentUser.uid, "clients", saleData.clientId);
+                        await updateDoc(clientRef, reversalPayload);
+                    }
+                }
+
                 await deleteDoc(saleRef);
                 alert('Venda excluída com sucesso!');
+                await loadAllClients();
                 loadDailySales();
             } catch (error) {
                 console.error("Erro ao excluir venda:", error);
