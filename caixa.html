@@ -522,7 +522,7 @@
             const totalValue = totalString ? parseInt(totalString, 10) / 100 : 0;
             
             const saleItems = [];
-            const packageUpdates = {};
+            const packageUpdatePayload = {};
 
             document.querySelectorAll('#bronze-services .service-item').forEach(itemEl => {
                 const checkbox = itemEl.querySelector('.service-checkbox');
@@ -534,12 +534,12 @@
                 
                 if (remainingSessions > 0) {
                     saleItems.push({ name: `${itemName} (Pacote)`, price: 0, quantity: 1 });
-                    packageUpdates[itemName] = increment(-1);
+                    packageUpdatePayload[`packages.${itemName}`] = increment(-1);
                 } else {
                     const isPackagePurchase = itemEl.querySelector('.package-checkbox').checked;
                     if (isPackagePurchase) {
                         saleItems.push({ name: `${itemName} (Pacote x3)`, price: price * 3, quantity: 1 });
-                        if(selectedClient) packageUpdates[itemName] = increment(2);
+                        if(selectedClient) packageUpdatePayload[`packages.${itemName}`] = increment(2);
                     } else {
                         saleItems.push({ name: itemName, price: price, quantity: 1 });
                     }
@@ -583,9 +583,9 @@
                 const salesRef = collection(db, "businesses", currentUser.uid, "sales");
                 await addDoc(salesRef, salePayload);
 
-                if (selectedClient && Object.keys(packageUpdates).length > 0) {
+                if (selectedClient && Object.keys(packageUpdatePayload).length > 0) {
                     const clientRef = doc(db, "businesses", currentUser.uid, "clients", selectedClient.id);
-                    await updateDoc(clientRef, { packages: packageUpdates });
+                    await updateDoc(clientRef, packageUpdatePayload);
                     await loadAllClients();
                 }
 
@@ -677,7 +677,6 @@
             lucide.createIcons();
         }
 
-        // *** CORREÇÃO APLICADA AQUI: Adicionadas as funções e o event listener para as ações da tabela de vendas ***
         const dailySalesTable = document.getElementById('daily-sales-table');
         dailySalesTable.addEventListener('click', (e) => {
             const editBtn = e.target.closest('.edit-sale-btn');
