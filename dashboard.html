@@ -126,7 +126,7 @@
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, query, where, getDocs, Timestamp, doc, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -145,10 +145,21 @@
         let isAdminModeActive = false;
         let dashboardDataCache = null;
 
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
                 document.body.classList.remove('opacity-0');
                 document.getElementById('user-email').textContent = user.email;
+                
+                // Verifica se há um reset de senha ADM pendente
+                const resetRef = doc(db, "admin_resets", user.uid);
+                const resetSnap = await getDoc(resetRef);
+                if (resetSnap.exists() && resetSnap.data().pending) {
+                    const configRef = doc(db, "admin_passwords", user.uid);
+                    await deleteDoc(configRef);
+                    await deleteDoc(resetRef);
+                    alert("Sua senha de login foi redefinida. Agora, por favor, crie uma nova senha de administrador.");
+                }
+
                 checkAdminPasswordSetup(user);
                 fetchDashboardData();
             } else { window.location.href = 'index.html'; }
@@ -156,7 +167,7 @@
 
         document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = 'index.html'));
 
-        // --- LÓGICA DO MODO ADMINISTRADOR (COM RECUPERAÇÃO) ---
+        // --- LÓGICA DO MODO ADMINISTRADOR (COM RECUPERAÇÃO POR E-MAIL) ---
         const adminModeBtn = document.getElementById('admin-mode-btn');
         const adminPasswordModal = document.getElementById('admin-password-modal');
         const adminPasswordForm = document.getElementById('admin-password-form');
@@ -171,7 +182,7 @@
                 const configSnap = await getDoc(configRef);
                 if (!configSnap.exists()) {
                     adminModalTitle.textContent = 'Bem-vindo(a)!';
-                    adminModalSubtitle.textContent = 'Este parece ser seu primeiro acesso. Por favor, crie uma senha de administrador para proteger seus dados financeiros.';
+                    adminModalSubtitle.textContent = 'Este parece ser seu primeiro acesso ou sua senha foi redefinida. Por favor, crie uma nova senha de administrador.';
                     document.getElementById('cancel-admin-password').classList.add('hidden');
                     forgotAdminPasswordLink.classList.add('hidden');
                     adminPasswordModal.classList.remove('hidden');
@@ -246,22 +257,35 @@
             } else {
                 adminModalTitle.textContent = 'Modo Administrador';
                 adminModalSubtitle.textContent = 'Insira a sua senha de administrador.';
-                adminPasswordForm.dataset.purpose = 'verify';
-                adminPasswordInput.placeholder = '';
                 document.getElementById('cancel-admin-password').classList.remove('hidden');
                 forgotAdminPasswordLink.classList.remove('hidden');
                 adminPasswordModal.classList.remove('hidden');
             }
         });
 
-        forgotAdminPasswordLink.addEventListener('click', (e) => {
+        forgotAdminPasswordLink.addEventListener('click', async (e) => {
             e.preventDefault();
-            adminModalTitle.textContent = 'Recuperar Senha de ADM';
-            adminModalSubtitle.textContent = 'Para continuar, digite a senha de login da sua conta principal.';
-            adminPasswordForm.dataset.purpose = 'reauth';
-            adminPasswordInput.value = '';
-            adminPasswordInput.placeholder = 'Senha da conta principal';
-            forgotAdminPasswordLink.classList.add('hidden');
+            const user = auth.currentUser;
+            if (!user) return;
+
+            if (!confirm("Isso enviará um link para o seu e-mail para redefinir sua senha de LOGIN PRINCIPAL. Após redefinir e entrar novamente, sua senha de ADM será apagada e você poderá criar uma nova. Deseja continuar?")) {
+                return;
+            }
+
+            try {
+                // Marca que um reset está pendente
+                const resetRef = doc(db, "admin_resets", user.uid);
+                await setDoc(resetRef, { pending: true });
+                
+                // Envia o e-mail de redefinição da senha principal
+                await sendPasswordResetEmail(auth, user.email);
+                
+                alert("Enviamos um link para o seu e-mail. Siga as instruções para redefinir sua senha de login. Após entrar novamente, você será solicitado(a) a criar uma nova senha de ADM.");
+                adminPasswordModal.classList.add('hidden');
+            } catch (error) {
+                console.error("Erro ao enviar e-mail de redefinição:", error);
+                alert("Ocorreu um erro ao tentar enviar o e-mail. Tente novamente.");
+            }
         });
 
         document.getElementById('cancel-admin-password').addEventListener('click', () => adminPasswordModal.classList.add('hidden'));
@@ -272,26 +296,8 @@
             if (!user) return;
 
             const password = adminPasswordInput.value;
-            const purpose = adminPasswordForm.dataset.purpose || 'verify';
-
-            if (purpose === 'reauth') {
-                const credential = EmailAuthProvider.credential(user.email, password);
-                try {
-                    await reauthenticateWithCredential(user, credential);
-                    const configRef = doc(db, "admin_passwords", user.uid);
-                    await deleteDoc(configRef);
-                    alert("Identidade confirmada! A senha de administrador foi removida. Por favor, crie uma nova.");
-                    adminPasswordForm.reset();
-                    adminPasswordModal.classList.add('hidden');
-                    checkAdminPasswordSetup(user);
-                } catch (error) {
-                    console.error("Erro de reautenticação:", error);
-                    alert("Senha da conta principal incorreta. Tente novamente.");
-                }
-                return;
-            }
-
             const configRef = doc(db, "admin_passwords", user.uid);
+            
             try {
                 const configSnap = await getDoc(configRef);
                 if (!configSnap.exists()) {
