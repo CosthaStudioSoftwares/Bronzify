@@ -68,6 +68,10 @@
     <main class="flex-1 p-8 overflow-y-auto">
         <header class="flex justify-between items-center mb-8">
             <h2 class="text-4xl text-gray-800">Pátio</h2>
+            <!-- BOTÃO DE AJUDA ADICIONADO -->
+            <button id="help-btn" class="bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 flex items-center gap-2">
+                <i data-lucide="bell-ring"></i> Pedir Ajuda
+            </button>
         </header>
 
         <div id="patio-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -87,7 +91,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, query, where, onSnapshot, orderBy, doc, updateDoc, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, query, where, onSnapshot, orderBy, doc, updateDoc, getDocs, Timestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
@@ -115,6 +119,22 @@
         });
 
         document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = './index.html'));
+
+        // --- LÓGICA DO BOTÃO DE AJUDA ---
+        document.getElementById('help-btn').addEventListener('click', async () => {
+            if (!currentUser) return;
+            try {
+                const helpRequestsRef = collection(db, "businesses", currentUser.uid, "help_requests");
+                await addDoc(helpRequestsRef, {
+                    page: "Pátio",
+                    createdAt: Timestamp.now()
+                });
+                alert("Pedido de ajuda enviado para o Dashboard!");
+            } catch (error) {
+                console.error("Erro ao enviar pedido de ajuda:", error);
+                alert("Não foi possível enviar o pedido de ajuda.");
+            }
+        });
 
         async function loadProductsAndListenForClients() {
             if (!currentUser) return;
@@ -171,9 +191,6 @@
                                 else if (productDetails.category === 'consumable') consumableItems.push(`${saleItem.name} (x${saleItem.quantity})`);
                                 else if (productDetails.category === 'extra') extraItems.push(saleItem.name);
                             } else if (saleItem.name.includes('(Pacote')) {
-                                // *** CORREÇÃO APLICADA AQUI: Fallback para itens de pacote ***
-                                // Se o produto base não for encontrado, mas o nome indica que é um pacote,
-                                // adiciona-o à lista de bronze para que seja exibido.
                                 bronzeItems.push(saleItem.name);
                             }
                         });
