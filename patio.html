@@ -164,13 +164,17 @@
 
                     if (sale.items && Array.isArray(sale.items)) {
                         sale.items.forEach(saleItem => {
-                            // *** CORREÇÃO APLICADA AQUI: Procura pelo início do nome para encontrar o produto base ***
                             const productDetails = allProducts.find(p => saleItem.name.startsWith(p.name));
                             
                             if (productDetails) {
                                 if (productDetails.category === 'bronze') bronzeItems.push(saleItem.name);
                                 else if (productDetails.category === 'consumable') consumableItems.push(`${saleItem.name} (x${saleItem.quantity})`);
                                 else if (productDetails.category === 'extra') extraItems.push(saleItem.name);
+                            } else if (saleItem.name.includes('(Pacote')) {
+                                // *** CORREÇÃO APLICADA AQUI: Fallback para itens de pacote ***
+                                // Se o produto base não for encontrado, mas o nome indica que é um pacote,
+                                // adiciona-o à lista de bronze para que seja exibido.
+                                bronzeItems.push(saleItem.name);
                             }
                         });
                     }
