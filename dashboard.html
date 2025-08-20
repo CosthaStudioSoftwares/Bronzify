@@ -23,118 +23,155 @@
         .sidebar-link svg { margin-right: 0.75rem; }
         .modal-backdrop { transition: opacity 0.3s ease; }
         .modal-content { transition: transform 0.3s ease; }
+        /* Estilos para a barra lateral móvel */
+        .sidebar-mobile {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        .sidebar-mobile.open {
+            transform: translateX(0);
+        }
     </style>
 </head>
-<body class="flex h-screen opacity-0 transition-opacity duration-300">
+<body class="bg-gray-50 opacity-0 transition-opacity duration-300">
 
-    <!-- Sidebar -->
-    <aside class="w-64 bg-white shadow-lg flex-shrink-0">
-        <div class="p-6">
-            <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
-        </div>
-        <nav class="mt-6 px-4">
-            <a href="./dashboard.html" class="sidebar-link active"><i data-lucide="layout-dashboard"></i> Dashboard</a>
-            <a href="./clientes.html" class="sidebar-link"><i data-lucide="users"></i> Clientes</a>
-            <a href="./caixa.html" class="sidebar-link"><i data-lucide="dollar-sign"></i> Caixa</a>
-            <a href="./vendas.html" class="sidebar-link"><i data-lucide="shopping-cart"></i> Vendas</a>
-            <a href="./ordem-chegada.html" class="sidebar-link"><i data-lucide="list-ordered"></i> Ordem de Chegada</a>
-            <a href="./patio.html" class="sidebar-link"><i data-lucide="sun"></i> Pátio</a>
-        </nav>
-        <div class="absolute bottom-0 w-64 p-4">
-             <button id="logout-btn" class="w-full flex items-center justify-center gap-2 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors duration-300"><i data-lucide="log-out"></i> Sair</button>
-        </div>
-    </aside>
+    <div class="flex h-screen">
+        <!-- Sidebar para Desktop -->
+        <aside class="w-64 bg-white shadow-lg flex-shrink-0 hidden lg:flex flex-col">
+            <div class="p-6">
+                <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
+            </div>
+            <nav class="mt-6 px-4 flex-1">
+                <a href="./dashboard.html" class="sidebar-link active"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+                <a href="./clientes.html" class="sidebar-link"><i data-lucide="users"></i> Clientes</a>
+                <a href="./caixa.html" class="sidebar-link"><i data-lucide="dollar-sign"></i> Caixa</a>
+                <a href="./vendas.html" class="sidebar-link"><i data-lucide="shopping-cart"></i> Vendas</a>
+                <a href="./ordem-chegada.html" class="sidebar-link"><i data-lucide="list-ordered"></i> Ordem de Chegada</a>
+                <a href="./patio.html" class="sidebar-link"><i data-lucide="sun"></i> Pátio</a>
+            </nav>
+            <div class="p-4">
+                 <button id="logout-btn" class="w-full flex items-center justify-center gap-2 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors duration-300"><i data-lucide="log-out"></i> Sair</button>
+            </div>
+        </aside>
 
-    <!-- Main Content -->
-    <main class="flex-1 p-8 overflow-y-auto">
-        <header class="flex flex-wrap justify-between items-center mb-8 gap-4">
-            <h2 class="text-4xl text-gray-800">Dashboard</h2>
-            <div class="flex items-center gap-4">
-                <button id="admin-mode-btn" class="bg-rose-100 text-[#B76E79] px-4 py-2 rounded-lg hover:bg-rose-200 flex items-center gap-2 font-semibold">
-                    <i data-lucide="eye"></i>
-                    <span id="admin-mode-text">Ativar Modo ADM</span>
+        <!-- Sidebar para Mobile -->
+        <div id="mobile-sidebar" class="fixed inset-0 z-40 flex lg:hidden sidebar-mobile">
+            <aside class="w-64 bg-white shadow-lg flex-shrink-0 flex flex-col">
+                <div class="p-6 flex justify-between items-center">
+                    <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
+                    <button id="close-menu-btn" class="p-1">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+               <nav class="mt-6 px-4 flex-1">
+                    <a href="./dashboard.html" class="sidebar-link active"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+                    <a href="./clientes.html" class="sidebar-link"><i data-lucide="users"></i> Clientes</a>
+                    <a href="./caixa.html" class="sidebar-link"><i data-lucide="dollar-sign"></i> Caixa</a>
+                    <a href="./vendas.html" class="sidebar-link"><i data-lucide="shopping-cart"></i> Vendas</a>
+                    <a href="./ordem-chegada.html" class="sidebar-link"><i data-lucide="list-ordered"></i> Ordem de Chegada</a>
+                    <a href="./patio.html" class="sidebar-link"><i data-lucide="sun"></i> Pátio</a>
+                </nav>
+                <div class="p-4">
+                     <button id="logout-btn-mobile" class="w-full flex items-center justify-center gap-2 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors duration-300">
+                        <i data-lucide="log-out"></i> Sair
+                    </button>
+                </div>
+            </aside>
+            <div id="mobile-sidebar-overlay" class="flex-1 bg-black bg-opacity-50"></div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
+            <header class="flex justify-between items-center mb-8">
+                 <button id="open-menu-btn" class="lg:hidden p-2 -ml-2">
+                    <i data-lucide="menu" class="w-6 h-6 text-gray-800"></i>
                 </button>
-                <span id="user-email" class="text-gray-600">carregando...</span>
-                <img src="https://placehold.co/40x40/FADADD/B76E79?text=B" alt="Avatar" class="rounded-full">
-            </div>
-        </header>
+                <h2 class="text-3xl lg:text-4xl text-gray-800">Dashboard</h2>
+                <div class="flex items-center gap-2 sm:gap-4">
+                    <button id="admin-mode-btn" class="bg-rose-100 text-[#B76E79] px-3 py-2 rounded-lg hover:bg-rose-200 flex items-center gap-2 font-semibold">
+                        <i data-lucide="eye"></i>
+                        <span id="admin-mode-text" class="hidden sm:inline">Ativar Modo ADM</span>
+                    </button>
+                    <img src="https://placehold.co/40x40/FADADD/B76E79?text=B" alt="Avatar" class="rounded-full">
+                </div>
+            </header>
 
-        <!-- Filtros e Ações -->
-        <div class="bg-white p-4 rounded-2xl shadow-md mb-8 flex flex-wrap items-center justify-between gap-4">
-            <div class="flex items-center gap-3">
-                 <h3 class="text-lg font-semibold text-gray-700">Filtros:</h3>
-                 <select id="filter-month" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]"></select>
-                 <select id="filter-year" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]"></select>
-                 <button id="filter-apply" class="bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90">Aplicar</button>
+            <!-- Filtros e Ações -->
+            <div class="bg-white p-4 rounded-2xl shadow-md mb-8 flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+                     <h3 class="text-lg font-semibold text-gray-700 w-full sm:w-auto">Filtros:</h3>
+                     <select id="filter-month" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79] w-full sm:w-auto"></select>
+                     <select id="filter-year" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79] w-full sm:w-auto"></select>
+                     <button id="filter-apply" class="bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90 w-full sm:w-auto">Aplicar</button>
+                </div>
+                <div class="flex items-center gap-3 w-full sm:w-auto justify-center">
+                    <button id="share-btn" class="flex items-center gap-2 p-2 border rounded-lg text-gray-600 hover:bg-gray-100"><i data-lucide="share-2"></i> <span class="hidden sm:inline">Compartilhar</span></button>
+                    <button id="download-btn" class="flex items-center gap-2 p-2 border rounded-lg text-gray-600 hover:bg-gray-100"><i data-lucide="download"></i> <span class="hidden sm:inline">Baixar PDF</span></button>
+                </div>
             </div>
-            <div class="flex items-center gap-3">
-                <button id="share-btn" class="flex items-center gap-2 p-2 border rounded-lg text-gray-600 hover:bg-gray-100"><i data-lucide="share-2"></i> Compartilhar</button>
-                <button id="download-btn" class="flex items-center gap-2 p-2 border rounded-lg text-gray-600 hover:bg-gray-100"><i data-lucide="download"></i> Baixar PDF</button>
+            
+            <!-- Área do Relatório -->
+            <div id="report-content">
+                <!-- Cards de Métricas Principais -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-2xl shadow-md">
+                        <h3 id="revenue-title" class="text-lg font-semibold text-gray-500">Faturamento Mensal</h3>
+                        <p id="monthly-revenue" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">R$ *******</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-md">
+                        <h3 class="text-lg font-semibold text-gray-500">Faturamento Diário</h3>
+                        <p id="daily-revenue" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">R$ *******</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-md">
+                        <h3 id="appointments-title" class="text-lg font-semibold text-gray-500">Atendimentos no Dia</h3>
+                        <p id="daily-appointments" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">***</p>
+                    </div>
+                </div>
+
+                <!-- Gráficos e Detalhes -->
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md">
+                        <h3 id="payment-details-title" class="text-2xl text-gray-800 mb-4">Faturamento Diário por Pagamento</h3>
+                        <div id="payment-methods-details" class="space-y-4"><p class="text-gray-500">Dados ocultos. Ative o modo ADM.</p></div>
+                    </div>
+                    <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-md">
+                        <h3 id="services-chart-title" class="text-2xl text-gray-800 mb-4">Tipos de Bronze e Serviços (Mês)</h3>
+                        <div id="chart-container" class="h-80 flex justify-center items-center"><canvas id="servicesChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Modal de Senha ADM -->
+        <div id="admin-password-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 modal-content transform scale-95">
+                <h3 id="admin-modal-title" class="text-2xl text-gray-800 mb-4 text-center">Modo Administrador</h3>
+                <p id="admin-modal-subtitle" class="text-center text-gray-500 mb-6">Insira a senha para ver os dados.</p>
+                <form id="admin-password-form">
+                    <input type="password" id="admin-password-input" class="w-full text-center px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
+                    <button type="submit" class="w-full mt-4 bg-[#B76E79] text-white py-2 rounded-lg hover:opacity-90">Confirmar</button>
+                    <button type="button" id="cancel-admin-password" class="w-full mt-2 text-gray-600 py-2 rounded-lg hover:bg-gray-100">Cancelar</button>
+                    <p class="text-center text-sm mt-4">
+                        <a href="#" id="forgot-admin-password-link" class="text-gray-500 hover:underline">Esqueci minha senha de ADM</a>
+                    </p>
+                </form>
             </div>
         </div>
-        
-        <!-- Área do Relatório -->
-        <div id="report-content">
-            <!-- Cards de Métricas Principais -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="bg-white p-6 rounded-2xl shadow-md">
-                    <h3 id="revenue-title" class="text-lg font-semibold text-gray-500">Faturamento Mensal</h3>
-                    <p id="monthly-revenue" class="text-4xl font-bold text-[#B76E79] mt-2">R$ *******</p>
+
+        <!-- NOTIFICAÇÃO DE AJUDA -->
+        <div id="help-alert-modal" class="fixed bottom-8 right-8 bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-50 transform translate-y-full opacity-0 transition-all duration-300 ease-out">
+            <div class="flex items-start gap-4">
+                <div class="bg-amber-100 p-2 rounded-full">
+                    <i data-lucide="bell-ring" class="w-8 h-8 text-amber-500"></i>
                 </div>
-                <div class="bg-white p-6 rounded-2xl shadow-md">
-                    <h3 class="text-lg font-semibold text-gray-500">Faturamento Diário</h3>
-                    <p id="daily-revenue" class="text-4xl font-bold text-[#B76E79] mt-2">R$ *******</p>
-                </div>
-                <div class="bg-white p-6 rounded-2xl shadow-md">
-                    <h3 id="appointments-title" class="text-lg font-semibold text-gray-500">Atendimentos no Dia</h3>
-                    <p id="daily-appointments" class="text-4xl font-bold text-[#B76E79] mt-2">***</p>
+                <div>
+                    <h3 class="text-xl text-gray-800 font-semibold">Pedido de Ajuda!</h3>
+                    <p id="help-alert-message" class="text-gray-600 mt-1">Um pedido de ajuda foi enviado da página Pátio.</p>
                 </div>
             </div>
-
-            <!-- Gráficos e Detalhes -->
-            <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md">
-                    <h3 id="payment-details-title" class="text-2xl text-gray-800 mb-4">Faturamento Diário por Pagamento</h3>
-                    <div id="payment-methods-details" class="space-y-4"><p class="text-gray-500">Dados ocultos. Ative o modo ADM.</p></div>
-                </div>
-                <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-md">
-                    <h3 id="services-chart-title" class="text-2xl text-gray-800 mb-4">Tipos de Bronze e Serviços (Mês)</h3>
-                    <div id="chart-container" class="max-h-80 flex justify-center items-center"><canvas id="servicesChart"></canvas></div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- Modal de Senha ADM -->
-    <div id="admin-password-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 modal-content transform scale-95">
-            <h3 id="admin-modal-title" class="text-2xl text-gray-800 mb-4 text-center">Modo Administrador</h3>
-            <p id="admin-modal-subtitle" class="text-center text-gray-500 mb-6">Insira a senha para ver os dados.</p>
-            <form id="admin-password-form">
-                <input type="password" id="admin-password-input" class="w-full text-center px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
-                <button type="submit" class="w-full mt-4 bg-[#B76E79] text-white py-2 rounded-lg hover:opacity-90">Confirmar</button>
-                <button type="button" id="cancel-admin-password" class="w-full mt-2 text-gray-600 py-2 rounded-lg hover:bg-gray-100">Cancelar</button>
-                <p class="text-center text-sm mt-4">
-                    <a href="#" id="forgot-admin-password-link" class="text-gray-500 hover:underline">Esqueci minha senha de ADM</a>
-                </p>
-            </form>
+            <button id="close-help-alert" class="w-full mt-4 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300">OK, Entendido</button>
         </div>
     </div>
-
-    <!-- NOTIFICAÇÃO DE AJUDA -->
-    <div id="help-alert-modal" class="fixed bottom-8 right-8 bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-50 transform translate-y-full opacity-0 transition-all duration-300 ease-out">
-        <div class="flex items-start gap-4">
-            <div class="bg-amber-100 p-2 rounded-full">
-                <i data-lucide="bell-ring" class="w-8 h-8 text-amber-500"></i>
-            </div>
-            <div>
-                <h3 class="text-xl text-gray-800 font-semibold">Pedido de Ajuda!</h3>
-                <p id="help-alert-message" class="text-gray-600 mt-1">Um pedido de ajuda foi enviado da página Pátio.</p>
-            </div>
-        </div>
-        <button id="close-help-alert" class="w-full mt-4 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300">OK, Entendido</button>
-    </div>
-
     <script>
       lucide.createIcons();
       const { jsPDF } = window.jspdf;
@@ -163,6 +200,20 @@
         let isAudioContextStarted = false;
         let synth = null;
 
+        // --- LÓGICA DO MENU MOBILE ---
+        const mobileSidebar = document.getElementById('mobile-sidebar');
+        const openMenuBtn = document.getElementById('open-menu-btn');
+        const closeMenuBtn = document.getElementById('close-menu-btn');
+        const mobileSidebarOverlay = document.getElementById('mobile-sidebar-overlay');
+
+        function openSidebar() { mobileSidebar.classList.add('open'); }
+        function closeSidebar() { mobileSidebar.classList.remove('open'); }
+
+        openMenuBtn.addEventListener('click', openSidebar);
+        closeMenuBtn.addEventListener('click', closeSidebar);
+        mobileSidebarOverlay.addEventListener('click', closeSidebar);
+
+
         // *** CORREÇÃO APLICADA AQUI: Inicia o contexto de áudio com uma interação do usuário ***
         document.body.addEventListener('click', async () => {
             if (!isAudioContextStarted && typeof Tone !== 'undefined') {
@@ -176,7 +227,7 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 document.body.classList.remove('opacity-0');
-                document.getElementById('user-email').textContent = user.email;
+                // document.getElementById('user-email').textContent = user.email; // Removido para simplificar header mobile
                 await checkAdminPasswordSetup(user);
                 await fetchDashboardData();
                 listenForHelpRequests(user);
@@ -184,6 +235,7 @@
         });
 
         document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = 'index.html'));
+        document.getElementById('logout-btn-mobile').addEventListener('click', () => signOut(auth).then(() => window.location.href = 'index.html'));
 
         // --- LÓGICA DO ALERTA DE AJUDA ---
         const helpAlertModal = document.getElementById('help-alert-modal');
