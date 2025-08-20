@@ -18,6 +18,7 @@
 
     <div class="container mx-auto p-4 flex justify-center">
         <div class="w-full max-w-md">
+            <!-- Seção de Login -->
             <div id="login-section" class="bg-white rounded-2xl shadow-xl p-8">
                 <h1 class="text-4xl text-center text-[#B76E79] mb-6">Bronzify</h1>
                 <form id="login-form">
@@ -26,9 +27,12 @@
                         <label for="login-email" class="block text-gray-600 mb-2">E-mail</label>
                         <input type="email" id="login-email" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
                     </div>
-                    <div class="mb-6">
+                    <div class="mb-4">
                         <label for="login-password" class="block text-gray-600 mb-2">Senha</label>
                         <input type="password" id="login-password" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
+                    </div>
+                    <div class="text-right mb-6">
+                        <a href="#" id="show-reset" class="text-sm text-[#B76E79] hover:underline">Esqueceu a senha?</a>
                     </div>
                     <button type="submit" class="w-full bg-gradient-bronzify text-white py-2 rounded-lg hover:opacity-90 transition-opacity duration-300 mb-6">Entrar</button>
                 </form>
@@ -40,6 +44,8 @@
                     Precisa ativar seu acesso? <a href="./ativacao.html" class="text-[#B76E79] hover:underline">Ative aqui</a>
                 </p>
             </div>
+
+            <!-- Seção de Cadastro -->
             <div id="register-section" class="bg-white rounded-2xl shadow-xl p-8 hidden">
                  <h2 class="text-2xl text-gray-700 mb-6 text-center">Crie sua conta</h2>
                 <form id="register-form">
@@ -57,13 +63,29 @@
                     Já tem uma conta? <a href="#" id="show-login" class="text-[#B76E79] hover:underline">Faça login</a>
                 </p>
             </div>
+
+            <!-- Seção de Recuperação de Senha -->
+            <div id="reset-section" class="bg-white rounded-2xl shadow-xl p-8 hidden">
+                 <h2 class="text-2xl text-gray-700 mb-6 text-center">Recuperar Senha</h2>
+                <form id="reset-form">
+                    <p class="text-center text-gray-600 mb-4">Digite seu e-mail e enviaremos um link para redefinir sua senha.</p>
+                    <div class="mb-4">
+                        <label for="reset-email" class="block text-gray-600 mb-2">E-mail</label>
+                        <input type="email" id="reset-email" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
+                    </div>
+                    <button type="submit" class="w-full bg-gradient-bronzify text-white py-2 rounded-lg hover:opacity-90 transition-opacity duration-300">Enviar Link de Recuperação</button>
+                </form>
+                 <p class="text-center text-gray-600 mt-4">
+                    Lembrou a senha? <a href="#" id="show-login-from-reset" class="text-[#B76E79] hover:underline">Faça login</a>
+                </p>
+            </div>
         </div>
     </div>
 
     <script type="module">
-        // Importa as funções necessárias, incluindo a nova 'sendEmailVerification'
+        // Importa as funções necessárias, incluindo a nova 'sendPasswordResetEmail'
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -96,7 +118,6 @@
             const password = loginForm['login-password'].value;
             signInWithEmailAndPassword(auth, email, password)
                 .then((userCredential) => {
-                    // VERIFICAÇÃO: Checa se o e-mail do usuário foi verificado antes de prosseguir
                     if (userCredential.user.emailVerified) {
                         handleUserLogin(userCredential.user);
                     } else {
@@ -112,7 +133,6 @@
                 });
         });
 
-        // Lógica de cadastro foi atualizada
         const registerForm = document.getElementById('register-form');
         registerForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -120,7 +140,6 @@
             const password = registerForm['register-password'].value;
             createUserWithEmailAndPassword(auth, email, password)
                 .then((userCredential) => {
-                    // ENVIO DE E-MAIL: Envia o e-mail de verificação para o usuário recém-criado
                     sendEmailVerification(userCredential.user)
                         .then(() => {
                             alert('Conta criada com sucesso! Enviamos um link de verificação para o seu e-mail. Por favor, verifique sua caixa de entrada para ativar sua conta.');
@@ -134,26 +153,57 @@
                     }
                 });
         });
+
+        // Lógica para recuperação de senha
+        const resetForm = document.getElementById('reset-form');
+        resetForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = resetForm['reset-email'].value;
+            sendPasswordResetEmail(auth, email)
+                .then(() => {
+                    alert('Link para redefinição de senha enviado! Verifique seu e-mail.');
+                })
+                .catch((error) => {
+                    if (error.code === 'auth/user-not-found') {
+                        alert('Não foi encontrado um usuário com este e-mail.');
+                    } else {
+                        alert('Erro ao enviar e-mail de recuperação: ' + error.message);
+                    }
+                });
+        });
         
-        // Lógica para alternar entre login e cadastro (sem alterações)
+        // Lógica para alternar entre as seções de login, cadastro e recuperação
         const loginSection = document.getElementById('login-section');
         const registerSection = document.getElementById('register-section');
+        const resetSection = document.getElementById('reset-section');
+
         const showRegisterBtn = document.getElementById('show-register');
         const showLoginBtn = document.getElementById('show-login');
-        const mainContainer = document.querySelector('.w-full.max-w-md');
+        const showResetBtn = document.getElementById('show-reset');
+        const showLoginFromResetBtn = document.getElementById('show-login-from-reset');
 
         showRegisterBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            mainContainer.removeChild(loginSection);
-            mainContainer.appendChild(registerSection);
+            loginSection.classList.add('hidden');
             registerSection.classList.remove('hidden');
         });
 
         showLoginBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            mainContainer.removeChild(registerSection);
-            mainContainer.appendChild(loginSection);
             loginSection.classList.remove('hidden');
+            registerSection.classList.add('hidden');
+        });
+
+        showResetBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginSection.classList.add('hidden');
+            resetSection.classList.remove('hidden');
+        });
+
+        showLoginFromResetBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginSection.classList.remove('hidden');
+            resetSection.classList.add('hidden');
         });
     </script>
 </body>
