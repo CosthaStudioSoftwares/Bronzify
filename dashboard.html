@@ -112,6 +112,9 @@
                 <input type="password" id="admin-password-input" class="w-full text-center px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
                 <button type="submit" class="w-full mt-4 bg-[#B76E79] text-white py-2 rounded-lg hover:opacity-90">Confirmar</button>
                 <button type="button" id="cancel-admin-password" class="w-full mt-2 text-gray-600 py-2 rounded-lg hover:bg-gray-100">Cancelar</button>
+                <p class="text-center text-sm mt-4">
+                    <a href="#" id="forgot-admin-password-link" class="text-gray-500 hover:underline">Esqueci minha senha de ADM</a>
+                </p>
             </form>
         </div>
     </div>
@@ -123,8 +126,8 @@
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, query, where, getDocs, Timestamp, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signOut, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, query, where, getDocs, Timestamp, doc, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
@@ -147,19 +150,20 @@
                 document.body.classList.remove('opacity-0');
                 document.getElementById('user-email').textContent = user.email;
                 checkAdminPasswordSetup(user);
-                fetchDashboardData(); // Carga inicial com dados do dia
+                fetchDashboardData();
             } else { window.location.href = 'index.html'; }
         });
 
         document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = 'index.html'));
 
-        // --- LÓGICA DO MODO ADMINISTRADOR (INDIVIDUAL POR USUÁRIO) ---
+        // --- LÓGICA DO MODO ADMINISTRADOR (COM RECUPERAÇÃO) ---
         const adminModeBtn = document.getElementById('admin-mode-btn');
         const adminPasswordModal = document.getElementById('admin-password-modal');
         const adminPasswordForm = document.getElementById('admin-password-form');
         const adminPasswordInput = document.getElementById('admin-password-input');
         const adminModalTitle = document.getElementById('admin-modal-title');
         const adminModalSubtitle = document.getElementById('admin-modal-subtitle');
+        const forgotAdminPasswordLink = document.getElementById('forgot-admin-password-link');
         
         async function checkAdminPasswordSetup(user) {
             const configRef = doc(db, "admin_passwords", user.uid);
@@ -169,6 +173,7 @@
                     adminModalTitle.textContent = 'Bem-vindo(a)!';
                     adminModalSubtitle.textContent = 'Este parece ser seu primeiro acesso. Por favor, crie uma senha de administrador para proteger seus dados financeiros.';
                     document.getElementById('cancel-admin-password').classList.add('hidden');
+                    forgotAdminPasswordLink.classList.add('hidden');
                     adminPasswordModal.classList.remove('hidden');
                 }
             } catch (error) {
@@ -184,7 +189,6 @@
             const adminModeText = document.getElementById('admin-mode-text');
             const adminModeIcon = adminModeBtn.querySelector('i');
             
-            // Elementos dinâmicos
             const appointmentsTitle = document.getElementById('appointments-title');
             const appointmentsValue = document.getElementById('daily-appointments');
             const paymentDetailsTitle = document.getElementById('payment-details-title');
@@ -193,7 +197,6 @@
                 monthlyRevenueEl.textContent = dashboardDataCache.monthlyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                 dailyRevenueEl.textContent = dashboardDataCache.dailyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                 
-                // Lógica para exibir dados diários ou do período
                 if (dashboardDataCache.isFilteredPeriod) {
                     appointmentsTitle.textContent = 'Atendimentos no Período';
                     appointmentsValue.textContent = dashboardDataCache.periodAppointments;
@@ -230,7 +233,6 @@
                 chartContainer.style.opacity = 0;
                 adminModeIcon.setAttribute('data-lucide', 'eye');
                 adminModeText.textContent = 'Ativar Modo ADM';
-                // Resetar títulos para o padrão
                 appointmentsTitle.textContent = 'Atendimentos no Dia';
                 paymentDetailsTitle.textContent = 'Faturamento Diário por Pagamento';
             }
@@ -244,9 +246,22 @@
             } else {
                 adminModalTitle.textContent = 'Modo Administrador';
                 adminModalSubtitle.textContent = 'Insira a sua senha de administrador.';
+                adminPasswordForm.dataset.purpose = 'verify';
+                adminPasswordInput.placeholder = '';
                 document.getElementById('cancel-admin-password').classList.remove('hidden');
+                forgotAdminPasswordLink.classList.remove('hidden');
                 adminPasswordModal.classList.remove('hidden');
             }
+        });
+
+        forgotAdminPasswordLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            adminModalTitle.textContent = 'Recuperar Senha de ADM';
+            adminModalSubtitle.textContent = 'Para continuar, digite a senha de login da sua conta principal.';
+            adminPasswordForm.dataset.purpose = 'reauth';
+            adminPasswordInput.value = '';
+            adminPasswordInput.placeholder = 'Senha da conta principal';
+            forgotAdminPasswordLink.classList.add('hidden');
         });
 
         document.getElementById('cancel-admin-password').addEventListener('click', () => adminPasswordModal.classList.add('hidden'));
@@ -257,8 +272,26 @@
             if (!user) return;
 
             const password = adminPasswordInput.value;
+            const purpose = adminPasswordForm.dataset.purpose || 'verify';
+
+            if (purpose === 'reauth') {
+                const credential = EmailAuthProvider.credential(user.email, password);
+                try {
+                    await reauthenticateWithCredential(user, credential);
+                    const configRef = doc(db, "admin_passwords", user.uid);
+                    await deleteDoc(configRef);
+                    alert("Identidade confirmada! A senha de administrador foi removida. Por favor, crie uma nova.");
+                    adminPasswordForm.reset();
+                    adminPasswordModal.classList.add('hidden');
+                    checkAdminPasswordSetup(user);
+                } catch (error) {
+                    console.error("Erro de reautenticação:", error);
+                    alert("Senha da conta principal incorreta. Tente novamente.");
+                }
+                return;
+            }
+
             const configRef = doc(db, "admin_passwords", user.uid);
-            
             try {
                 const configSnap = await getDoc(configRef);
                 if (!configSnap.exists()) {
