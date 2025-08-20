@@ -312,7 +312,6 @@
                     isAdminModeActive = true;
                     adminPasswordForm.reset();
                     adminPasswordModal.classList.add('hidden');
-                    // Força a atualização da UI com os dados do dia ao logar no modo ADM
                     await fetchDashboardData(false); 
                 }
             } catch (error) {
@@ -409,7 +408,13 @@
             } catch (error) { console.error("Erro ao buscar dados do dashboard: ", error); }
         }
 
-        document.getElementById('filter-apply').addEventListener('click', () => fetchDashboardData(true));
+        document.getElementById('filter-apply').addEventListener('click', () => {
+            if (!isAdminModeActive) {
+                alert("Por favor, ative o Modo ADM para poder usar os filtros.");
+                return;
+            }
+            fetchDashboardData(true);
+        });
 
         // --- LÓGICA DE COMPARTILHAR E BAIXAR (ATUALIZADA) ---
         document.getElementById('download-btn').addEventListener('click', () => {
