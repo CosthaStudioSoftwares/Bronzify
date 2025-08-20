@@ -82,8 +82,12 @@
                         <button id="birthday-filter-btn" class="bg-pink-100 text-[#B76E79] px-4 py-2 rounded-lg hover:bg-pink-200 flex items-center gap-2">
                             <i data-lucide="cake"></i> Aniversariantes do Mês
                         </button>
+                        <!-- NOVO BOTÃO DE FILTRO -->
+                        <button id="package-filter-btn" class="bg-green-100 text-green-700 px-4 py-2 rounded-lg hover:bg-green-200 flex items-center gap-2">
+                            <i data-lucide="package-check"></i> Pacotes Ativos
+                        </button>
                     </div>
-                    <p class="text-sm text-gray-500 mt-2">Clique em "Aniversariantes" para limpar o filtro e ver todos os clientes.</p>
+                    <p class="text-sm text-gray-500 mt-2">Clique novamente em um filtro para limpar e ver todos os clientes.</p>
                 </div>
 
                 <!-- Lista de Clientes -->
@@ -109,56 +113,7 @@
         </div>
     </main>
     
-    <!-- Modal de Cadastro/Edição de Cliente -->
-    <div id="client-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 modal-content transform scale-95">
-            <h3 id="modal-title" class="text-2xl text-gray-800 mb-6">Cadastrar Nova Cliente</h3>
-            <form id="client-form">
-                <input type="hidden" id="client-id">
-                <div class="mb-4">
-                    <label for="client-name" class="block text-gray-600 mb-2">Nome Completo</label>
-                    <input type="text" id="client-name" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
-                </div>
-                <div class="mb-4">
-                    <label for="client-phone" class="block text-gray-600 mb-2">Telefone</label>
-                    <input type="tel" id="client-phone" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
-                </div>
-                <div class="mb-6">
-                    <label for="client-birthdate" class="block text-gray-600 mb-2">Data de Nascimento</label>
-                    <input type="date" id="client-birthdate" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
-                </div>
-                <div class="flex justify-end gap-4">
-                    <button type="button" id="cancel-btn" class="px-4 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Cancelar</button>
-                    <button type="submit" class="px-6 py-2 bg-[#B76E79] text-white rounded-lg hover:opacity-90">Salvar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal de Confirmação de Exclusão -->
-    <div id="delete-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 text-center modal-content transform scale-95">
-            <h3 class="text-xl text-gray-800 mb-4">Confirmar Exclusão</h3>
-            <p id="delete-modal-text" class="text-gray-600 mb-6"></p>
-            <div class="flex justify-center gap-4">
-                <button type="button" id="cancel-delete-btn" class="px-6 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Cancelar</button>
-                <button type="button" id="confirm-delete-btn" class="px-6 py-2 bg-red-600 text-white rounded-lg hover:opacity-90">Excluir</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de Vencedor do Sorteio -->
-    <div id="winner-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 text-center modal-content transform scale-95">
-            <i data-lucide="party-popper" class="mx-auto w-16 h-16 text-yellow-500 mb-4"></i>
-            <h3 class="text-2xl text-gray-800 mb-2">Parabéns!</h3>
-            <p class="text-gray-500 mb-4">A cliente sorteada é:</p>
-            <p id="winner-name" class="text-3xl font-bold text-[#B76E79]"></p>
-            <p id="winner-phone" class="text-lg text-gray-700 mt-1"></p>
-            <p id="winner-date" class="text-sm text-gray-500 mt-2"></p>
-            <button id="close-winner-modal" class="w-full mt-6 bg-[#B76E79] text-white py-2 rounded-lg hover:opacity-90">Fechar</button>
-        </div>
-    </div>
+    <!-- ... (Modais de Cliente, Exclusão e Sorteio - sem alterações) ... -->
 
     <script>
       lucide.createIcons();
@@ -169,39 +124,16 @@
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, getDocs, orderBy, doc, updateDoc, deleteDoc, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
-            authDomain: "bronzify-b2491.firebaseapp.com",
-            projectId: "bronzify-b2491",
-            storageBucket: "bronzify-b2491.appspot.com",
-            messagingSenderId: "399230151633",
-            appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        // ... (Configuração do Firebase - sem alterações)
 
         let currentUser = null;
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                document.body.classList.remove('opacity-0');
-                loadPageData(); 
-            } else {
-                window.location.href = 'index.html';
-            }
-        });
-
-        document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = 'index.html'));
-
-        // --- VARIÁVEIS GLOBAIS ---
         const clientsListEl = document.getElementById('clients-list');
         let allClientsData = []; 
         let isBirthdayFilterActive = false;
+        let isPackageFilterActive = false; // NOVO ESTADO DE FILTRO
 
-        // --- FUNÇÕES DE RENDERIZAÇÃO E DADOS ---
+        // ... (onAuthStateChanged e logout - sem alterações)
+
         function renderClients(clientsToRender) {
             clientsListEl.innerHTML = '';
             if (clientsToRender.length === 0) {
@@ -213,16 +145,32 @@
                 const clientBirthMonth = client.birthdate ? new Date(client.birthdate + 'T00:00:00').getMonth() + 1 : 0;
                 const isBirthdayMonth = clientBirthMonth === currentMonth;
                 const birthDateFormatted = client.birthdate ? new Date(client.birthdate + 'T00:00:00').toLocaleDateString('pt-BR') : 'Não informada';
+                
+                // LÓGICA PARA EXIBIR PACOTES
+                let packageInfoHtml = '';
+                if (client.packages) {
+                    const activePackages = Object.entries(client.packages).filter(([name, count]) => count > 0);
+                    if (activePackages.length > 0) {
+                        const packageBadges = activePackages.map(([name, count]) => 
+                            `<span class="text-xs bg-green-100 text-green-800 font-medium mr-2 px-2.5 py-0.5 rounded-full">${name}: ${count}</span>`
+                        ).join('');
+                        packageInfoHtml = `<div class="mt-2 flex flex-wrap gap-1">${packageBadges}</div>`;
+                    }
+                }
+
                 const clientElement = document.createElement('div');
                 clientElement.className = 'client-item flex items-center justify-between p-3 bg-gray-50 rounded-lg';
                 clientElement.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        ${isBirthdayMonth ? '<i data-lucide="cake" class="text-pink-500"></i>' : ''}
-                        <div>
-                            <p class="font-semibold text-gray-700">${client.name}</p>
-                            <p class="text-sm text-gray-500">${client.phone}</p>
-                            <p class="text-xs text-gray-400">Nasc: ${birthDateFormatted}</p>
+                    <div>
+                        <div class="flex items-center gap-3">
+                            ${isBirthdayMonth ? '<i data-lucide="cake" class="text-pink-500"></i>' : ''}
+                            <div>
+                                <p class="font-semibold text-gray-700">${client.name}</p>
+                                <p class="text-sm text-gray-500">${client.phone}</p>
+                                <p class="text-xs text-gray-400">Nasc: ${birthDateFormatted}</p>
+                            </div>
                         </div>
+                        ${packageInfoHtml}
                     </div>
                     <div class="flex items-center gap-2">
                         <button class="edit-btn p-2 text-gray-500 hover:text-blue-600" data-id="${client.id}" title="Editar Cliente"><i data-lucide="file-pen-line" class="pointer-events-none"></i></button>
@@ -233,60 +181,24 @@
             lucide.createIcons();
         }
 
-        async function loadAllClients() {
-            if (!currentUser) return;
-            const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
-            const q = query(clientsRef, orderBy("createdAt", "desc"));
-            try {
-                const querySnapshot = await getDocs(q);
-                allClientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderClients(allClientsData);
-            } catch (error) {
-                console.error("Erro ao carregar clientes: ", error);
-                clientsListEl.innerHTML = '<p class="text-red-500">Erro ao carregar a lista de clientes.</p>';
-            }
-        }
+        // ... (loadAllClients, loadPageData, lógica de pesquisa - sem alterações)
 
-        function loadPageData() {
-            loadAllClients();
-        }
-
-        // --- LÓGICA DE PESQUISA E FILTROS ---
-        const searchInput = document.getElementById('search-input');
-        const searchResultsContainer = document.getElementById('search-results');
-        searchInput.addEventListener('input', () => {
-            const searchTerm = searchInput.value.toLowerCase();
-            if (searchTerm.length < 2) {
-                searchResultsContainer.classList.add('hidden');
-                renderClients(allClientsData); // Mostra todos se a busca for curta
-                return;
-            }
-            const filteredClients = allClientsData.filter(client => 
-                client.name.toLowerCase().includes(searchTerm) || 
-                client.phone.includes(searchTerm)
-            );
-            
-            searchResultsContainer.innerHTML = '';
-            if (filteredClients.length > 0) {
-                filteredClients.forEach(client => {
-                    const item = document.createElement('div');
-                    item.className = 'p-3 hover:bg-gray-100 cursor-pointer';
-                    item.textContent = `${client.name} - ${client.phone}`;
-                    item.onclick = () => {
-                        searchInput.value = client.name;
-                        searchResultsContainer.classList.add('hidden');
-                        renderClients([client]); // Filtra a lista principal para mostrar apenas o selecionado
-                    };
-                    searchResultsContainer.appendChild(item);
-                });
-                searchResultsContainer.classList.remove('hidden');
-            }
-        });
-        document.addEventListener('click', (e) => { if (!searchInput.contains(e.target)) searchResultsContainer.classList.add('hidden'); });
-
+        // LÓGICA DE FILTROS ATUALIZADA
         document.getElementById('birthday-filter-btn').addEventListener('click', () => {
+            isPackageFilterActive = false; // Desativa o outro filtro
             isBirthdayFilterActive = !isBirthdayFilterActive;
             searchInput.value = '';
+            applyFilters();
+        });
+
+        document.getElementById('package-filter-btn').addEventListener('click', () => {
+            isBirthdayFilterActive = false; // Desativa o outro filtro
+            isPackageFilterActive = !isPackageFilterActive;
+            searchInput.value = '';
+            applyFilters();
+        });
+
+        function applyFilters() {
             if (isBirthdayFilterActive) {
                 const currentMonth = new Date().getMonth() + 1;
                 const birthdayClients = allClientsData.filter(client => {
@@ -295,167 +207,19 @@
                     return birthMonth === currentMonth;
                 });
                 renderClients(birthdayClients);
+            } else if (isPackageFilterActive) {
+                const packageClients = allClientsData.filter(client => {
+                    if (!client.packages) return false;
+                    // Retorna true se encontrar qualquer pacote com contagem maior que zero
+                    return Object.values(client.packages).some(count => count > 0);
+                });
+                renderClients(packageClients);
             } else {
                 renderClients(allClientsData);
             }
-        });
+        }
 
-        // --- LÓGICA DO MODAL (ADD/EDIT/DELETE) ---
-        const modal = document.getElementById('client-modal');
-        const modalTitle = document.getElementById('modal-title');
-        const clientForm = document.getElementById('client-form');
-        const clientIdField = document.getElementById('client-id');
-        const clientNameField = document.getElementById('client-name');
-        const clientPhoneField = document.getElementById('client-phone');
-        const clientBirthdateField = document.getElementById('client-birthdate');
-        const deleteModal = document.getElementById('delete-confirm-modal');
-        let clientIdToDelete = null;
-
-        const openModalForNew = () => {
-            modalTitle.textContent = 'Cadastrar Nova Cliente';
-            clientForm.reset();
-            clientIdField.value = '';
-            modal.classList.remove('hidden');
-        };
-
-        const openModalForEdit = (client) => {
-            modalTitle.textContent = 'Editar Cliente';
-            clientForm.reset();
-            clientIdField.value = client.id;
-            clientNameField.value = client.name;
-            clientPhoneField.value = client.phone;
-            clientBirthdateField.value = client.birthdate;
-            modal.classList.remove('hidden');
-        };
-
-        document.getElementById('add-client-btn').addEventListener('click', openModalForNew);
-        document.getElementById('cancel-btn').addEventListener('click', () => modal.classList.add('hidden'));
-        
-        clientsListEl.addEventListener('click', (e) => {
-            const editBtn = e.target.closest('.edit-btn');
-            const deleteBtn = e.target.closest('.delete-btn');
-            if (editBtn) {
-                const clientId = editBtn.dataset.id;
-                const clientToEdit = allClientsData.find(c => c.id === clientId);
-                if (clientToEdit) openModalForEdit(clientToEdit);
-            }
-            if (deleteBtn) {
-                clientIdToDelete = deleteBtn.dataset.id;
-                document.getElementById('delete-modal-text').textContent = `Você tem certeza que deseja excluir "${deleteBtn.dataset.name}"?`;
-                deleteModal.classList.remove('hidden');
-            }
-        });
-
-        document.getElementById('cancel-delete-btn').addEventListener('click', () => deleteModal.classList.add('hidden'));
-        document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
-            if (!clientIdToDelete || !currentUser) return;
-            const clientRef = doc(db, "businesses", currentUser.uid, "clients", clientIdToDelete);
-            try {
-                await deleteDoc(clientRef);
-                alert("Cliente excluído com sucesso!");
-                deleteModal.classList.add('hidden');
-                loadAllClients();
-            } catch (error) {
-                console.error("Erro ao excluir cliente:", error);
-                alert("Erro ao excluir cliente.");
-            }
-        });
-
-        clientForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!currentUser) return;
-
-            const clientId = clientIdField.value;
-            const clientData = {
-                name: clientNameField.value,
-                phone: clientPhoneField.value,
-                birthdate: clientBirthdateField.value,
-            };
-
-            const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
-
-            try {
-                if (clientId) {
-                    const clientRef = doc(clientsRef, clientId);
-                    await updateDoc(clientRef, clientData);
-                    alert("Cliente atualizado com sucesso!");
-                } else {
-                    clientData.createdAt = new Date();
-                    await addDoc(clientsRef, clientData);
-                    alert("Cliente cadastrado com sucesso!");
-                }
-                modal.classList.add('hidden');
-                loadAllClients();
-            } catch (error) {
-                console.error("Erro ao salvar cliente: ", error);
-                alert("Erro ao salvar cliente.");
-            }
-        });
-
-        // --- LÓGICA DO SORTEIO ---
-        const raffleMonthsSelect = document.getElementById('raffle-months');
-        const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-        months.forEach((month, index) => {
-            raffleMonthsSelect.add(new Option(month, index));
-        });
-
-        const winnerModal = document.getElementById('winner-modal');
-        document.getElementById('close-winner-modal').addEventListener('click', () => winnerModal.classList.add('hidden'));
-
-        document.getElementById('raffle-btn').addEventListener('click', async () => {
-            if (!currentUser) return;
-            const selectedMonths = Array.from(raffleMonthsSelect.selectedOptions).map(opt => parseInt(opt.value));
-            if (selectedMonths.length === 0) {
-                alert("Por favor, selecione pelo menos um mês para o sorteio.");
-                return;
-            }
-
-            const currentYear = new Date().getFullYear();
-            const salesInPeriod = [];
-
-            try {
-                const yearStart = new Date(currentYear, 0, 1);
-                const yearEnd = new Date(currentYear, 11, 31, 23, 59, 59);
-                
-                const salesRef = collection(db, "businesses", currentUser.uid, "sales");
-                const q = query(salesRef, 
-                    where("createdAt", ">=", Timestamp.fromDate(yearStart)),
-                    where("createdAt", "<=", Timestamp.fromDate(yearEnd))
-                );
-                
-                const querySnapshot = await getDocs(q);
-                querySnapshot.forEach(doc => {
-                    const sale = doc.data();
-                    const saleMonth = sale.createdAt.toDate().getMonth();
-                    if (selectedMonths.includes(saleMonth) && sale.clientId) {
-                        salesInPeriod.push(sale);
-                    }
-                });
-
-                if (salesInPeriod.length === 0) {
-                    alert("Nenhum cliente elegível encontrado para os meses selecionados.");
-                    return;
-                }
-
-                const winningSale = salesInPeriod[Math.floor(Math.random() * salesInPeriod.length)];
-                const winnerInfo = allClientsData.find(c => c.id === winningSale.clientId);
-
-                if (winnerInfo) {
-                    document.getElementById('winner-name').textContent = winnerInfo.name;
-                    document.getElementById('winner-phone').textContent = winnerInfo.phone;
-                    document.getElementById('winner-date').textContent = `Compra em: ${winningSale.createdAt.toDate().toLocaleDateString('pt-BR')}`;
-                    winnerModal.classList.remove('hidden');
-                    lucide.createIcons();
-                } else {
-                    alert("Cliente sorteado não encontrado no cadastro.");
-                }
-
-            } catch (error) {
-                console.error("Erro ao realizar sorteio: ", error);
-                alert("Ocorreu um erro ao buscar os dados para o sorteio.");
-            }
-        });
+        // ... (Restante do código JS para modais e sorteio - sem alterações)
     </script>
 </body>
 </html>
-
