@@ -85,7 +85,7 @@
                 </div>
                 <div class="bg-white p-6 rounded-2xl shadow-md">
                     <h3 id="appointments-title" class="text-lg font-semibold text-gray-500">Atendimentos no Dia</h3>
-                    <p id="daily-appointments" class="text-4xl font-bold text-[#B76E79] mt-2">0</p>
+                    <p id="daily-appointments" class="text-4xl font-bold text-[#B76E79] mt-2">***</p>
                 </div>
             </div>
 
@@ -150,7 +150,6 @@
                 document.body.classList.remove('opacity-0');
                 document.getElementById('user-email').textContent = user.email;
                 
-                // Verifica se há um reset de senha ADM pendente
                 const resetRef = doc(db, "admin_resets", user.uid);
                 const resetSnap = await getDoc(resetRef);
                 if (resetSnap.exists() && resetSnap.data().pending) {
@@ -160,8 +159,8 @@
                     alert("Sua senha de login foi redefinida. Agora, por favor, crie uma nova senha de administrador.");
                 }
 
-                checkAdminPasswordSetup(user);
-                fetchDashboardData();
+                await checkAdminPasswordSetup(user);
+                await fetchDashboardData();
             } else { window.location.href = 'index.html'; }
         });
 
@@ -273,13 +272,9 @@
             }
 
             try {
-                // Marca que um reset está pendente
                 const resetRef = doc(db, "admin_resets", user.uid);
                 await setDoc(resetRef, { pending: true });
-                
-                // Envia o e-mail de redefinição da senha principal
                 await sendPasswordResetEmail(auth, user.email);
-                
                 alert("Enviamos um link para o seu e-mail. Siga as instruções para redefinir sua senha de login. Após entrar novamente, você será solicitado(a) a criar uma nova senha de ADM.");
                 adminPasswordModal.classList.add('hidden');
             } catch (error) {
@@ -299,28 +294,30 @@
             const configRef = doc(db, "admin_passwords", user.uid);
             
             try {
+                let passwordCorrect = false;
                 const configSnap = await getDoc(configRef);
                 if (!configSnap.exists()) {
                     await setDoc(configRef, { value: password });
                     alert("Sua senha de administrador individual foi definida com sucesso!");
-                    isAdminModeActive = true;
+                    passwordCorrect = true;
                 } else {
                     if (configSnap.data().value === password) {
-                        isAdminModeActive = true;
+                        passwordCorrect = true;
                     } else {
                         alert("Senha incorreta!");
                     }
                 }
-                adminPasswordForm.reset();
-                adminPasswordModal.classList.add('hidden');
-                updateUIVisibility();
-            } catch (error) {
-                if (!isAdminModeActive) {
-                    console.error("Erro ao verificar/definir senha de ADM:", error);
-                    alert("Ocorreu um erro. Tente novamente.");
-                } else {
-                    console.warn("Um erro não crítico ocorreu após a ativação do modo ADM:", error);
+                
+                if (passwordCorrect) {
+                    isAdminModeActive = true;
+                    adminPasswordForm.reset();
+                    adminPasswordModal.classList.add('hidden');
+                    // Força a atualização da UI com os dados do dia ao logar no modo ADM
+                    await fetchDashboardData(false); 
                 }
+            } catch (error) {
+                console.error("Erro ao verificar/definir senha de ADM:", error);
+                alert("Ocorreu um erro. Tente novamente.");
             }
         });
 
