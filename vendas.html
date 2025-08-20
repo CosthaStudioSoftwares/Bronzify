@@ -9,6 +9,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Biblioteca para PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #FFF9F9; }
         h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
@@ -61,7 +64,10 @@
                     </div>
                 </div>
             </div>
-            <div class="mt-4 flex justify-end">
+            <div class="mt-4 flex justify-end gap-4">
+                <button id="download-pdf-btn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 flex items-center gap-2">
+                    <i data-lucide="download"></i> Baixar PDF
+                </button>
                 <button id="search-btn" class="bg-[#B76E79] text-white px-6 py-2 rounded-lg hover:opacity-90">Pesquisar</button>
             </div>
         </div>
@@ -90,6 +96,7 @@
 
     <script>
       lucide.createIcons();
+      const { jsPDF } = window.jspdf;
     </script>
     
     <script type="module">
@@ -112,6 +119,7 @@
         
         let currentUser = null;
         let allClients = [];
+        let lastSearchResults = []; // Armazena os últimos resultados da busca
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -177,6 +185,7 @@
 
         function renderResults(sales) {
             resultsTable.innerHTML = '';
+            lastSearchResults = sales; // Salva os resultados para o PDF
             if (sales.length === 0) {
                 resultsTable.innerHTML = '<tr><td colspan="5" class="text-center p-8 text-gray-500">Nenhuma venda encontrada para esta pesquisa.</td></tr>';
                 return;
@@ -186,10 +195,7 @@
                 const saleDate = sale.createdAt.toDate().toLocaleDateString('pt-BR');
                 const saleTime = sale.createdAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                 
-                // *** CORREÇÃO APLICADA AQUI: Lógica para exibir o nome do item como salvo no banco de dados ***
                 const itemsList = sale.items ? sale.items.map(item => {
-                    // O nome do item já contém a informação completa do pacote
-                    // Adicionamos a quantidade apenas se for maior que 1 (para consumíveis)
                     if (item.quantity > 1) {
                         return `${item.name} (x${item.quantity})`;
                     }
@@ -253,6 +259,51 @@
                 console.error("Erro ao buscar vendas: ", error);
                 resultsTable.innerHTML = '<tr><td colspan="5" class="text-center p-8 text-red-500">Ocorreu um erro ao buscar as vendas.</td></tr>';
             }
+        });
+
+        // --- LÓGICA PARA GERAR PDF ---
+        document.getElementById('download-pdf-btn').addEventListener('click', () => {
+            if (lastSearchResults.length === 0) {
+                alert("Não há resultados para exportar. Por favor, faça uma pesquisa primeiro.");
+                return;
+            }
+
+            const pdf = new jsPDF();
+            const head = [['Data', 'Hora', 'Cliente', 'Valor Total', 'Itens']];
+            const body = lastSearchResults.map(sale => {
+                const saleDate = sale.createdAt.toDate().toLocaleDateString('pt-BR');
+                const saleTime = sale.createdAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                const total = (sale.total || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                const itemsList = sale.items ? sale.items.map(item => {
+                    if (item.quantity > 1) return `${item.name} (x${item.quantity})`;
+                    return item.name;
+                }).join(', ') : 'N/A';
+                return [saleDate, saleTime, sale.clientName, total, itemsList];
+            });
+
+            const searchTerm = searchTermInput.value.trim();
+            const selectedMonthText = monthSelect.options[monthSelect.selectedIndex].text;
+            const selectedYear = yearSelect.value;
+            let title = "Relatório de Vendas - Bronzify";
+            let subtitle = `Filtros: `;
+            if(searchTerm) subtitle += `Cliente: ${searchTerm}`;
+            if(parseInt(monthSelect.value) > -1) subtitle += `${searchTerm ? ' | ' : ''}Período: ${selectedMonthText} de ${selectedYear}`;
+
+            pdf.setFontSize(18);
+            pdf.text(title, 14, 22);
+            pdf.setFontSize(11);
+            pdf.setTextColor(100);
+            pdf.text(subtitle, 14, 30);
+
+            pdf.autoTable({
+                head: head,
+                body: body,
+                startY: 35,
+                headStyles: { fillColor: [183, 110, 121] }, // Cor #B76E79
+                styles: { font: 'Poppins' } // Usa a mesma fonte se possível
+            });
+
+            pdf.save(`relatorio_vendas_bronzify.pdf`);
         });
     </script>
 </body>
