@@ -42,47 +42,55 @@
         }
     </style>
 </head>
-<body class="flex h-screen">
+<body class="bg-gray-100">
 
-    <!-- Sidebar -->
-    <aside class="w-64 bg-white shadow-lg flex-shrink-0">
-        <div class="p-6">
-            <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
-        </div>
-        <nav class="mt-6 px-4">
-            <a href="./dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a>
-            <a href="./clientes.html" class="sidebar-link"><i data-lucide="users"></i> Clientes</a>
-            <a href="./caixa.html" class="sidebar-link"><i data-lucide="dollar-sign"></i> Caixa</a>
-            <a href="./vendas.html" class="sidebar-link"><i data-lucide="shopping-cart"></i> Vendas</a>
-            <a href="./ordem-chegada.html" class="sidebar-link"><i data-lucide="list-ordered"></i> Ordem de Chegada</a>
-            <a href="./patio.html" class="sidebar-link active"><i data-lucide="sun"></i> Pátio</a>
-        </nav>
-        <div class="absolute bottom-0 w-64 p-4">
-             <button id="logout-btn" class="w-full flex items-center justify-center gap-2 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors duration-300">
-                <i data-lucide="log-out"></i> Sair
-            </button>
-        </div>
-    </aside>
+    <div class="relative min-h-screen lg:flex">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="bg-white shadow-lg fixed inset-y-0 left-0 w-64 z-30 transform -translate-x-full lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out">
+            <div class="p-6 text-center">
+                <h1 class="text-3xl text-[#B76E79]">Bronzify</h1>
+            </div>
+            <nav class="mt-6 px-4">
+                <a href="./dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+                <a href="./clientes.html" class="sidebar-link"><i data-lucide="users"></i> Clientes</a>
+                <a href="./caixa.html" class="sidebar-link"><i data-lucide="dollar-sign"></i> Caixa</a>
+                <a href="./vendas.html" class="sidebar-link"><i data-lucide="shopping-cart"></i> Vendas</a>
+                <a href="./ordem-chegada.html" class="sidebar-link"><i data-lucide="list-ordered"></i> Ordem de Chegada</a>
+                <a href="./patio.html" class="sidebar-link active"><i data-lucide="sun"></i> Pátio</a>
+            </nav>
+            <div class="absolute bottom-0 w-64 p-4">
+                 <button id="logout-btn" class="w-full flex items-center justify-center gap-2 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors duration-300">
+                    <i data-lucide="log-out"></i> Sair
+                </button>
+            </div>
+        </aside>
 
-    <!-- Main Content -->
-    <main class="flex-1 p-8 overflow-y-auto">
-        <header class="flex justify-between items-center mb-8">
-            <h2 class="text-4xl text-gray-800">Pátio</h2>
-            <!-- BOTÃO DE AJUDA ADICIONADO -->
-            <button id="help-btn" class="bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 flex items-center gap-2">
-                <i data-lucide="bell-ring"></i> Pedir Ajuda
-            </button>
-        </header>
+        <!-- Main Content -->
+        <div class="flex-1">
+            <main class="p-4 sm:p-8">
+                <header class="flex justify-between items-center mb-8">
+                    <div class="flex items-center gap-4">
+                        <button id="menu-btn" class="lg:hidden p-2 rounded-md hover:bg-gray-200">
+                            <i data-lucide="menu"></i>
+                        </button>
+                        <h2 class="text-3xl sm:text-4xl text-gray-800">Pátio</h2>
+                    </div>
+                    <button id="help-btn" class="bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 flex items-center gap-2">
+                        <i data-lucide="bell-ring"></i> <span class="hidden sm:inline">Pedir Ajuda</span>
+                    </button>
+                </header>
 
-        <div id="patio-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Cards de clientes serão populados dinamicamente -->
+                <div id="patio-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Cards de clientes serão populados dinamicamente -->
+                </div>
+                
+                <div id="no-clients-patio" class="text-center py-16 text-gray-500">
+                    <i data-lucide="sun" class="mx-auto w-16 h-16 mb-4"></i>
+                    <p class="text-xl">O pátio está vazio no momento.</p>
+                </div>
+            </main>
         </div>
-        
-        <div id="no-clients-patio" class="text-center py-16 text-gray-500">
-            <i data-lucide="sun" class="mx-auto w-16 h-16 mb-4"></i>
-            <p class="text-xl">O pátio está vazio no momento.</p>
-        </div>
-    </main>
+    </div>
 
     <script>
       lucide.createIcons();
@@ -240,6 +248,14 @@
                     if (cardToRemove) cardToRemove.classList.remove('removing');
                 }
             }
+        });
+
+        // --- LÓGICA DO MENU RESPONSIVO ---
+        const sidebar = document.getElementById('sidebar');
+        const menuBtn = document.getElementById('menu-btn');
+
+        menuBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('-translate-x-full');
         });
     </script>
 </body>
