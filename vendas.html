@@ -185,13 +185,17 @@
             sales.forEach(sale => {
                 const saleDate = sale.createdAt.toDate().toLocaleDateString('pt-BR');
                 const saleTime = sale.createdAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                
+                // *** CORREÇÃO APLICADA AQUI: Lógica para exibir o nome do item como salvo no banco de dados ***
                 const itemsList = sale.items ? sale.items.map(item => {
-                    let itemName = item.name;
-                    if (item.name.includes('(Pacote)')) {
-                        return `${itemName}`;
+                    // O nome do item já contém a informação completa do pacote
+                    // Adicionamos a quantidade apenas se for maior que 1 (para consumíveis)
+                    if (item.quantity > 1) {
+                        return `${item.name} (x${item.quantity})`;
                     }
-                    return `${itemName} (x${item.quantity || 1})`;
+                    return item.name;
                 }).join(', ') : 'N/A';
+
                 const row = `
                     <tr class="border-b hover:bg-gray-50">
                         <td class="p-2">${saleDate}</td>
@@ -237,10 +241,8 @@
                 const querySnapshot = await getDocs(finalQuery);
                 let sales = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                // Ordena os resultados por data no lado do cliente (mais seguro)
                 sales.sort((a, b) => b.createdAt.toDate() - a.createdAt.toDate());
 
-                // Se houver um termo de busca, filtra os resultados já obtidos do período
                 if (searchTerm) {
                     sales = sales.filter(sale => sale.clientName.toLowerCase().includes(searchTerm));
                 }
