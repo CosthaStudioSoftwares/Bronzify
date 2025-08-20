@@ -301,7 +301,6 @@
                         </div>
                     `;
                 } else if (item.category === 'consumable') {
-                    // *** CORREÇÃO APLICADA AQUI: Adicionada a lógica de renderização para consumíveis ***
                     itemHtml = `
                         <div class="consumable-item border rounded-lg p-3" data-price="${item.price}" data-name="${item.name}" data-id="${item.id}">
                             <div class="flex items-center justify-between">
@@ -460,7 +459,6 @@
                 }
             });
             
-            // *** CORREÇÃO APLICADA AQUI: Adicionada a lógica de cálculo para consumíveis ***
             document.querySelectorAll('.consumable-item').forEach(item => {
                 const quantity = parseInt(item.querySelector('.quantity-input').value) || 0;
                 const price = parseFloat(item.dataset.price);
@@ -479,10 +477,10 @@
         }
 
         function rebindAllEvents() {
-            document.querySelectorAll('.service-checkbox, .package-checkbox').forEach(item => item.addEventListener('change', calculateTotal));
+            // *** CORREÇÃO APLICADA AQUI: Adicionado o seletor para os checkboxes de "adicionais" ***
+            document.querySelectorAll('.service-checkbox, .package-checkbox, #extras .service-item-container input[type="checkbox"]').forEach(item => item.addEventListener('change', calculateTotal));
             discountEl.addEventListener('input', calculateTotal);
             
-            // *** CORREÇÃO APLICADA AQUI: Adicionados os event listeners para consumíveis ***
             document.querySelectorAll('.quantity-input').forEach(input => input.addEventListener('input', calculateTotal));
             document.querySelectorAll('.minus-btn').forEach(btn => btn.addEventListener('click', (e) => {
                 const input = e.target.nextElementSibling;
