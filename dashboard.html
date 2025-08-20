@@ -147,7 +147,7 @@
                 document.body.classList.remove('opacity-0');
                 document.getElementById('user-email').textContent = user.email;
                 checkAdminPasswordSetup(user);
-                fetchDashboardData();
+                fetchDashboardData(); // Carga inicial com dados do dia
             } else { window.location.href = 'index.html'; }
         });
 
@@ -197,7 +197,7 @@
                 if (dashboardDataCache.isFilteredPeriod) {
                     appointmentsTitle.textContent = 'Atendimentos no Período';
                     appointmentsValue.textContent = dashboardDataCache.periodAppointments;
-                    paymentDetailsTitle.textContent = 'Faturamento no Período por Pagamento';
+                    paymentDetailsTitle.textContent = 'Faturamento por Pagamento no Período';
                     
                     paymentDetailsContainer.innerHTML = '';
                     if (Object.keys(dashboardDataCache.periodPaymentMethodTotals).length > 0) {
@@ -301,7 +301,7 @@
         const ctx = document.getElementById('servicesChart').getContext('2d');
         const servicesChart = new Chart(ctx, { type: 'pie', data: { labels: [], datasets: [{ label: 'Vendas', data: [], backgroundColor: ['#B76E79', '#D49A9A', '#FADADD', '#A9606C', '#C98B8B', '#E3BDBD'], borderColor: '#FFF9F9', borderWidth: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } });
 
-        async function fetchDashboardData() {
+        async function fetchDashboardData(isFilterAction = false) {
             const user = auth.currentUser;
             if (!user) return;
 
@@ -353,8 +353,6 @@
                     dailyPaymentMethodTotals[method] = (dailyPaymentMethodTotals[method] || 0) + sale.total;
                 });
                 
-                const isFiltered = selectedMonth !== new Date().getMonth() || selectedYear !== new Date().getFullYear();
-
                 dashboardDataCache = { 
                     monthlyRevenue: periodRevenue, 
                     dailyRevenue, 
@@ -363,7 +361,7 @@
                     serviceCounts,
                     periodAppointments,
                     periodPaymentMethodTotals,
-                    isFilteredPeriod: isFiltered
+                    isFilteredPeriod: isFilterAction
                 };
                 
                 servicesChart.data.labels = Object.keys(serviceCounts);
@@ -375,7 +373,7 @@
             } catch (error) { console.error("Erro ao buscar dados do dashboard: ", error); }
         }
 
-        document.getElementById('filter-apply').addEventListener('click', fetchDashboardData);
+        document.getElementById('filter-apply').addEventListener('click', () => fetchDashboardData(true));
 
         // --- LÓGICA DE COMPARTILHAR E BAIXAR (ATUALIZADA) ---
         document.getElementById('download-btn').addEventListener('click', () => {
@@ -405,7 +403,7 @@
             });
 
             const paymentData = dashboardDataCache.isFilteredPeriod ? dashboardDataCache.periodPaymentMethodTotals : dashboardDataCache.dailyPaymentMethodTotals;
-            const paymentTitle = dashboardDataCache.isFilteredPeriod ? "Faturamento no Período por Pagamento" : "Faturamento Diário por Pagamento";
+            const paymentTitle = dashboardDataCache.isFilteredPeriod ? "Faturamento por Pagamento no Período" : "Faturamento Diário por Pagamento";
             const paymentBody = Object.entries(paymentData).map(([method, total]) => {
                 return [method, total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })];
             });
@@ -442,7 +440,13 @@
             
             let shareText = `*Relatório Bronzify - ${periodText}*\n\n`;
             shareText += `*Faturamento:* ${dashboardDataCache.monthlyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n`;
-            shareText += `*Atendimentos (hoje):* ${dashboardDataCache.dailyAppointments}\n\n`;
+            
+            if(dashboardDataCache.isFilteredPeriod) {
+                shareText += `*Atendimentos no Período:* ${dashboardDataCache.periodAppointments}\n\n`;
+            } else {
+                shareText += `*Atendimentos (hoje):* ${dashboardDataCache.dailyAppointments}\n\n`;
+            }
+
             shareText += `*Serviços mais realizados:*\n`;
             for (const service in dashboardDataCache.serviceCounts) {
                 shareText += `- ${service}: ${dashboardDataCache.serviceCounts[service]}\n`;
