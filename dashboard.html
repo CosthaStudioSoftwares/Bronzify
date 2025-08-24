@@ -113,7 +113,13 @@
             <!-- Área do Relatório -->
             <div id="report-content">
                 <!-- Cards de Métricas Principais -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <!-- ALTERAÇÃO: Grid agora tem 4 colunas em telas médias e 2 em telas pequenas -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- Card de Assinatura (NOVO) -->
+                    <div class="bg-white p-6 rounded-2xl shadow-md">
+                        <h3 id="subscription-title" class="text-lg font-semibold text-gray-500">Status da Assinatura</h3>
+                        <p id="subscription-days" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">Carregando...</p>
+                    </div>
                     <div class="bg-white p-6 rounded-2xl shadow-md">
                         <h3 id="revenue-title" class="text-lg font-semibold text-gray-500">Faturamento Mensal</h3>
                         <p id="monthly-revenue" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">R$ *******</p>
@@ -214,7 +220,7 @@
         mobileSidebarOverlay.addEventListener('click', closeSidebar);
 
 
-        // *** CORREÇÃO APLICADA AQUI: Inicia o contexto de áudio com uma interação do usuário ***
+        // Inicia o contexto de áudio com uma interação do usuário
         document.body.addEventListener('click', async () => {
             if (!isAudioContextStarted && typeof Tone !== 'undefined') {
                 await Tone.start();
@@ -227,7 +233,8 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 document.body.classList.remove('opacity-0');
-                // document.getElementById('user-email').textContent = user.email; // Removido para simplificar header mobile
+                // ALTERAÇÃO: Chama a função que busca os dados do usuário
+                await checkUserPlan(user); 
                 await checkAdminPasswordSetup(user);
                 await fetchDashboardData();
                 listenForHelpRequests(user);
@@ -236,6 +243,52 @@
 
         document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = 'index.html'));
         document.getElementById('logout-btn-mobile').addEventListener('click', () => signOut(auth).then(() => window.location.href = 'index.html'));
+
+        // --- LÓGICA DO STATUS DA ASSINATURA (NOVO) ---
+        async function checkUserPlan(user) {
+            const userProfileRef = doc(db, "users", user.uid);
+            try {
+                const docSnap = await getDoc(userProfileRef);
+                const statusEl = document.getElementById('subscription-days');
+                const titleEl = document.getElementById('subscription-title');
+
+                if (docSnap.exists() && docSnap.data().plan && docSnap.data().plan.expiresAt) {
+                    const userData = docSnap.data();
+                    const expiresAtDate = userData.plan.expiresAt.toDate();
+                    const now = new Date();
+                    // Zera as horas para comparar apenas os dias
+                    now.setHours(0, 0, 0, 0);
+                    expiresAtDate.setHours(0, 0, 0, 0);
+
+                    const diffTime = expiresAtDate.getTime() - now.getTime();
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    if (diffDays > 0) {
+                        statusEl.textContent = `${diffDays} dia${diffDays > 1 ? 's' : ''}`;
+                        titleEl.textContent = 'Sua assinatura expira em';
+                        if (diffDays <= 7) { // Adiciona cor de aviso para 7 dias ou menos
+                           statusEl.classList.remove('text-[#B76E79]');
+                           statusEl.classList.add('text-amber-600');
+                        }
+                    } else {
+                        statusEl.textContent = 'Expirada';
+                        titleEl.textContent = 'Sua assinatura está';
+                        statusEl.classList.remove('text-[#B76E79]');
+                        statusEl.classList.add('text-red-600');
+                    }
+                } else {
+                    // Se não tiver plano, pode ser um usuário novo
+                    titleEl.textContent = 'Status da Assinatura';
+                    statusEl.textContent = 'Inativa';
+                    statusEl.classList.remove('text-[#B76E79]');
+                    statusEl.classList.add('text-gray-500');
+                }
+            } catch (error) {
+                console.error("Erro ao buscar plano do usuário:", error);
+                const statusEl = document.getElementById('subscription-days');
+                statusEl.textContent = 'Erro';
+            }
+        }
 
         // --- LÓGICA DO ALERTA DE AJUDA ---
         const helpAlertModal = document.getElementById('help-alert-modal');
@@ -278,7 +331,7 @@
             }
         });
 
-        // O restante do código JS (modo ADM, dashboard, etc.) permanece o mesmo...
+        // --- LÓGICA DO MODO ADM E DASHBOARD (sem alterações, apenas mantida) ---
         const adminModeBtn = document.getElementById('admin-mode-btn');
         const adminPasswordModal = document.getElementById('admin-password-modal');
         const adminPasswordForm = document.getElementById('admin-password-form');
@@ -432,7 +485,6 @@
             }
         });
 
-        // --- LÓGICA DO DASHBOARD ---
         const monthSelect = document.getElementById('filter-month');
         const yearSelect = document.getElementById('filter-year');
         const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -528,7 +580,6 @@
             fetchDashboardData(true);
         });
 
-        // --- LÓGICA DE COMPARTILHAR E BAIXAR (ATUALIZADA) ---
         document.getElementById('download-btn').addEventListener('click', () => {
             if (!isAdminModeActive || !dashboardDataCache) {
                 alert("Ative o Modo ADM para baixar o relatório.");
