@@ -136,18 +136,6 @@
             </div>
         </div>
 
-        <!-- Modal de Confirmação de Exclusão -->
-        <div id="delete-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 text-center modal-content transform scale-95">
-                <h3 class="text-xl text-gray-800 mb-4">Confirmar Exclusão</h3>
-                <p id="delete-modal-text" class="text-gray-600 mb-6"></p>
-                <div class="flex justify-center gap-4">
-                    <button type="button" id="cancel-delete-btn" class="px-6 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Cancelar</button>
-                    <button type="button" id="confirm-delete-btn" class="px-6 py-2 bg-red-600 text-white rounded-lg hover:opacity-90">Excluir</button>
-                </div>
-            </div>
-        </div>
-
         <!-- Modal de Vencedor do Sorteio -->
         <div id="winner-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
             <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 text-center modal-content transform scale-95">
@@ -168,6 +156,7 @@
     <!-- SCRIPTS CENTRALIZADOS -->
     <script src="./config.js"></script>
     <script type="module" src="./layout.js"></script>
+    <script src="./utils.js"></script> <!-- NOVO SCRIPT DE UTILIDADES -->
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -251,10 +240,7 @@
             try {
                 const querySnapshot = await getDocs(q);
                 allClientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-                // ALTERAÇÃO: Ordena por nome em ordem alfabética
                 allClientsData.sort((a, b) => a.name.localeCompare(b.name));
-
                 renderClients(allClientsData);
             } catch (error) {
                 console.error("Erro ao carregar clientes: ", error);
@@ -266,7 +252,6 @@
             loadAllClients();
         }
 
-        // --- LÓGICA DE PESQUISA E FILTROS ---
         const searchInput = document.getElementById('search-input');
         const searchResultsContainer = document.getElementById('search-results');
         searchInput.addEventListener('input', () => {
@@ -333,7 +318,6 @@
             }
         }
 
-        // --- LÓGICA DO MODAL (ADD/EDIT/DELETE) ---
         const modal = document.getElementById('client-modal');
         const modalTitle = document.getElementById('modal-title');
         const clientForm = document.getElementById('client-form');
@@ -341,27 +325,15 @@
         const clientNameField = document.getElementById('client-name');
         const clientPhoneField = document.getElementById('client-phone');
         const clientBirthdateField = document.getElementById('client-birthdate');
-        const deleteModal = document.getElementById('delete-confirm-modal');
-        let clientIdToDelete = null;
-
-        // ALTERAÇÃO: Adiciona a máscara de telefone
+        
         clientPhoneField.addEventListener('input', (e) => {
             let value = e.target.value.replace(/\D/g, '');
             value = value.substring(0, 11);
             let formattedValue = '';
-
-            if (value.length > 0) {
-                formattedValue = '(' + value.substring(0, 2);
-            }
-            if (value.length > 2) {
-                formattedValue += ') ' + value.substring(2, 3);
-            }
-            if (value.length > 3) {
-                formattedValue += ' ' + value.substring(3, 7);
-            }
-            if (value.length > 7) {
-                formattedValue += '-' + value.substring(7, 11);
-            }
+            if (value.length > 0) { formattedValue = '(' + value.substring(0, 2); }
+            if (value.length > 2) { formattedValue += ') ' + value.substring(2, 3); }
+            if (value.length > 3) { formattedValue += ' ' + value.substring(3, 7); }
+            if (value.length > 7) { formattedValue += '-' + value.substring(7, 11); }
             e.target.value = formattedValue;
         });
 
@@ -385,7 +357,7 @@
         document.getElementById('add-client-btn').addEventListener('click', openModalForNew);
         document.getElementById('cancel-btn').addEventListener('click', () => modal.classList.add('hidden'));
         
-        clientsListEl.addEventListener('click', (e) => {
+        clientsListEl.addEventListener('click', async (e) => {
             const editBtn = e.target.closest('.edit-btn');
             const deleteBtn = e.target.closest('.delete-btn');
             if (editBtn) {
@@ -394,24 +366,20 @@
                 if (clientToEdit) openModalForEdit(clientToEdit);
             }
             if (deleteBtn) {
-                clientIdToDelete = deleteBtn.dataset.id;
-                document.getElementById('delete-modal-text').textContent = `Você tem certeza que deseja excluir "${deleteBtn.dataset.name}"?`;
-                deleteModal.classList.remove('hidden');
-            }
-        });
-
-        document.getElementById('cancel-delete-btn').addEventListener('click', () => deleteModal.classList.add('hidden'));
-        document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
-            if (!clientIdToDelete || !currentUser) return;
-            const clientRef = doc(db, "businesses", currentUser.uid, "clients", clientIdToDelete);
-            try {
-                await deleteDoc(clientRef);
-                alert("Cliente excluído com sucesso!");
-                deleteModal.classList.add('hidden');
-                loadAllClients();
-            } catch (error) {
-                console.error("Erro ao excluir cliente:", error);
-                alert("Erro ao excluir cliente.");
+                const clientIdToDelete = deleteBtn.dataset.id;
+                const clientNameToDelete = deleteBtn.dataset.name;
+                const confirmed = await showConfirm(`Você tem certeza que deseja excluir "${clientNameToDelete}"?`);
+                if(confirmed) {
+                    const clientRef = doc(db, "businesses", currentUser.uid, "clients", clientIdToDelete);
+                    try {
+                        await deleteDoc(clientRef);
+                        showNotification("Cliente excluído com sucesso!", "success");
+                        loadAllClients();
+                    } catch (error) {
+                        console.error("Erro ao excluir cliente:", error);
+                        showNotification("Erro ao excluir cliente.", "error");
+                    }
+                }
             }
         });
 
@@ -432,25 +400,24 @@
                 if (clientId) {
                     const clientRef = doc(clientsRef, clientId);
                     await updateDoc(clientRef, clientData);
-                    alert("Cliente atualizado com sucesso!");
+                    showNotification("Cliente atualizado com sucesso!", "success");
                 } else {
-                    // ALTERAÇÃO: Verifica se o telefone já existe antes de cadastrar
                     const q = query(clientsRef, where("phone", "==", clientData.phone));
                     const querySnapshot = await getDocs(q);
                     if (!querySnapshot.empty) {
-                        alert("Erro: Já existe um cliente cadastrado com este número de telefone.");
+                        showNotification("Erro: Já existe um cliente com este telefone.", "error");
                         return;
                     }
                     
                     clientData.createdAt = new Date();
                     await addDoc(clientsRef, clientData);
-                    alert("Cliente cadastrado com sucesso!");
+                    showNotification("Cliente cadastrado com sucesso!", "success");
                 }
                 modal.classList.add('hidden');
                 loadAllClients();
             } catch (error) {
                 console.error("Erro ao salvar cliente: ", error);
-                alert("Erro ao salvar cliente.");
+                showNotification("Erro ao salvar cliente.", "error");
             }
         });
 
@@ -468,7 +435,7 @@
             if (!currentUser) return;
             const selectedMonths = Array.from(raffleMonthsSelect.selectedOptions).map(opt => parseInt(opt.value));
             if (selectedMonths.length === 0) {
-                alert("Por favor, selecione pelo menos um mês para o sorteio.");
+                showNotification("Por favor, selecione pelo menos um mês para o sorteio.", "info");
                 return;
             }
 
@@ -495,7 +462,7 @@
                 });
 
                 if (salesInPeriod.length === 0) {
-                    alert("Nenhum cliente elegível encontrado para os meses selecionados.");
+                    showNotification("Nenhum cliente elegível encontrado para os meses selecionados.", "info");
                     return;
                 }
 
@@ -509,14 +476,14 @@
                     winnerModal.classList.remove('hidden');
                     lucide.createIcons();
                 } else {
-                    alert("Cliente sorteado não encontrado no cadastro.");
+                    showNotification("Cliente sorteado não encontrado no cadastro.", "error");
                 }
 
             } catch (error) {
                 console.error("Erro ao realizar sorteio: ", error);
-                alert("Ocorreu um erro ao buscar os dados para o sorteio.");
+                showNotification("Ocorreu um erro ao buscar os dados para o sorteio.", "error");
             }
         });
     </script>
 </body>
-</ht
+</html>
