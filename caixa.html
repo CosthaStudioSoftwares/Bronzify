@@ -202,6 +202,7 @@
     <!-- SCRIPTS CENTRALIZADOS -->
     <script src="./config.js"></script>
     <script type="module" src="./layout.js"></script>
+    <script src="./utils.js"></script> <!-- NOVO SCRIPT DE UTILIDADES -->
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -220,11 +221,10 @@
         let editingSaleId = null;
         let isAudioContextStarted = false;
         let synth = null;
-        let discountType = 'value'; // 'value' or 'percent'
+        let discountType = 'value';
 
         // A lógica do menu e do logout foi movida para layout.js
 
-        // Inicia o contexto de áudio com uma interação do usuário
         document.body.addEventListener('click', async () => {
             if (!isAudioContextStarted && typeof Tone !== 'undefined') {
                 await Tone.start();
@@ -240,13 +240,12 @@
                 loadAllClients();
                 loadServicesAndProducts();
                 loadDailySales();
-                listenForHelpRequests(user); // Inicia o ouvinte de ajuda
+                listenForHelpRequests(user);
             } else {
                 window.location.href = './index.html';
             }
         });
 
-        // --- LÓGICA DO ALERTA DE AJUDA ---
         const helpAlertModal = document.getElementById('help-alert-modal');
         const helpAlertMessage = document.getElementById('help-alert-message');
         const closeHelpAlertBtn = document.getElementById('close-help-alert');
@@ -287,7 +286,6 @@
             }
         });
 
-        // --- LÓGICA DE BUSCA DE CLIENTE ---
         const clientSearchInput = document.getElementById('client-search');
         const searchResultsContainer = document.getElementById('search-results');
         const selectedClientDisplay = document.getElementById('selected-client-display');
@@ -338,7 +336,6 @@
         }
         document.addEventListener('click', (e) => { if (!clientSearchInput.contains(e.target)) searchResultsContainer.classList.add('hidden'); });
 
-        // --- LÓGICA DE SERVIÇOS E PRODUTOS (COM PACOTES) ---
         const servicesContainer = document.getElementById('services-container');
 
         async function loadServicesAndProducts() {
@@ -398,7 +395,7 @@
                                 <button type="button" class="quantity-btn plus-btn bg-rose-200 text-rose-700 rounded-full w-7 h-7 flex items-center justify-center font-bold">+</button>
                             </div>
                         </div>`;
-                } else { // extras
+                } else {
                     itemHtml = `
                         <div class="service-item-container" id="item-container-${item.id}">
                             <input type="checkbox" id="${item.id}" data-price="${item.price}" data-name="${item.name}" class="hidden">
@@ -427,7 +424,6 @@
                 const price = parseFloat(itemEl.dataset.price);
                 const priceEl = itemEl.querySelector('.service-price-display');
                 const packageContainer = itemEl.querySelector('.package-option-container');
-
                 const remainingSessions = selectedClient.packages && selectedClient.packages[itemName] ? selectedClient.packages[itemName] : 0;
 
                 if (remainingSessions > 0) {
@@ -440,7 +436,6 @@
             });
         }
 
-        // --- LÓGICA DO MODAL DE ITEM E AÇÕES (CORRIGIDO) ---
         const itemModal = document.getElementById('item-modal');
         const itemForm = document.getElementById('item-form');
         const itemModalTitle = document.getElementById('item-modal-title');
@@ -470,15 +465,17 @@
 
         async function handleDeleteItem(id) {
             if (!currentUser) return;
-            if (!confirm('Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.')) return;
+            const confirmed = await showConfirm('Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.');
+            if (!confirmed) return;
+            
             try {
                 const productRef = doc(db, "businesses", currentUser.uid, "products", id);
                 await deleteDoc(productRef);
-                alert('Item excluído com sucesso!');
+                showNotification('Item excluído com sucesso!', 'success');
                 loadServicesAndProducts();
             } catch (error) {
                 console.error("Erro ao excluir item:", error);
-                alert('Erro ao excluir item.');
+                showNotification('Erro ao excluir item.', 'error');
             }
         }
 
@@ -510,21 +507,20 @@
                 if (id) {
                     const productRef = doc(productsRef, id);
                     await updateDoc(productRef, itemData);
-                    alert("Item atualizado com sucesso!");
+                    showNotification("Item atualizado com sucesso!", 'success');
                 } else {
                     await addDoc(productsRef, itemData);
-                    alert("Item salvo com sucesso!");
+                    showNotification("Item salvo com sucesso!", 'success');
                 }
                 itemForm.reset();
                 itemModal.classList.add('hidden');
                 loadServicesAndProducts();
             } catch (error) {
                 console.error("Erro ao salvar item:", error);
-                alert("Erro ao salvar item.");
+                showNotification("Erro ao salvar item.", 'error');
             }
         });
 
-        // --- LÓGICA DA FRENTE DE CAIXA E FORMATAÇÃO ---
         const subtotalEl = document.getElementById('subtotal');
         const discountInputEl = document.getElementById('discount-input');
         const discountAppliedEl = document.getElementById('discount-applied');
@@ -543,7 +539,6 @@
         }
         itemPriceInput.addEventListener('input', () => formatCurrency(itemPriceInput));
         
-        // Eventos para o tipo de desconto
         discountTypeValueBtn.addEventListener('click', () => {
             discountType = 'value';
             discountInputEl.placeholder = '0,00';
@@ -570,13 +565,13 @@
                 discountTypeValueBtn.classList.add('bg-gray-100', 'text-gray-500');
                 discountTypeValueBtn.classList.remove('bg-rose-100', 'text-rose-700');
             }
-            discountInputEl.value = ''; // Limpa o campo ao trocar o tipo
+            discountInputEl.value = '';
         }
 
         discountInputEl.addEventListener('input', () => {
             if (discountType === 'value') {
                 formatCurrency(discountInputEl);
-            } else { // percent
+            } else {
                 let value = discountInputEl.value.replace(/[^0-9]/g, '');
                 discountInputEl.value = value;
             }
@@ -588,45 +583,34 @@
             document.querySelectorAll('#bronze-services .service-item').forEach(itemEl => {
                 const checkbox = itemEl.querySelector('.service-checkbox');
                 if (!checkbox.checked) return;
-
                 const itemName = itemEl.dataset.name;
                 const price = parseFloat(itemEl.dataset.price);
                 const remainingSessions = selectedClient && selectedClient.packages && selectedClient.packages[itemName] ? selectedClient.packages[itemName] : 0;
-
-                if (remainingSessions > 0) {
-                    // Custo zero
-                } else {
+                if (remainingSessions <= 0) {
                     const isPackagePurchase = itemEl.querySelector('.package-checkbox').checked;
                     currentSubtotal += isPackagePurchase ? price * 3 : price;
                 }
             });
-            
             document.querySelectorAll('.consumable-item').forEach(item => {
                 const quantity = parseInt(item.querySelector('.quantity-input').value) || 0;
                 const price = parseFloat(item.dataset.price);
                 currentSubtotal += quantity * price;
             });
-            
             document.querySelectorAll('#extras .service-item-container input:checked').forEach(item => {
                 currentSubtotal += parseFloat(item.dataset.price);
             });
-
             let discountValue = 0;
             const rawInputValue = discountInputEl.value;
-
             if (discountType === 'value') {
                 const discountString = rawInputValue.replace(/\D/g, '');
                 discountValue = discountString ? parseInt(discountString, 10) / 100 : 0;
-            } else { // percent
+            } else {
                 const percent = parseFloat(rawInputValue) || 0;
                 if (percent > 0) {
                     discountValue = currentSubtotal * (percent / 100);
                 }
             }
-
-            // Garante que o desconto não seja maior que o subtotal
             discountValue = Math.min(currentSubtotal, discountValue);
-
             const currentTotal = currentSubtotal - discountValue;
             subtotalEl.textContent = currentSubtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             discountAppliedEl.textContent = `- ${discountValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
@@ -635,7 +619,6 @@
 
         function rebindAllEvents() {
             document.querySelectorAll('.service-checkbox, .package-checkbox, #extras .service-item-container input[type="checkbox"]').forEach(item => item.addEventListener('change', calculateTotal));
-            
             document.querySelectorAll('.quantity-input').forEach(input => input.addEventListener('input', calculateTotal));
             document.querySelectorAll('.minus-btn').forEach(btn => btn.addEventListener('click', (e) => {
                 const input = e.target.nextElementSibling;
@@ -650,7 +633,6 @@
             }));
         }
         
-        // --- LÓGICA PARA SALVAR VENDA ---
         document.getElementById('save-sale-btn').addEventListener('click', async () => {
             if (!currentUser) return;
             const totalString = totalEl.textContent.replace(/\D/g, '');
@@ -662,11 +644,9 @@
             document.querySelectorAll('#bronze-services .service-item').forEach(itemEl => {
                 const checkbox = itemEl.querySelector('.service-checkbox');
                 if (!checkbox.checked) return;
-
                 const itemName = itemEl.dataset.name;
                 const price = parseFloat(itemEl.dataset.price);
                 const remainingSessions = selectedClient && selectedClient.packages && selectedClient.packages[itemName] ? selectedClient.packages[itemName] : 0;
-                
                 if (remainingSessions > 0) {
                     const sessionNumber = 3 - remainingSessions + 1;
                     saleItems.push({ name: `${itemName} (Uso de Pacote ${sessionNumber}/3)`, price: 0, quantity: 1 });
@@ -692,7 +672,7 @@
             document.querySelectorAll('#extras .service-item-container input:checked').forEach(i => saleItems.push({ name: i.dataset.name, price: parseFloat(i.dataset.price), quantity: 1 }));
 
             if (saleItems.length === 0) {
-                alert("Nenhum item selecionado para a venda.");
+                showNotification("Nenhum item selecionado para a venda.", "info");
                 return;
             }
 
@@ -719,7 +699,6 @@
                     const saleRef = doc(db, "businesses", currentUser.uid, "sales", editingSaleId);
                     const originalSaleDoc = await getDoc(saleRef);
                     const originalSaleData = originalSaleDoc.data();
-
                     const reversalPayload = {};
                     if (originalSaleData.clientId && originalSaleData.items) {
                         originalSaleData.items.forEach(item => {
@@ -736,41 +715,34 @@
                             await updateDoc(clientRef, reversalPayload);
                         }
                     }
-                    
                     if (selectedClient && Object.keys(packageUpdatePayload).length > 0) {
                         const clientRef = doc(db, "businesses", currentUser.uid, "clients", selectedClient.id);
                         await updateDoc(clientRef, packageUpdatePayload);
                     }
                     await updateDoc(saleRef, salePayload);
-                    alert('Venda atualizada com sucesso!');
-
+                    showNotification('Venda atualizada com sucesso!', 'success');
                 } else {
                     const password = await getNextPassword();
                     salePayload.password = password;
                     const salesRef = collection(db, "businesses", currentUser.uid, "sales");
                     await addDoc(salesRef, salePayload);
-
                     if (selectedClient && Object.keys(packageUpdatePayload).length > 0) {
                         const clientRef = doc(db, "businesses", currentUser.uid, "clients", selectedClient.id);
                         await updateDoc(clientRef, packageUpdatePayload);
                     }
-
                     document.getElementById('generated-password').textContent = password;
                     document.getElementById('password-display').classList.remove('hidden');
-                    alert(`Venda salva! Senha do cliente: ${password}`);
+                    showNotification(`Venda salva! Senha do cliente: ${password}`, 'success');
                 }
-
                 await loadAllClients();
                 loadDailySales();
                 resetSaleForm();
-
             } catch (error) {
                 console.error("Erro ao salvar venda:", error);
-                alert("Ocorreu um erro ao salvar a venda.");
+                showNotification("Ocorreu um erro ao salvar a venda.", 'error');
             }
         });
         
-        // --- FUNÇÕES AUXILIARES, ATENDIMENTOS DO DIA, ETC ---
         async function getNextPassword() {
             if (!currentUser) return '000';
             const today = new Date();
@@ -778,7 +750,6 @@
             const month = String(today.getMonth() + 1).padStart(2, '0');
             const day = String(today.getDate()).padStart(2, '0');
             const todayId = `${year}-${month}-${day}`;
-
             const counterRef = doc(db, "businesses", currentUser.uid, "dailyCounters", todayId);
             const counterSnap = await getDoc(counterRef);
             let nextNumber = counterSnap.exists() ? counterSnap.data().lastPassword + 1 : 1;
@@ -792,7 +763,6 @@
                 const priceFormatted = (price || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                 const priceEl = itemEl.querySelector('.service-price-display');
                 const packageContainer = itemEl.querySelector('.package-option-container');
-
                 if (priceEl) {
                     priceEl.textContent = priceFormatted;
                 }
@@ -832,7 +802,7 @@
                 const saleTime = sale.createdAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                 const row = `
                     <tr class="border-b hover:bg-gray-50">
-                        <td class="p-2 font-mono">${sale.password}</td>
+                        <td class="p-2 font-mono">${sale.password || 'N/A'}</td>
                         <td class="p-2 font-semibold">${sale.clientName}</td>
                         <td class="p-2">${saleTime}</td>
                         <td class="p-2">${(sale.total || 0).toLocaleString('pt-BR', {style:'currency', currency: 'BRL'})}</td>
@@ -860,7 +830,7 @@
             try {
                 const saleRef = doc(db, "businesses", currentUser.uid, "sales", id);
                 const saleDoc = await getDoc(saleRef);
-                if (!saleDoc.exists()) { alert('Venda não encontrada.'); return; }
+                if (!saleDoc.exists()) { showNotification('Venda não encontrada.', 'error'); return; }
                 const saleData = saleDoc.data();
                 
                 resetSaleForm();
@@ -873,8 +843,10 @@
                     clientSearchInput.value = saleData.clientName;
                 }
 
-                document.querySelectorAll('.service-checkbox, .package-checkbox').forEach(cb => cb.checked = false);
-                document.querySelectorAll('.quantity-input').forEach(input => input.value = 0);
+                document.querySelectorAll('.service-checkbox, .package-checkbox, .quantity-input, #extras input[type="checkbox"]').forEach(el => {
+                    if(el.type === 'checkbox') el.checked = false;
+                    if(el.type === 'number') el.value = 0;
+                });
 
                 saleData.items.forEach(saleItem => {
                     const baseName = saleItem.name.split(' (')[0];
@@ -886,7 +858,6 @@
                         } else {
                             const serviceCheckbox = serviceItemEl.querySelector('.service-checkbox');
                             if (serviceCheckbox) serviceCheckbox.checked = true;
-                            
                             if (saleItem.name.includes('(Compra de Pacote 1/3)')) {
                                 const packageCheckbox = serviceItemEl.querySelector('.package-checkbox');
                                 if (packageCheckbox) packageCheckbox.checked = true;
@@ -894,35 +865,33 @@
                         }
                     }
                     
-                    const extraItemContainer = Array.from(document.querySelectorAll('#extras .service-item-container label')).find(el => el.querySelector('span').textContent === baseName);
-                    if(extraItemContainer){
-                        document.getElementById(extraItemContainer.getAttribute('for')).checked = true;
-                    }
+                    const extraItemInput = document.querySelector(`#extras input[data-name="${baseName}"]`);
+                    if(extraItemInput) extraItemInput.checked = true;
                 });
                 
-                discountType = 'value'; // Ao editar, sempre voltamos para o tipo R$
+                discountType = 'value';
                 updateDiscountButtonsUI();
                 discountInputEl.value = (saleData.discount || 0) > 0 ? (saleData.discount || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '';
-
                 document.getElementById('payment-method').value = saleData.paymentMethod;
-
                 calculateTotal();
                 document.getElementById('save-sale-btn').textContent = 'Atualizar Venda';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             } catch (error) {
                 console.error("Erro ao carregar venda para edição:", error);
-                alert('Erro ao carregar venda.');
+                showNotification('Erro ao carregar venda.', 'error');
             }
         }
 
         async function handleDeleteSale(id) {
             if (!currentUser) return;
-            if (!confirm('Tem certeza que deseja excluir esta venda?')) return;
+            const confirmed = await showConfirm('Tem certeza que deseja excluir esta venda?');
+            if (!confirmed) return;
+
             try {
                 const saleRef = doc(db, "businesses", currentUser.uid, "sales", id);
                 const saleDoc = await getDoc(saleRef);
                 if (!saleDoc.exists()) {
-                    alert("Venda não encontrada para excluir.");
+                    showNotification("Venda não encontrada para excluir.", "error");
                     return;
                 }
                 const saleData = saleDoc.data();
@@ -945,15 +914,15 @@
                 }
 
                 await deleteDoc(saleRef);
-                alert('Venda excluída com sucesso!');
+                showNotification('Venda excluída com sucesso!', 'success');
                 await loadAllClients();
                 loadDailySales();
             } catch (error) {
                 console.error("Erro ao excluir venda:", error);
-                alert('Erro ao excluir venda.');
+                showNotification('Erro ao excluir venda.', 'error');
             }
         }
 
     </script>
 </body>
-<
+</html>
