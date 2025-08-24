@@ -113,9 +113,8 @@
             <!-- Área do Relatório -->
             <div id="report-content">
                 <!-- Cards de Métricas Principais -->
-                <!-- ALTERAÇÃO: Grid agora tem 4 colunas em telas médias e 2 em telas pequenas -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <!-- Card de Assinatura (NOVO) -->
+                    <!-- Card de Assinatura -->
                     <div class="bg-white p-6 rounded-2xl shadow-md">
                         <h3 id="subscription-title" class="text-lg font-semibold text-gray-500">Status da Assinatura</h3>
                         <p id="subscription-days" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">Carregando...</p>
@@ -233,7 +232,7 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 document.body.classList.remove('opacity-0');
-                // ALTERAÇÃO: Chama a função que busca os dados do usuário
+                // Chama a função que busca os dados do usuário e valida o plano
                 await checkUserPlan(user); 
                 await checkAdminPasswordSetup(user);
                 await fetchDashboardData();
@@ -244,7 +243,7 @@
         document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = 'index.html'));
         document.getElementById('logout-btn-mobile').addEventListener('click', () => signOut(auth).then(() => window.location.href = 'index.html'));
 
-        // --- LÓGICA DO STATUS DA ASSINATURA (NOVO) ---
+        // --- LÓGICA DO STATUS DA ASSINATURA (COM CORREÇÃO DE ACESSO) ---
         async function checkUserPlan(user) {
             const userProfileRef = doc(db, "users", user.uid);
             try {
@@ -256,32 +255,30 @@
                     const userData = docSnap.data();
                     const expiresAtDate = userData.plan.expiresAt.toDate();
                     const now = new Date();
-                    // Zera as horas para comparar apenas os dias
                     now.setHours(0, 0, 0, 0);
                     expiresAtDate.setHours(0, 0, 0, 0);
 
                     const diffTime = expiresAtDate.getTime() - now.getTime();
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-                    if (diffDays > 0) {
-                        statusEl.textContent = `${diffDays} dia${diffDays > 1 ? 's' : ''}`;
-                        titleEl.textContent = 'Sua assinatura expira em';
-                        if (diffDays <= 7) { // Adiciona cor de aviso para 7 dias ou menos
-                           statusEl.classList.remove('text-[#B76E79]');
-                           statusEl.classList.add('text-amber-600');
-                        }
-                    } else {
-                        statusEl.textContent = 'Expirada';
-                        titleEl.textContent = 'Sua assinatura está';
-                        statusEl.classList.remove('text-[#B76E79]');
-                        statusEl.classList.add('text-red-600');
+                    // CORREÇÃO: Redireciona se a assinatura estiver expirada
+                    if (diffDays <= 0) {
+                        alert("Sua assinatura expirou. Por favor, renove seu acesso para continuar.");
+                        window.location.href = './ativacao.html';
+                        return; // Impede o resto da função de rodar
+                    }
+
+                    // Lógica de exibição (só roda se a assinatura for válida)
+                    statusEl.textContent = `${diffDays} dia${diffDays > 1 ? 's' : ''}`;
+                    titleEl.textContent = 'Sua assinatura expira em';
+                    if (diffDays <= 7) {
+                       statusEl.classList.remove('text-[#B76E79]');
+                       statusEl.classList.add('text-amber-600');
                     }
                 } else {
-                    // Se não tiver plano, pode ser um usuário novo
-                    titleEl.textContent = 'Status da Assinatura';
-                    statusEl.textContent = 'Inativa';
-                    statusEl.classList.remove('text-[#B76E79]');
-                    statusEl.classList.add('text-gray-500');
+                    // CORREÇÃO: Redireciona se não houver plano ativo
+                    alert("Você não possui uma assinatura ativa. Por favor, ative seu acesso.");
+                    window.location.href = './ativacao.html';
                 }
             } catch (error) {
                 console.error("Erro ao buscar plano do usuário:", error);
@@ -667,3 +664,4 @@
     </script>
 </body>
 </html>
+" in the docume
