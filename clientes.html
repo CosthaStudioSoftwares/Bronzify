@@ -394,6 +394,30 @@
                 birthdate: clientBirthdateField.value,
             };
 
+            // --- INÍCIO DA VALIDAÇÃO DE DUPLICADOS ---
+            const inputName = clientData.name.trim().toLowerCase();
+            const inputPhone = clientData.phone.replace(/\D/g, ''); // Remove formatação do telefone
+
+            const duplicate = allClientsData.find(client => {
+                // Se estiver editando, não compara o cliente com ele mesmo
+                if (clientId && client.id === clientId) {
+                    return false;
+                }
+                const clientName = client.name.trim().toLowerCase();
+                const clientPhone = (client.phone || '').replace(/\D/g, '');
+                return clientName === inputName || clientPhone === inputPhone;
+            });
+
+            if (duplicate) {
+                if (duplicate.name.trim().toLowerCase() === inputName) {
+                    showNotification('Erro: Já existe um cliente com este nome.', 'error');
+                } else {
+                    showNotification('Erro: Já existe um cliente com este telefone.', 'error');
+                }
+                return; // Para a execução se encontrar um duplicado
+            }
+            // --- FIM DA VALIDAÇÃO DE DUPLICADOS ---
+
             const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
 
             try {
@@ -402,13 +426,6 @@
                     await updateDoc(clientRef, clientData);
                     showNotification("Cliente atualizado com sucesso!", "success");
                 } else {
-                    const q = query(clientsRef, where("phone", "==", clientData.phone));
-                    const querySnapshot = await getDocs(q);
-                    if (!querySnapshot.empty) {
-                        showNotification("Erro: Já existe um cliente com este telefone.", "error");
-                        return;
-                    }
-                    
                     clientData.createdAt = new Date();
                     await addDoc(clientsRef, clientData);
                     showNotification("Cliente cadastrado com sucesso!", "success");
