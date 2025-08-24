@@ -31,7 +31,7 @@ self.addEventListener('install', event => {
   );
 });
 
-// Evento 'fetch': é disparado toda vez que a página faz uma requisição (ex: carregar uma imagem, um CSS, etc.)
+// Evento 'fetch': é disparado toda vez que a página faz uma requisição
 self.addEventListener('fetch', event => {
   event.respondWith(
     // Procura a requisição no cache primeiro
