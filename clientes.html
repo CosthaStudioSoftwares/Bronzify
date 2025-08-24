@@ -72,8 +72,7 @@
                         <h3 class="text-2xl text-gray-800 mb-4">Pesquisar Clientes</h3>
                         <div class="flex flex-col gap-4">
                             <div class="relative flex-grow">
-                                <input type="text" id="search-input" placeholder="Digite nome ou telefone para buscar..." class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]">
-                                <div id="search-results" class="absolute z-10 w-full bg-white border rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
+                                <input type="text" id="search-input" placeholder="Comece a digitar um nome para buscar..." class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]">
                             </div>
                             <div class="flex flex-col sm:flex-row gap-4">
                                 <button id="birthday-filter-btn" class="flex-1 bg-pink-100 text-[#B76E79] px-4 py-2 rounded-lg hover:bg-pink-200 flex items-center justify-center gap-2">
@@ -91,7 +90,7 @@
                     <div class="bg-white p-6 rounded-2xl shadow-md">
                         <h3 class="text-2xl text-gray-800 mb-4">Lista de Clientes</h3>
                         <div id="clients-list" class="space-y-4">
-                            <p class="text-gray-500">Nenhum cliente cadastrado.</p>
+                            <p class="text-gray-500">Faça uma busca ou use os filtros para ver os clientes.</p>
                         </div>
                     </div>
                 </div>
@@ -161,31 +160,28 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, getDocs, doc, updateDoc, deleteDoc, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, getDocs, doc, updateDoc, deleteDoc, where, Timestamp, orderBy, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // A variável firebaseConfig agora vem do arquivo config.js
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
         let currentUser = null;
         const clientsListEl = document.getElementById('clients-list');
-        let allClientsData = []; 
+        let allClientsData = []; // Usado para filtros e sorteio
+        let lastSearchResults = []; // Usado para renderizar a lista atual
         let isBirthdayFilterActive = false;
         let isPackageFilterActive = false;
-
-        // A lógica do menu e do logout foi movida para layout.js
+        let searchTimeout;
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
                 document.body.classList.remove('opacity-0');
-                loadPageData(); 
             } else {
                 window.location.href = 'index.html';
             }
         });
-
 
         function renderClients(clientsToRender) {
             clientsListEl.innerHTML = '';
@@ -233,73 +229,51 @@
             lucide.createIcons();
         }
 
-        async function loadAllClients() {
-            if (!currentUser) return;
-            const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
-            const q = query(clientsRef);
-            try {
-                const querySnapshot = await getDocs(q);
-                allClientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                allClientsData.sort((a, b) => a.name.localeCompare(b.name));
-                renderClients(allClientsData);
-            } catch (error) {
-                console.error("Erro ao carregar clientes: ", error);
-                clientsListEl.innerHTML = '<p class="text-red-500">Erro ao carregar a lista de clientes.</p>';
-            }
-        }
-
-        function loadPageData() {
-            loadAllClients();
-        }
-
+        // --- LÓGICA DE PESQUISA E FILTROS OTIMIZADA ---
         const searchInput = document.getElementById('search-input');
-        const searchResultsContainer = document.getElementById('search-results');
-        searchInput.addEventListener('input', () => {
-            const searchTerm = searchInput.value.toLowerCase();
+
+        async function performSearch() {
+            if (!currentUser) return;
+            const searchTerm = searchInput.value.trim();
+            
             if (searchTerm.length < 2) {
-                searchResultsContainer.classList.add('hidden');
-                renderClients(allClientsData);
+                clientsListEl.innerHTML = '<p class="text-gray-500">Digite pelo menos 2 caracteres para buscar.</p>';
                 return;
             }
-            const filteredClients = allClientsData.filter(client => 
-                client.name.toLowerCase().includes(searchTerm) || 
-                client.phone.includes(searchTerm)
-            );
             
-            searchResultsContainer.innerHTML = '';
-            if (filteredClients.length > 0) {
-                filteredClients.forEach(client => {
-                    const item = document.createElement('div');
-                    item.className = 'p-3 hover:bg-gray-100 cursor-pointer';
-                    item.textContent = `${client.name} - ${client.phone}`;
-                    item.onclick = () => {
-                        searchInput.value = client.name;
-                        searchResultsContainer.classList.add('hidden');
-                        renderClients([client]);
-                    };
-                    searchResultsContainer.appendChild(item);
-                });
-                searchResultsContainer.classList.remove('hidden');
+            clientsListEl.innerHTML = '<p class="text-gray-500">Buscando...</p>';
+
+            const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
+            const searchTermCapitalized = searchTerm.charAt(0).toUpperCase() + searchTerm.slice(1);
+            const endTerm = searchTermCapitalized + '\uf8ff';
+
+            const q = query(clientsRef, orderBy("name"), startAt(searchTermCapitalized), endAt(endTerm));
+
+            try {
+                const querySnapshot = await getDocs(q);
+                lastSearchResults = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderClients(lastSearchResults);
+            } catch (error) {
+                console.error("Erro ao buscar clientes:", error);
+                showNotification("Erro ao buscar clientes.", "error");
             }
-        });
-        document.addEventListener('click', (e) => { if (!searchInput.contains(e.target)) searchResultsContainer.classList.add('hidden'); });
+        }
 
-        document.getElementById('birthday-filter-btn').addEventListener('click', () => {
-            isPackageFilterActive = false;
-            isBirthdayFilterActive = !isBirthdayFilterActive;
-            searchInput.value = '';
-            applyFilters();
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(performSearch, 500); // Espera 500ms após o usuário parar de digitar
         });
+        
+        async function applyFilter(filterType) {
+             if (!currentUser) return;
+             clientsListEl.innerHTML = '<p class="text-gray-500">Carregando todos os clientes para filtrar...</p>';
+             
+             // Para filtros, carregamos todos os clientes uma vez, pois o Firestore não suporta consultas complexas como "mês de aniversário"
+             const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
+             const querySnapshot = await getDocs(clientsRef);
+             allClientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        document.getElementById('package-filter-btn').addEventListener('click', () => {
-            isBirthdayFilterActive = false;
-            isPackageFilterActive = !isPackageFilterActive;
-            searchInput.value = '';
-            applyFilters();
-        });
-
-        function applyFilters() {
-            if (isBirthdayFilterActive) {
+             if (filterType === 'birthday') {
                 const currentMonth = new Date().getMonth() + 1;
                 const birthdayClients = allClientsData.filter(client => {
                     if (!client.birthdate) return false;
@@ -307,17 +281,38 @@
                     return birthMonth === currentMonth;
                 });
                 renderClients(birthdayClients);
-            } else if (isPackageFilterActive) {
+             } else if (filterType === 'package') {
                 const packageClients = allClientsData.filter(client => {
                     if (!client.packages) return false;
                     return Object.values(client.packages).some(count => count > 0);
                 });
                 renderClients(packageClients);
-            } else {
-                renderClients(allClientsData);
-            }
+             }
         }
 
+        document.getElementById('birthday-filter-btn').addEventListener('click', () => {
+            isPackageFilterActive = false;
+            isBirthdayFilterActive = !isBirthdayFilterActive;
+            searchInput.value = '';
+            if (isBirthdayFilterActive) {
+                applyFilter('birthday');
+            } else {
+                clientsListEl.innerHTML = '<p class="text-gray-500">Faça uma busca ou use os filtros para ver os clientes.</p>';
+            }
+        });
+
+        document.getElementById('package-filter-btn').addEventListener('click', () => {
+            isBirthdayFilterActive = false;
+            isPackageFilterActive = !isPackageFilterActive;
+            searchInput.value = '';
+            if (isPackageFilterActive) {
+                applyFilter('package');
+            } else {
+                clientsListEl.innerHTML = '<p class="text-gray-500">Faça uma busca ou use os filtros para ver os clientes.</p>';
+            }
+        });
+
+        // --- LÓGICA DO MODAL (ADD/EDIT/DELETE) ---
         const modal = document.getElementById('client-modal');
         const modalTitle = document.getElementById('modal-title');
         const clientForm = document.getElementById('client-form');
@@ -362,7 +357,8 @@
             const deleteBtn = e.target.closest('.delete-btn');
             if (editBtn) {
                 const clientId = editBtn.dataset.id;
-                const clientToEdit = allClientsData.find(c => c.id === clientId);
+                // Busca o cliente na lista renderizada atualmente
+                const clientToEdit = lastSearchResults.find(c => c.id === clientId) || allClientsData.find(c => c.id === clientId);
                 if (clientToEdit) openModalForEdit(clientToEdit);
             }
             if (deleteBtn) {
@@ -374,7 +370,8 @@
                     try {
                         await deleteDoc(clientRef);
                         showNotification("Cliente excluído com sucesso!", "success");
-                        loadAllClients();
+                        // Limpa a lista para forçar uma nova busca
+                        clientsListEl.innerHTML = '<p class="text-gray-500">Faça uma busca ou use os filtros para ver os clientes.</p>';
                     } catch (error) {
                         console.error("Erro ao excluir cliente:", error);
                         showNotification("Erro ao excluir cliente.", "error");
@@ -394,33 +391,30 @@
                 birthdate: clientBirthdateField.value,
             };
 
-            // --- INÍCIO DA VALIDAÇÃO DE DUPLICADOS ---
-            const inputName = clientData.name.trim().toLowerCase();
-            const inputPhone = clientData.phone.replace(/\D/g, ''); // Remove formatação do telefone
-
-            const duplicate = allClientsData.find(client => {
-                // Se estiver editando, não compara o cliente com ele mesmo
-                if (clientId && client.id === clientId) {
-                    return false;
-                }
-                const clientName = client.name.trim().toLowerCase();
-                const clientPhone = (client.phone || '').replace(/\D/g, '');
-                return clientName === inputName || clientPhone === inputPhone;
-            });
-
-            if (duplicate) {
-                if (duplicate.name.trim().toLowerCase() === inputName) {
-                    showNotification('Erro: Já existe um cliente com este nome.', 'error');
-                } else {
-                    showNotification('Erro: Já existe um cliente com este telefone.', 'error');
-                }
-                return; // Para a execução se encontrar um duplicado
-            }
-            // --- FIM DA VALIDAÇÃO DE DUPLICADOS ---
-
             const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
+            
+            // Validação de duplicados direto no banco
+            const inputName = clientData.name.trim();
+            const inputPhone = clientData.phone;
+
+            const nameQuery = query(clientsRef, where("name", "==", inputName));
+            const phoneQuery = query(clientsRef, where("phone", "==", inputPhone));
 
             try {
+                const [nameSnapshot, phoneSnapshot] = await Promise.all([getDocs(nameQuery), getDocs(phoneQuery)]);
+                
+                let nameExists = !nameSnapshot.empty && nameSnapshot.docs[0].id !== clientId;
+                let phoneExists = !phoneSnapshot.empty && phoneSnapshot.docs[0].id !== clientId;
+
+                if (nameExists) {
+                    showNotification('Erro: Já existe um cliente com este nome.', 'error');
+                    return;
+                }
+                if (phoneExists) {
+                    showNotification('Erro: Já existe um cliente com este telefone.', 'error');
+                    return;
+                }
+
                 if (clientId) {
                     const clientRef = doc(clientsRef, clientId);
                     await updateDoc(clientRef, clientData);
@@ -431,7 +425,8 @@
                     showNotification("Cliente cadastrado com sucesso!", "success");
                 }
                 modal.classList.add('hidden');
-                loadAllClients();
+                // Limpa a lista para forçar uma nova busca
+                clientsListEl.innerHTML = '<p class="text-gray-500">Faça uma busca ou use os filtros para ver os clientes.</p>';
             } catch (error) {
                 console.error("Erro ao salvar cliente: ", error);
                 showNotification("Erro ao salvar cliente.", "error");
@@ -450,6 +445,13 @@
 
         document.getElementById('raffle-btn').addEventListener('click', async () => {
             if (!currentUser) return;
+            // Para o sorteio, precisamos de todos os clientes. Carregamos se ainda não tivermos.
+            if (allClientsData.length === 0) {
+                 const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
+                 const querySnapshot = await getDocs(clientsRef);
+                 allClientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            }
+
             const selectedMonths = Array.from(raffleMonthsSelect.selectedOptions).map(opt => parseInt(opt.value));
             if (selectedMonths.length === 0) {
                 showNotification("Por favor, selecione pelo menos um mês para o sorteio.", "info");
