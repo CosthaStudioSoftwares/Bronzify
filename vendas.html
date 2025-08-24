@@ -31,49 +31,7 @@
 <body class="bg-gray-50">
 
     <div class="flex h-screen">
-        <!-- Sidebar para Desktop -->
-        <aside class="w-64 bg-white shadow-lg flex-shrink-0 hidden lg:flex flex-col">
-            <div class="p-6">
-                <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
-            </div>
-            <nav class="mt-6 px-4 flex-1">
-                <a href="./dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a>
-                <a href="./clientes.html" class="sidebar-link"><i data-lucide="users"></i> Clientes</a>
-                <a href="./caixa.html" class="sidebar-link"><i data-lucide="dollar-sign"></i> Caixa</a>
-                <a href="./vendas.html" class="sidebar-link active"><i data-lucide="shopping-cart"></i> Vendas</a>
-                <a href="./ordem-chegada.html" class="sidebar-link"><i data-lucide="list-ordered"></i> Ordem de Chegada</a>
-                <a href="./patio.html" class="sidebar-link"><i data-lucide="sun"></i> Pátio</a>
-            </nav>
-            <div class="p-4">
-                 <button id="logout-btn" class="w-full flex items-center justify-center gap-2 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors duration-300"><i data-lucide="log-out"></i> Sair</button>
-            </div>
-        </aside>
-
-        <!-- Sidebar para Mobile -->
-        <div id="mobile-sidebar" class="fixed inset-0 z-40 flex lg:hidden sidebar-mobile">
-            <aside class="w-64 bg-white shadow-lg flex-shrink-0 flex flex-col">
-                <div class="p-6 flex justify-between items-center">
-                    <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
-                    <button id="close-menu-btn" class="p-1">
-                        <i data-lucide="x" class="w-6 h-6"></i>
-                    </button>
-                </div>
-               <nav class="mt-6 px-4 flex-1">
-                    <a href="./dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a>
-                    <a href="./clientes.html" class="sidebar-link"><i data-lucide="users"></i> Clientes</a>
-                    <a href="./caixa.html" class="sidebar-link"><i data-lucide="dollar-sign"></i> Caixa</a>
-                    <a href="./vendas.html" class="sidebar-link active"><i data-lucide="shopping-cart"></i> Vendas</a>
-                    <a href="./ordem-chegada.html" class="sidebar-link"><i data-lucide="list-ordered"></i> Ordem de Chegada</a>
-                    <a href="./patio.html" class="sidebar-link"><i data-lucide="sun"></i> Pátio</a>
-                </nav>
-                <div class="p-4">
-                     <button id="logout-btn-mobile" class="w-full flex items-center justify-center gap-2 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors duration-300">
-                        <i data-lucide="log-out"></i> Sair
-                    </button>
-                </div>
-            </aside>
-            <div id="mobile-sidebar-overlay" class="flex-1 bg-black bg-opacity-50"></div>
-        </div>
+        <!-- O MENU SERÁ INSERIDO AQUI PELO layout.js -->
 
         <!-- Main Content -->
         <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
@@ -137,20 +95,16 @@
       const { jsPDF } = window.jspdf;
     </script>
     
+    <!-- SCRIPTS CENTRALIZADOS -->
+    <script src="./config.js"></script>
+    <script type="module" src="./layout.js"></script>
+    
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, query, where, getDocs, Timestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
-            authDomain: "bronzify-b2491.firebaseapp.com",
-            projectId: "bronzify-b2491",
-            storageBucket: "bronzify-b2491.appspot.com",
-            messagingSenderId: "399230151633",
-            appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
-        };
-
+        // A variável firebaseConfig agora vem do arquivo config.js
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -159,19 +113,7 @@
         let allClients = [];
         let lastSearchResults = []; // Armazena os últimos resultados da busca
 
-        // --- LÓGICA DO MENU MOBILE ---
-        const mobileSidebar = document.getElementById('mobile-sidebar');
-        const openMenuBtn = document.getElementById('open-menu-btn');
-        const closeMenuBtn = document.getElementById('close-menu-btn');
-        const mobileSidebarOverlay = document.getElementById('mobile-sidebar-overlay');
-
-        function openSidebar() { mobileSidebar.classList.add('open'); }
-        function closeSidebar() { mobileSidebar.classList.remove('open'); }
-
-        openMenuBtn.addEventListener('click', openSidebar);
-        closeMenuBtn.addEventListener('click', closeSidebar);
-        mobileSidebarOverlay.addEventListener('click', closeSidebar);
-
+        // A lógica do menu e do logout foi movida para layout.js
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -181,10 +123,6 @@
                 window.location.href = 'index.html';
             }
         });
-
-        document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).then(() => window.location.href = 'index.html'));
-        document.getElementById('logout-btn-mobile').addEventListener('click', () => signOut(auth).then(() => window.location.href = 'index.html'));
-
 
         // --- LÓGICA DOS FILTROS ---
         const monthSelect = document.getElementById('filter-month');
@@ -362,5 +300,3 @@
     </script>
 </body>
 </html>
-
-
