@@ -7,15 +7,19 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#B76E79">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Bronzify">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <meta name="theme-color" content="#B76E79">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Bronzify">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+
     <style>
         body {
             font-family: 'Poppins', sans-serif;
@@ -41,11 +45,20 @@
             margin-right: 0.75rem;
         }
         .patio-card {
-            transition: opacity 0.5s ease, transform 0.5s ease;
+            transition: opacity 0.5s ease, transform 0.5s ease, box-shadow 0.3s ease;
         }
         .patio-card.removing {
             opacity: 0;
             transform: scale(0.95);
+        }
+        /* Classe para destacar o card que precisa de atenção */
+        .patio-card.needs-attention {
+            box-shadow: 0 0 0 4px #FBBF24; /* Borda amarela pulsante */
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0px rgba(251, 191, 36, 0.7); }
+            100% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); }
         }
         /* Estilos para a barra lateral móvel */
         .sidebar-mobile {
@@ -60,9 +73,6 @@
 <body class="bg-gray-50">
 
     <div class="flex h-screen">
-        <!-- O MENU SERÁ INSERIDO AQUI PELO layout.js -->
-
-        <!-- Main Content -->
         <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
             <header class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
                 <div class="flex items-center w-full">
@@ -71,15 +81,13 @@
                     </button>
                     <h2 class="text-3xl lg:text-4xl text-gray-800 w-full text-center sm:text-left">Pátio</h2>
                 </div>
-                <!-- BOTÃO DE AJUDA ADICIONADO -->
                 <button id="help-btn" class="w-full sm:w-auto bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 flex items-center justify-center gap-2 flex-shrink-0">
                     <i data-lucide="bell-ring"></i> Pedir Ajuda
                 </button>
             </header>
 
-            <div id="patio-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Cards de clientes serão populados dinamicamente -->
-            </div>
+            <div id="patio-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                </div>
             
             <div id="no-clients-patio" class="text-center py-16 text-gray-500 hidden">
                 <i data-lucide="sun" class="mx-auto w-16 h-16 mb-4"></i>
@@ -91,24 +99,42 @@
       lucide.createIcons();
     </script>
     
-    <!-- SCRIPTS CENTRALIZADOS -->
     <script src="./config.js"></script>
     <script type="module" src="./layout.js"></script>
-    
-    <script type="module">
+    <script src="./utils.js"></script> <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, query, where, onSnapshot, orderBy, doc, updateDoc, getDocs, Timestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // A variável firebaseConfig agora vem do arquivo config.js
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         
         let currentUser = null;
         let allProducts = [];
+        let synth = null; // Sintetizador de som
+        
+        // Objeto para gerenciar o estado de cada timer individualmente
+        const timerStates = {};
 
-        // A lógica do menu e do logout foi movida para layout.js
+        const TANNING_PHASES = [
+            { name: "Frente", image: "frente.png", instruction: "Por favor, posicione a cliente de FRENTE." },
+            { name: "Costas", image: "costas.png", instruction: "Por favor, posicione a cliente de COSTAS." },
+            { name: "Lado Esquerdo", image: "lado_esquerdo.png", instruction: "Por favor, posicione a cliente de LADO ESQUERDO." },
+            { name: "Lado Direito", image: "lado_direito.png", instruction: "Por favor, posicione a cliente de LADO DIREITO." },
+        ];
+
+        // Inicialização do áudio (requer clique do usuário na página)
+        document.body.addEventListener('click', () => {
+            if (Tone.context.state !== 'running') {
+                Tone.context.resume().then(() => {
+                    if (!synth) {
+                        synth = new Tone.Synth().toDestination();
+                        console.log("Contexto de áudio iniciado e sintetizador criado.");
+                    }
+                });
+            }
+        }, { once: true });
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -119,7 +145,6 @@
             }
         });
 
-        // --- LÓGICA DO BOTÃO DE AJUDA ---
         document.getElementById('help-btn').addEventListener('click', async () => {
             if (!currentUser) return;
             try {
@@ -128,10 +153,10 @@
                     page: "Pátio",
                     createdAt: Timestamp.now()
                 });
-                alert("Pedido de ajuda enviado para o Dashboard!");
+                showNotification("Pedido de ajuda enviado para o Dashboard!", "info");
             } catch (error) {
                 console.error("Erro ao enviar pedido de ajuda:", error);
-                alert("Não foi possível enviar o pedido de ajuda.");
+                showNotification("Não foi possível enviar o pedido de ajuda.", "error");
             }
         });
 
@@ -157,10 +182,7 @@
             todayStart.setHours(0, 0, 0, 0);
 
             const salesRef = collection(db, "businesses", currentUser.uid, "sales");
-            const q = query(
-                salesRef,
-                orderBy("createdAt", "asc")
-            );
+            const q = query(salesRef, orderBy("createdAt", "asc"));
 
             onSnapshot(q, (querySnapshot) => {
                 const patioClients = querySnapshot.docs
@@ -172,11 +194,7 @@
 
                 patioListContainer.innerHTML = '';
 
-                if (patioClients.length === 0) {
-                    noClientsMessage.classList.remove('hidden');
-                } else {
-                    noClientsMessage.classList.add('hidden');
-                }
+                noClientsMessage.classList.toggle('hidden', patioClients.length > 0);
 
                 patioClients.forEach((sale) => {
                     const bronzeItems = [], consumableItems = [], extraItems = [];
@@ -184,7 +202,6 @@
                     if (sale.items && Array.isArray(sale.items)) {
                         sale.items.forEach(saleItem => {
                             const productDetails = allProducts.find(p => saleItem.name.startsWith(p.name));
-                            
                             if (productDetails) {
                                 if (productDetails.category === 'bronze') bronzeItems.push(saleItem.name);
                                 else if (productDetails.category === 'consumable') consumableItems.push(`${saleItem.name} (x${saleItem.quantity})`);
@@ -199,15 +216,39 @@
                     card.className = 'patio-card bg-white p-5 rounded-2xl shadow-md flex flex-col';
                     card.id = `sale-${sale.id}`;
 
+                    // Gerador de opções de tempo para o <select>
+                    let timeOptions = '';
+                    for (let i = 1; i <= 60; i++) {
+                        timeOptions += `<option value="${i}" ${i === 10 ? 'selected' : ''}>${i} min</option>`;
+                    }
+
                     card.innerHTML = `
                         <div class="flex-grow">
                             <h3 class="text-2xl text-gray-800 font-bold mb-4">${sale.clientName}</h3>
-                            ${bronzeItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Bronze</h4><p class="text-gray-600">${bronzeItems.join(', ')}</p></div>` : ''}
-                            ${consumableItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Consumo</h4><p class="text-gray-600">${consumableItems.join(', ')}</p></div>` : ''}
-                            ${extraItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Adicionais</h4><p class="text-gray-600">${extraItems.join(', ')}</p></div>` : ''}
+                            ${bronzeItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Bronze</h4><p class="text-gray-600 text-sm">${bronzeItems.join(', ')}</p></div>` : ''}
+                            ${consumableItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Consumo</h4><p class="text-gray-600 text-sm">${consumableItems.join(', ')}</p></div>` : ''}
+                            ${extraItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Adicionais</h4><p class="text-gray-600 text-sm">${extraItems.join(', ')}</p></div>` : ''}
                         </div>
+                        
+                        <div class="timer-section mt-4 pt-4 border-t" data-sale-id="${sale.id}">
+                             <div class="flex items-center justify-between gap-2 mb-3">
+                                <label for="time-select-${sale.id}" class="text-sm font-medium text-gray-600">Tempo/Posição:</label>
+                                <select id="time-select-${sale.id}" class="time-select p-1 border rounded-md text-sm">
+                                    ${timeOptions}
+                                </select>
+                            </div>
+                            <div class="bg-gray-100 rounded-lg p-3 text-center">
+                                <div id="timer-display-${sale.id}" class="text-4xl font-mono font-bold text-gray-800 mb-2">00:00</div>
+                                <p id="phase-display-${sale.id}" class="text-sm font-semibold text-[#B76E79] h-5">Aguardando início</p>
+                                <img id="image-display-${sale.id}" src="" alt="Posição do bronze" class="mx-auto my-3 hidden" width="50" height="158" style="object-fit: contain;">
+                            </div>
+                            <button class="start-timer-btn w-full mt-3 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 flex items-center justify-center gap-2">
+                                <i data-lucide="play" class="w-5 h-5"></i> Iniciar Timer
+                            </button>
+                        </div>
+                        
                         <button data-id="${sale.id}" class="finish-btn mt-4 w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center justify-center gap-2">
-                            <i data-lucide="party-popper" class="w-5 h-5"></i> Finalizar
+                            <i data-lucide="party-popper" class="w-5 h-5"></i> Finalizar Atendimento
                         </button>
                     `;
                     patioListContainer.appendChild(card);
@@ -215,16 +256,117 @@
                 lucide.createIcons();
             });
         }
+        
+        // FUNÇÃO CENTRAL DO TIMER
+        function runTimerPhase(saleId, clientName) {
+            const state = timerStates[saleId];
+            const card = document.getElementById(`sale-${saleId}`);
+            if (!state || state.currentPhase >= TANNING_PHASES.length || !card) {
+                // Finaliza o ciclo
+                document.getElementById(`timer-display-${saleId}`).textContent = "Finalizado!";
+                document.getElementById(`phase-display-${saleId}`).textContent = "Sessão Concluída";
+                document.getElementById(`image-display-${saleId}`).classList.add('hidden');
+                document.querySelector(`#sale-${saleId} .start-timer-btn`).disabled = true;
+                return;
+            }
+
+            const phase = TANNING_PHASES[state.currentPhase];
+            const display = document.getElementById(`timer-display-${saleId}`);
+            const phaseDisplay = document.getElementById(`phase-display-${saleId}`);
+            const imageDisplay = document.getElementById(`image-display-${saleId}`);
+            
+            phaseDisplay.textContent = phase.name;
+            imageDisplay.src = phase.image;
+            imageDisplay.alt = phase.name;
+            imageDisplay.classList.remove('hidden');
+
+            let timeLeft = state.totalDuration;
+            
+            state.intervalId = setInterval(async () => {
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                display.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(state.intervalId);
+                    
+                    // Alarme híbrido
+                    if (synth) {
+                        synth.triggerAttackRelease("G5", "8n", Tone.now());
+                        synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.2);
+                        
+                        // Lembrete sonoro
+                        state.reminderIntervalId = setInterval(() => {
+                           if (synth) synth.triggerAttackRelease("C5", "8n");
+                        }, 10000); // Toca um bip suave a cada 10s
+                    }
+
+                    card.classList.add('needs-attention');
+
+                    const confirmed = await showConfirm(
+                        `${clientName}: ${phase.instruction}`, 
+                        'MUDANÇA DE POSIÇÃO', 
+                        'Confirmar'
+                    );
+
+                    clearInterval(state.reminderIntervalId); // Para o lembrete
+                    card.classList.remove('needs-attention');
+                    
+                    if (confirmed) {
+                        state.currentPhase++;
+                        runTimerPhase(saleId, clientName);
+                    } else {
+                        // Opcional: Lógica se o usuário cancelar
+                        phaseDisplay.textContent = "Timer pausado. Confirme para continuar.";
+                    }
+                }
+                timeLeft--;
+            }, 1000);
+        }
 
         patioListContainer.addEventListener('click', async (e) => {
             if (!currentUser) return;
-            const finishButton = e.target.closest('.finish-btn');
-            if (finishButton) {
-                if (!confirm('Confirmar a finalização do serviço para esta cliente?')) return;
+            const target = e.target;
+            
+            // Lógica para Iniciar o Timer
+            if (target.closest('.start-timer-btn')) {
+                const startButton = target.closest('.start-timer-btn');
+                const saleId = startButton.closest('.timer-section').dataset.saleId;
+                const saleCard = document.getElementById(`sale-${saleId}`);
+                const clientName = saleCard.querySelector('h3').textContent;
 
-                const saleId = finishButton.dataset.id;
-                const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
+                // Previne múltiplos inícios
+                startButton.disabled = true;
+                startButton.innerHTML = `<i data-lucide="timer" class="w-5 h-5"></i> Em Andamento`;
+                lucide.createIcons();
+
+                const selectedMinutes = document.getElementById(`time-select-${saleId}`).value;
                 
+                timerStates[saleId] = {
+                    intervalId: null,
+                    reminderIntervalId: null,
+                    currentPhase: 0,
+                    totalDuration: parseInt(selectedMinutes) * 60,
+                };
+                
+                runTimerPhase(saleId, clientName);
+            }
+
+            // Lógica para Finalizar o Atendimento (código original mantido)
+            if (target.closest('.finish-btn')) {
+                if (!confirm('Confirmar a finalização do serviço para esta cliente?')) return;
+                
+                const finishButton = target.closest('.finish-btn');
+                const saleId = finishButton.dataset.id;
+                
+                // Para todos os timers associados a este card se existirem
+                if (timerStates[saleId]) {
+                    clearInterval(timerStates[saleId].intervalId);
+                    clearInterval(timerStates[saleId].reminderIntervalId);
+                    delete timerStates[saleId];
+                }
+
+                const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
                 try {
                     const cardToRemove = document.getElementById(`sale-${saleId}`);
                     if (cardToRemove) cardToRemove.classList.add('removing');
@@ -242,16 +384,15 @@
         });
     </script>
     <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').then(registration => {
-        console.log('Service Worker registrado com sucesso:', registration);
-      }).catch(error => {
-        console.log('Falha ao registrar Service Worker:', error);
-      });
-    });
-  }
-</script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('Service Worker registrado com sucesso:', registration);
+          }).catch(error => {
+            console.log('Falha ao registrar Service Worker:', error);
+          });
+        });
+      }
+    </script>
 </body>
 </html>
-
