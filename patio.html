@@ -76,7 +76,7 @@
         let currentUser = null;
         let allProducts = [];
         let synth = null;
-        let localIntervals = {}; // Gerencia os intervalos visuais de cada card
+        let localIntervals = {};
 
         const TANNING_PHASES = [
             { name: "Frente", image: "frente.png", instruction: "Por favor, posicione a cliente de FRENTE." },
@@ -123,12 +123,9 @@
                     .filter(sale => sale.status === 'called' && sale.createdAt.toDate() >= todayStart);
 
                 noClientsMessage.classList.toggle('hidden', patioClients.length > 0);
-
-                // Gerencia os cards existentes para evitar piscar a tela inteira
                 const existingCards = new Set(Array.from(patioListContainer.children).map(c => c.id));
                 const clientsOnScreen = new Set(patioClients.map(c => `sale-${c.id}`));
 
-                // Remove cards de clientes que saíram
                 existingCards.forEach(cardId => {
                     if (!clientsOnScreen.has(cardId)) {
                         document.getElementById(cardId)?.remove();
@@ -184,16 +181,28 @@
             if (!card) return;
 
             const bronzeItems = [], consumableItems = [], extraItems = [];
+            // CORREÇÃO 1: Lógica para exibir os itens foi re-adicionada aqui
             if (sale.items && Array.isArray(sale.items)) {
-                sale.items.forEach(item => { /* Lógica para separar itens */ });
+                sale.items.forEach(saleItem => {
+                    const productDetails = allProducts.find(p => saleItem.name.startsWith(p.name));
+                    if (productDetails) {
+                        const itemName = saleItem.quantity > 1 ? `${saleItem.name} (x${saleItem.quantity})` : saleItem.name;
+                        if (productDetails.category === 'bronze') bronzeItems.push(itemName);
+                        else if (productDetails.category === 'consumable') consumableItems.push(itemName);
+                        else if (productDetails.category === 'extra') extraItems.push(itemName);
+                    } else if (saleItem.name.includes('(Pacote')) {
+                        bronzeItems.push(saleItem.name);
+                    }
+                });
             }
             card.querySelector('.client-details').innerHTML = `
                 <h3 class="text-2xl text-gray-800 font-bold mb-4">${sale.clientName}</h3>
                 ${bronzeItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Bronze</h4><p class="text-gray-600 text-sm">${bronzeItems.join(', ')}</p></div>` : ''}
-                `;
+                ${consumableItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Consumo</h4><p class="text-gray-600 text-sm">${consumableItems.join(', ')}</p></div>` : ''}
+                ${extraItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Adicionais</h4><p class="text-gray-600 text-sm">${extraItems.join(', ')}</p></div>` : ''}
+            `;
 
             if (localIntervals[sale.id]) clearInterval(localIntervals[sale.id]);
-
             if (sale.timerState && sale.timerState.status !== 'idle') {
                 handleTimerState(sale);
             }
@@ -209,6 +218,10 @@
             if (timerState.status === 'finished') {
                 updateCardUIToFinished(saleId);
                 return;
+            }
+
+            if (timerState.status === 'paused') {
+                card.classList.add('needs-attention');
             }
 
             const phase = TANNING_PHASES[timerState.currentPhase];
@@ -227,11 +240,9 @@
                 const seconds = timeLeft % 60;
                 document.getElementById(`timer-display-${saleId}`).textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
-                if (timeLeft <= 0) {
+                if (timeLeft <= 0 && timerState.status === 'running') {
                     clearInterval(localIntervals[saleId]);
-                    if (timerState.status === 'running') { // Apenas um dispositivo deve acionar o alarme
-                        handlePhaseEnd(sale);
-                    }
+                    handlePhaseEnd(sale);
                 }
             }, 1000);
         }
@@ -239,14 +250,16 @@
         async function handlePhaseEnd(sale) {
             const { id: saleId, clientName, timerState } = sale;
             const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
+            
+            // Apenas o primeiro dispositivo a detectar o fim do tempo deve acionar a lógica
+            if(timerState.status !== 'running') return; 
             await updateDoc(saleRef, { "timerState.status": "paused" });
 
             if (synth) {
                 synth.triggerAttackRelease("G5", "8n", Tone.now());
                 synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.2);
                 const reminderId = setInterval(() => { if (synth) synth.triggerAttackRelease("C5", "8n"); }, 10000);
-                document.getElementById(`sale-${saleId}`).classList.add('needs-attention');
-
+                
                 const nextPhaseIndex = timerState.currentPhase + 1;
                 const instruction = nextPhaseIndex < TANNING_PHASES.length 
                     ? TANNING_PHASES[nextPhaseIndex].instruction 
@@ -255,7 +268,6 @@
                 const confirmed = await showConfirm(instruction, 'MUDANÇA DE POSIÇÃO', 'Confirmar');
                 
                 clearInterval(reminderId);
-                document.getElementById(`sale-${saleId}`).classList.remove('needs-attention');
                 
                 if (confirmed) {
                     if (nextPhaseIndex < TANNING_PHASES.length) {
@@ -271,8 +283,28 @@
             }
         }
         
-        function updateCardUIToRunning(saleId) { /* ... */ }
-        function updateCardUIToFinished(saleId) { /* ... */ }
+        function updateCardUIToRunning(saleId) {
+            const card = document.getElementById(`sale-${saleId}`);
+            if(!card) return;
+            const startButton = card.querySelector('.start-timer-btn');
+            startButton.disabled = true;
+            startButton.innerHTML = `<i data-lucide="timer" class="w-5 h-5"></i> Em Andamento`;
+            lucide.createIcons();
+            card.querySelector('.time-select').disabled = true;
+        }
+
+        function updateCardUIToFinished(saleId) {
+            const card = document.getElementById(`sale-${saleId}`);
+            if(!card) return;
+            updateCardUIToRunning(saleId); // reusa para desabilitar
+            const startButton = card.querySelector('.start-timer-btn');
+            const display = document.getElementById(`timer-display-${saleId}`);
+            display.textContent = "Finalizado!";
+            document.getElementById(`phase-display-${saleId}`).textContent = "Sessão Concluída";
+            startButton.classList.replace('bg-green-500', 'bg-gray-400');
+            startButton.innerHTML = `<i data-lucide="check-check" class="w-5 h-5"></i> Concluído`;
+            lucide.createIcons();
+        }
 
         patioListContainer.addEventListener('click', async (e) => {
             const target = e.target.closest('button');
