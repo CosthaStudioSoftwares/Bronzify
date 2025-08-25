@@ -7,11 +7,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#B76E79">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Bronzify">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <meta name="theme-color" content="#B76E79">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Bronzify">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500&display=swap" rel="stylesheet">
@@ -20,14 +20,32 @@
         body { font-family: 'Poppins', sans-serif; }
         h1, h2, h3 { font-family: 'Playfair Display', serif; }
         .bg-gradient-bronzify { background: linear-gradient(135deg, #FADADD 0%, #B76E79 100%); }
+        /* Estilo para o spinner de carregamento */
+        .loader {
+            border: 4px solid #f3f3f3; /* Cinza claro */
+            border-top: 4px solid #B76E79; /* Cor principal */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-gray-50 flex items-center justify-center min-h-screen">
 
     <div class="container mx-auto p-4 flex justify-center">
         <div class="w-full max-w-md">
-            <!-- Seção de Login -->
-            <div id="login-section" class="bg-white rounded-2xl shadow-xl p-8">
+            <!-- NOVO: Seção de Carregamento -->
+            <div id="loader-section" class="flex justify-center items-center p-8">
+                <div class="loader"></div>
+            </div>
+
+            <!-- Seção de Login (começa escondida) -->
+            <div id="login-section" class="bg-white rounded-2xl shadow-xl p-8 hidden">
                 <h1 class="text-4xl text-center text-[#B76E79] mb-6">Bronzify</h1>
                 <form id="login-form">
                     <h2 class="text-2xl text-gray-700 mb-6 text-center">Acesse sua conta</h2>
@@ -39,8 +57,14 @@
                         <label for="login-password" class="block text-gray-600 mb-2">Senha</label>
                         <input type="password" id="login-password" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
                     </div>
-                    <div class="text-right mb-6">
-                        <a href="#" id="show-reset" class="text-sm text-[#B76E79] hover:underline">Esqueceu a senha?</a>
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center">
+                            <input id="remember-me" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-[#B76E79] focus:ring-[#B76E79]">
+                            <label for="remember-me" class="ml-2 block text-sm text-gray-600">Manter conectado</label>
+                        </div>
+                        <div class="text-sm">
+                            <a href="#" id="show-reset" class="text-[#B76E79] hover:underline">Esqueceu a senha?</a>
+                        </div>
                     </div>
                     <button type="submit" class="w-full bg-gradient-bronzify text-white py-2 rounded-lg hover:opacity-90 transition-opacity duration-300 mb-6">Entrar</button>
                 </form>
@@ -95,9 +119,18 @@
     </script>
 
     <script type="module">
-        // Importa as funções necessárias, incluindo a nova 'sendPasswordResetEmail'
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { 
+            getAuth, 
+            signInWithEmailAndPassword, 
+            createUserWithEmailAndPassword, 
+            sendEmailVerification, 
+            sendPasswordResetEmail,
+            onAuthStateChanged,
+            setPersistence,
+            browserLocalPersistence,
+            browserSessionPersistence
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -123,12 +156,38 @@
             }
         }
 
+        // Referências para as seções
+        const loaderSection = document.getElementById('loader-section');
+        const loginSection = document.getElementById('login-section');
+        
+        // Verifica o estado de autenticação
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // Se o usuário está logado, a função handleUserLogin fará o redirecionamento.
+                // O loader continuará visível até a próxima página carregar.
+                console.log('Usuário já conectado:', user.uid);
+                handleUserLogin(user);
+            } else {
+                // Se não há usuário, esconde o loader e mostra o formulário de login.
+                console.log('Nenhum usuário conectado.');
+                loaderSection.classList.add('hidden');
+                loginSection.classList.remove('hidden');
+            }
+        });
+
         const loginForm = document.getElementById('login-form');
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const email = loginForm['login-email'].value;
             const password = loginForm['login-password'].value;
-            signInWithEmailAndPassword(auth, email, password)
+            const rememberMe = document.getElementById('remember-me').checked;
+
+            const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+
+            setPersistence(auth, persistence)
+                .then(() => {
+                    return signInWithEmailAndPassword(auth, email, password);
+                })
                 .then((userCredential) => {
                     if (userCredential.user.emailVerified) {
                         handleUserLogin(userCredential.user);
@@ -166,7 +225,6 @@
                 });
         });
 
-        // Lógica para recuperação de senha
         const resetForm = document.getElementById('reset-form');
         resetForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -184,11 +242,8 @@
                 });
         });
         
-        // Lógica para alternar entre as seções de login, cadastro e recuperação
-        const loginSection = document.getElementById('login-section');
         const registerSection = document.getElementById('register-section');
         const resetSection = document.getElementById('reset-section');
-
         const showRegisterBtn = document.getElementById('show-register');
         const showLoginBtn = document.getElementById('show-login');
         const showResetBtn = document.getElementById('show-reset');
@@ -220,15 +275,15 @@
     </script>
 
     <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').then(registration => {
-        console.log('Service Worker registrado com sucesso:', registration);
-      }).catch(error => {
-        console.log('Falha ao registrar Service Worker:', error);
-      });
-    });
-  }
-</script>
+     if ('serviceWorker' in navigator) {
+       window.addEventListener('load', () => {
+         navigator.serviceWorker.register('/sw.js').then(registration => {
+           console.log('Service Worker registrado com sucesso:', registration);
+         }).catch(error => {
+           console.log('Falha ao registrar Service Worker:', error);
+         });
+       });
+     }
+    </script>
 </body>
 </html>
