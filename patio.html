@@ -21,53 +21,17 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
 
     <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #FFF9F9;
-        }
-        h1, h2, h3, h4 {
-            font-family: 'Playfair Display', serif;
-        }
-        .sidebar-link {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1.25rem;
-            border-radius: 0.75rem;
-            color: #4A5568;
-            transition: all 0.3s ease;
-            font-weight: 500;
-        }
-        .sidebar-link:hover, .sidebar-link.active {
-            background-color: #FADADD;
-            color: #B76E79;
-        }
-        .sidebar-link svg {
-            margin-right: 0.75rem;
-        }
-        .patio-card {
-            transition: opacity 0.5s ease, transform 0.5s ease, box-shadow 0.3s ease;
-        }
-        .patio-card.removing {
-            opacity: 0;
-            transform: scale(0.95);
-        }
-        /* Classe para destacar o card que precisa de atenção */
-        .patio-card.needs-attention {
-            box-shadow: 0 0 0 4px #FBBF24; /* Borda amarela pulsante */
-            animation: pulse 1.5s infinite;
-        }
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0px rgba(251, 191, 36, 0.7); }
-            100% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); }
-        }
-        /* Estilos para a barra lateral móvel */
-        .sidebar-mobile {
-            transform: translateX(-100%);
-            transition: transform 0.3s ease-in-out;
-        }
-        .sidebar-mobile.open {
-            transform: translateX(0);
-        }
+        body { font-family: 'Poppins', sans-serif; background-color: #FFF9F9; }
+        h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
+        .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1.25rem; border-radius: 0.75rem; color: #4A5568; transition: all 0.3s ease; font-weight: 500; }
+        .sidebar-link:hover, .sidebar-link.active { background-color: #FADADD; color: #B76E79; }
+        .sidebar-link svg { margin-right: 0.75rem; }
+        .patio-card { transition: opacity 0.5s ease, transform 0.5s ease, box-shadow 0.3s ease; }
+        .patio-card.removing { opacity: 0; transform: scale(0.95); }
+        .patio-card.needs-attention { box-shadow: 0 0 0 4px #FBBF24; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0px rgba(251, 191, 36, 0.7); } 100% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); } }
+        .sidebar-mobile { transform: translateX(-100%); transition: transform 0.3s ease-in-out; }
+        .sidebar-mobile.open { transform: translateX(0); }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -76,9 +40,7 @@
         <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
             <header class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
                 <div class="flex items-center w-full">
-                    <button id="open-menu-btn" class="lg:hidden p-2 -ml-2">
-                        <i data-lucide="menu" class="w-6 h-6 text-gray-800"></i>
-                    </button>
+                    <button id="open-menu-btn" class="lg:hidden p-2 -ml-2"><i data-lucide="menu" class="w-6 h-6 text-gray-800"></i></button>
                     <h2 class="text-3xl lg:text-4xl text-gray-800 w-full text-center sm:text-left">Pátio</h2>
                 </div>
                 <button id="help-btn" class="w-full sm:w-auto bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 flex items-center justify-center gap-2 flex-shrink-0">
@@ -86,8 +48,7 @@
                 </button>
             </header>
 
-            <div id="patio-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                </div>
+            <div id="patio-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
             
             <div id="no-clients-patio" class="text-center py-16 text-gray-500 hidden">
                 <i data-lucide="sun" class="mx-auto w-16 h-16 mb-4"></i>
@@ -101,10 +62,12 @@
     
     <script src="./config.js"></script>
     <script type="module" src="./layout.js"></script>
-    <script src="./utils.js"></script> <script type="module">
+    <script src="./utils.js"></script>
+    
+    <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, query, where, onSnapshot, orderBy, doc, updateDoc, getDocs, Timestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, query, onSnapshot, orderBy, doc, updateDoc, getDocs, Timestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -114,10 +77,8 @@
         let allProducts = [];
         let synth = null;
         
-        // Chave para salvar/recuperar o estado dos timers
-        const SESSION_STORAGE_KEY = 'bronzifyPatioTimers';
-
-        // Objeto para gerenciar o estado de cada timer individualmente
+        const TIMERS_STATE_KEY = 'bronzifyPatioTimers';
+        const COMPLETED_TIMERS_KEY = 'bronzifyCompletedTimers';
         let timerStates = {};
 
         const TANNING_PHASES = [
@@ -127,12 +88,9 @@
             { name: "Lado Direito", image: "lado_direito.png", instruction: "Por favor, posicione a cliente de LADO DIREITO." },
         ];
 
-        // Inicialização do áudio
         document.body.addEventListener('click', () => {
             if (Tone.context.state !== 'running') {
-                Tone.context.resume().then(() => {
-                    if (!synth) synth = new Tone.Synth().toDestination();
-                });
+                Tone.context.resume().then(() => { if (!synth) synth = new Tone.Synth().toDestination(); });
             }
         }, { once: true });
 
@@ -140,53 +98,39 @@
             if (user) {
                 currentUser = user;
                 loadProductsAndListenForClients();
-            } else {
-                window.location.href = './index.html';
-            }
+            } else { window.location.href = './index.html'; }
         });
         
-        // --- FUNÇÕES DE PERSISTÊNCIA ---
-        function saveTimersState() {
-            sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(timerStates));
+        function saveState() {
+            sessionStorage.setItem(TIMERS_STATE_KEY, JSON.stringify(timerStates));
         }
 
-        function restoreTimersState() {
-            const savedStateJSON = sessionStorage.getItem(SESSION_STORAGE_KEY);
+        function restoreState() {
+            const savedStateJSON = sessionStorage.getItem(TIMERS_STATE_KEY);
             if (!savedStateJSON) return;
-
             const savedStates = JSON.parse(savedStateJSON);
-            timerStates = {}; // Limpa o estado atual para restaurar
+            timerStates = {};
 
             for (const saleId in savedStates) {
                 const card = document.getElementById(`sale-${saleId}`);
-                if (card) { // Restaura apenas se o card ainda existir na tela
+                if (card) {
                     const savedState = savedStates[saleId];
                     const timeElapsed = Math.round((Date.now() - savedState.lastUpdated) / 1000);
                     const newTimeLeft = savedState.timeLeft - timeElapsed;
                     const clientName = card.querySelector('h3').textContent;
-
-                    // Atualiza o estado global
-                    timerStates[saleId] = { ...savedState, timeLeft: newTimeLeft };
                     
-                    // Atualiza a UI para o estado "em andamento"
+                    timerStates[saleId] = { ...savedState, timeLeft: newTimeLeft };
                     updateCardUIToRunning(saleId);
 
                     if (newTimeLeft <= 0) {
-                        // O tempo acabou enquanto a página estava recarregada
                         handlePhaseEnd(saleId, clientName);
                     } else {
-                        // Continua o timer de onde parou
                         runTimerPhase(saleId, clientName);
                     }
                 }
             }
         }
-
-        document.getElementById('help-btn').addEventListener('click', async () => {
-            if (!currentUser) return;
-            // (código original mantido)
-        });
-
+        
         async function loadProductsAndListenForClients() {
             if (!currentUser) return;
             try {
@@ -194,9 +138,7 @@
                 const productsSnapshot = await getDocs(productsRef);
                 allProducts = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 listenForPatioClients();
-            } catch (error) {
-                console.error("Erro ao carregar produtos:", error);
-            }
+            } catch (error) { console.error("Erro ao carregar produtos:", error); }
         }
 
         const patioListContainer = document.getElementById('patio-list');
@@ -204,10 +146,8 @@
 
         function listenForPatioClients() {
             if (!currentUser) return;
-
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
-
             const salesRef = collection(db, "businesses", currentUser.uid, "sales");
             const q = query(salesRef, orderBy("createdAt", "asc"));
 
@@ -216,11 +156,23 @@
                     .map(doc => ({ id: doc.id, ...doc.data() }))
                     .filter(sale => sale.status === 'called' && sale.createdAt.toDate() >= todayStart);
 
+                const completedTimers = JSON.parse(sessionStorage.getItem(COMPLETED_TIMERS_KEY) || '[]');
                 patioListContainer.innerHTML = '';
-                noClientsMessage.classList.toggle('hidden', patioClients.length > 0);
+                noClientsMessage.classList.toggle('hidden', patioClients.length === 0);
 
                 patioClients.forEach((sale) => {
-                    // --- CÓDIGO DE RENDERIZAÇÃO DO CARD (IDÊNTICO AO ANTERIOR) ---
+                    const bronzeItems = [], consumableItems = [], extraItems = [];
+                    if (sale.items && Array.isArray(sale.items)) {
+                        sale.items.forEach(saleItem => {
+                            const productDetails = allProducts.find(p => saleItem.name.startsWith(p.name));
+                            if (productDetails) {
+                                if (productDetails.category === 'bronze') bronzeItems.push(saleItem.name);
+                                else if (productDetails.category === 'consumable') consumableItems.push(`${saleItem.name} (x${saleItem.quantity})`);
+                                else if (productDetails.category === 'extra') extraItems.push(saleItem.name);
+                            } else if (saleItem.name.includes('(Pacote')) { bronzeItems.push(saleItem.name); }
+                        });
+                    }
+
                     const card = document.createElement('div');
                     card.className = 'patio-card bg-white p-5 rounded-2xl shadow-md flex flex-col';
                     card.id = `sale-${sale.id}`;
@@ -228,10 +180,15 @@
                     for (let i = 1; i <= 60; i++) {
                         timeOptions += `<option value="${i}" ${i === 10 ? 'selected' : ''}>${i} min</option>`;
                     }
+
+                    // CORREÇÃO 1: HTML dos itens re-adicionado
                     card.innerHTML = `
                         <div class="flex-grow">
                             <h3 class="text-2xl text-gray-800 font-bold mb-4">${sale.clientName}</h3>
-                            </div>
+                            ${bronzeItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Bronze</h4><p class="text-gray-600 text-sm">${bronzeItems.join(', ')}</p></div>` : ''}
+                            ${consumableItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Consumo</h4><p class="text-gray-600 text-sm">${consumableItems.join(', ')}</p></div>` : ''}
+                            ${extraItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Adicionais</h4><p class="text-gray-600 text-sm">${extraItems.join(', ')}</p></div>` : ''}
+                        </div>
                         <div class="timer-section mt-4 pt-4 border-t" data-sale-id="${sale.id}">
                              <div class="flex items-center justify-between gap-2 mb-3">
                                 <label for="time-select-${sale.id}" class="text-sm font-medium text-gray-600">Tempo/Posição:</label>
@@ -251,15 +208,17 @@
                         </button>
                     `;
                     patioListContainer.appendChild(card);
+                    
+                    // CORREÇÃO 3: Verifica se o timer já foi concluído na sessão
+                    if (completedTimers.includes(sale.id)) {
+                        updateCardUIToFinished(sale.id);
+                    }
                 });
                 lucide.createIcons();
-                
-                // **NOVO: Tenta restaurar os timers após renderizar os cards**
-                restoreTimersState();
+                restoreState();
             });
         }
-
-        // Função que lida com o fim de uma fase do timer
+        
         async function handlePhaseEnd(saleId, clientName) {
             const state = timerStates[saleId];
             if (!state) return;
@@ -267,7 +226,6 @@
             const card = document.getElementById(`sale-${saleId}`);
             clearInterval(state.intervalId);
 
-            // Alarme híbrido
             if (synth) {
                 synth.triggerAttackRelease("G5", "8n", Tone.now());
                 synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.2);
@@ -275,10 +233,13 @@
             }
 
             card.classList.add('needs-attention');
+            
             const nextPhaseIndex = state.currentPhase + 1;
-            const instruction = nextPhaseIndex < TANNING_PHASES.length ? TANNING_PHASES[nextPhaseIndex].instruction : "Sessão finalizada!";
+            const instruction = nextPhaseIndex < TANNING_PHASES.length 
+                ? TANNING_PHASES[nextPhaseIndex].instruction 
+                : `${clientName} finalizou todas as posições!`;
 
-            const confirmed = await showConfirm(`${clientName}: ${instruction}`, 'MUDANÇA DE POSIÇÃO', 'Confirmar');
+            const confirmed = await showConfirm(instruction, 'MUDANÇA DE POSIÇÃO', 'Confirmar');
             
             clearInterval(state.reminderIntervalId);
             card.classList.remove('needs-attention');
@@ -289,7 +250,7 @@
             } else {
                  document.getElementById(`phase-display-${saleId}`).textContent = "Timer pausado.";
                  state.isPaused = true;
-                 saveTimersState();
+                 saveState();
             }
         }
         
@@ -298,13 +259,19 @@
             const card = document.getElementById(`sale-${saleId}`);
 
             if (!state || state.currentPhase >= TANNING_PHASES.length || !card) {
-                document.getElementById(`timer-display-${saleId}`).textContent = "Finalizado!";
-                document.getElementById(`phase-display-${saleId}`).textContent = "Sessão Concluída";
-                document.getElementById(`image-display-${saleId}`).classList.add('hidden');
-                document.querySelector(`#sale-${saleId} .start-timer-btn`).disabled = true;
+                updateCardUIToFinished(saleId);
+                let completed = JSON.parse(sessionStorage.getItem(COMPLETED_TIMERS_KEY) || '[]');
+                if (!completed.includes(saleId)) completed.push(saleId);
+                sessionStorage.setItem(COMPLETED_TIMERS_KEY, JSON.stringify(completed));
                 delete timerStates[saleId];
-                saveTimersState();
+                saveState();
                 return;
+            }
+            
+            // CORREÇÃO 2: Reseta o timeLeft para a duração total a cada nova fase
+            if (state.isNewPhase) {
+                state.timeLeft = state.totalDuration;
+                state.isNewPhase = false;
             }
 
             const phase = TANNING_PHASES[state.currentPhase];
@@ -317,7 +284,6 @@
             imageDisplay.alt = phase.name;
             imageDisplay.classList.remove('hidden');
 
-            // Se o estado foi restaurado, `timeLeft` já está ajustado. Se for novo, usa a duração total.
             let timeLeft = state.timeLeft !== undefined ? state.timeLeft : state.totalDuration;
 
             state.intervalId = setInterval(() => {
@@ -325,12 +291,12 @@
                 const seconds = timeLeft % 60;
                 display.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
                 
-                // Atualiza o estado e salva na sessionStorage a cada segundo
                 state.timeLeft = timeLeft;
                 state.lastUpdated = Date.now();
-                saveTimersState();
+                saveState();
 
                 if (timeLeft <= 0) {
+                    state.isNewPhase = true; // Marca que a próxima fase deve resetar o tempo
                     handlePhaseEnd(saleId, clientName);
                 }
                 timeLeft--;
@@ -347,44 +313,53 @@
             card.querySelector('.time-select').disabled = true;
         }
 
+        function updateCardUIToFinished(saleId) {
+            const card = document.getElementById(`sale-${saleId}`);
+            if (!card) return;
+            document.getElementById(`timer-display-${saleId}`).textContent = "Finalizado!";
+            document.getElementById(`phase-display-${saleId}`).textContent = "Sessão Concluída";
+            document.getElementById(`image-display-${saleId}`).classList.add('hidden');
+            const startButton = card.querySelector('.start-timer-btn');
+            startButton.disabled = true;
+            startButton.classList.replace('bg-green-500', 'bg-gray-400');
+            startButton.innerHTML = `<i data-lucide="check-check" class="w-5 h-5"></i> Concluído`;
+            lucide.createIcons();
+            card.querySelector('.time-select').disabled = true;
+        }
+
         patioListContainer.addEventListener('click', async (e) => {
             if (!currentUser) return;
-            const target = e.target;
-            
-            if (target.closest('.start-timer-btn')) {
-                const startButton = target.closest('.start-timer-btn');
-                const saleId = startButton.closest('.timer-section').dataset.saleId;
-                const clientName = document.getElementById(`sale-${saleId}`).querySelector('h3').textContent;
+            const target = e.target.closest('button');
+            if (!target) return;
 
+            if (target.classList.contains('start-timer-btn')) {
+                const saleId = target.closest('.timer-section').dataset.saleId;
+                const clientName = document.getElementById(`sale-${saleId}`).querySelector('h3').textContent;
                 updateCardUIToRunning(saleId);
                 const selectedMinutes = document.getElementById(`time-select-${saleId}`).value;
-                
                 timerStates[saleId] = {
-                    intervalId: null,
-                    reminderIntervalId: null,
-                    currentPhase: 0,
+                    intervalId: null, reminderIntervalId: null, currentPhase: 0,
                     totalDuration: parseInt(selectedMinutes) * 60,
                     timeLeft: parseInt(selectedMinutes) * 60,
-                    lastUpdated: Date.now(),
-                    isPaused: false,
+                    lastUpdated: Date.now(), isPaused: false, isNewPhase: false,
                 };
-                
-                saveTimersState();
+                saveState();
                 runTimerPhase(saleId, clientName);
             }
 
-            if (target.closest('.finish-btn')) {
+            if (target.classList.contains('finish-btn')) {
                 if (!confirm('Confirmar a finalização do serviço para esta cliente?')) return;
-                
-                const finishButton = target.closest('.finish-btn');
-                const saleId = finishButton.dataset.id;
+                const saleId = target.dataset.id;
                 
                 if (timerStates[saleId]) {
                     clearInterval(timerStates[saleId].intervalId);
                     clearInterval(timerStates[saleId].reminderIntervalId);
                     delete timerStates[saleId];
-                    saveTimersState();
+                    saveState();
                 }
+
+                let completed = JSON.parse(sessionStorage.getItem(COMPLETED_TIMERS_KEY) || '[]');
+                sessionStorage.setItem(COMPLETED_TIMERS_KEY, JSON.stringify(completed.filter(id => id !== saleId)));
 
                 const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
                 try {
