@@ -123,7 +123,7 @@
                     .map(doc => ({ id: doc.id, ...doc.data() }))
                     .filter(sale => sale.status === 'called' && sale.createdAt.toDate() >= todayStart);
 
-                noClientsMessage.classList.toggle('hidden', patioClients.length === 0);
+                noClientsMessage.classList.toggle('hidden', patioClients.length > 0);
                 const existingCards = new Set(Array.from(patioListContainer.children).map(c => c.id));
                 const clientsOnScreen = new Set(patioClients.map(c => `sale-${c.id}`));
 
@@ -238,7 +238,7 @@
             imageDisplay.classList.remove('hidden');
 
             localIntervals[saleId] = setInterval(() => {
-                if (!sale.timerState) { // Failsafe
+                if (!sale.timerState) {
                     clearInterval(localIntervals[saleId]);
                     return;
                 }
@@ -248,7 +248,8 @@
 
                 const minutes = Math.floor(timeLeft / 60);
                 const seconds = timeLeft % 60;
-                document.getElementById(`timer-display-${saleId}`).textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                const display = document.getElementById(`timer-display-${saleId}`);
+                if (display) display.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
                 if (timeLeft <= 0 && timerState.status === 'running') {
                     clearInterval(localIntervals[saleId]);
@@ -262,7 +263,6 @@
             if (activeModals.has(saleId)) return;
             activeModals.add(saleId);
 
-            // CORREÇÃO: Tocar som e mostrar modal PRIMEIRO
             if (synth) {
                 synth.triggerAttackRelease("G5", "8n", Tone.now());
                 synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.2);
@@ -277,12 +277,10 @@
 
             const confirmed = await showConfirm(instruction, 'MUDANÇA DE POSIÇÃO', 'Confirmar');
             
-            // Limpa tudo depois da interação do usuário
             clearInterval(reminderId);
             document.getElementById(`sale-${saleId}`).classList.remove('needs-attention');
             activeModals.delete(saleId);
 
-            // AGORA, atualiza o banco de dados
             const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
             if (confirmed) {
                 const updateData = nextPhaseIndex < TANNING_PHASES.length
@@ -294,9 +292,40 @@
             }
         }
         
-        function resetCardUIToIdle(saleId) { /* ... (código mantido) */ }
-        function updateCardUIToRunning(saleId) { /* ... (código mantido) */ }
-        function updateCardUIToFinished(saleId) { /* ... (código mantido) */ }
+        function resetCardUIToIdle(saleId) {
+            const card = document.getElementById(`sale-${saleId}`);
+            if (!card) return;
+            card.querySelector('.time-select').disabled = false;
+            const startButton = card.querySelector('.start-timer-btn');
+            startButton.disabled = false;
+            startButton.classList.remove('bg-gray-400');
+            startButton.classList.add('bg-green-500');
+            startButton.innerHTML = `<i data-lucide="play" class="w-5 h-5"></i> Iniciar Timer`;
+            lucide.createIcons();
+        }
+
+        function updateCardUIToRunning(saleId) {
+            const card = document.getElementById(`sale-${saleId}`);
+            if(!card) return;
+            card.querySelector('.time-select').disabled = true;
+            const startButton = card.querySelector('.start-timer-btn');
+            startButton.disabled = true;
+            startButton.innerHTML = `<i data-lucide="timer" class="w-5 h-5"></i> Em Andamento`;
+            lucide.createIcons();
+        }
+
+        function updateCardUIToFinished(saleId) {
+            const card = document.getElementById(`sale-${saleId}`);
+            if(!card) return;
+            updateCardUIToRunning(saleId);
+            const display = document.getElementById(`timer-display-${saleId}`);
+            display.textContent = "Finalizado!";
+            document.getElementById(`phase-display-${saleId}`).textContent = "Sessão Concluída";
+            const startButton = card.querySelector('.start-timer-btn');
+            startButton.classList.replace('bg-green-500', 'bg-gray-400');
+            startButton.innerHTML = `<i data-lucide="check-check" class="w-5 h-5"></i> Concluído`;
+            lucide.createIcons();
+        }
 
         patioListContainer.addEventListener('click', async (e) => {
             const target = e.target.closest('button');
@@ -306,6 +335,9 @@
             const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
 
             if (target.classList.contains('start-timer-btn')) {
+                // CORREÇÃO: Desativa o botão imediatamente para evitar clique duplo.
+                updateCardUIToRunning(saleId); 
+                
                 const selectedMinutes = document.getElementById(`time-select-${saleId}`).value;
                 await updateDoc(saleRef, {
                     timerState: {
