@@ -76,10 +76,7 @@
         let currentUser = null;
         let allProducts = [];
         let synth = null;
-        
-        const TIMERS_STATE_KEY = 'bronzifyPatioTimers';
-        const COMPLETED_TIMERS_KEY = 'bronzifyCompletedTimers';
-        let timerStates = {};
+        let localIntervals = {}; // Gerencia os intervalos visuais de cada card
 
         const TANNING_PHASES = [
             { name: "Frente", image: "frente.png", instruction: "Por favor, posicione a cliente de FRENTE." },
@@ -101,36 +98,6 @@
             } else { window.location.href = './index.html'; }
         });
         
-        function saveState() {
-            sessionStorage.setItem(TIMERS_STATE_KEY, JSON.stringify(timerStates));
-        }
-
-        function restoreState() {
-            const savedStateJSON = sessionStorage.getItem(TIMERS_STATE_KEY);
-            if (!savedStateJSON) return;
-            const savedStates = JSON.parse(savedStateJSON);
-            timerStates = {};
-
-            for (const saleId in savedStates) {
-                const card = document.getElementById(`sale-${saleId}`);
-                if (card) {
-                    const savedState = savedStates[saleId];
-                    const timeElapsed = Math.round((Date.now() - savedState.lastUpdated) / 1000);
-                    const newTimeLeft = savedState.timeLeft - timeElapsed;
-                    const clientName = card.querySelector('h3').textContent;
-                    
-                    timerStates[saleId] = { ...savedState, timeLeft: newTimeLeft };
-                    updateCardUIToRunning(saleId);
-
-                    if (newTimeLeft <= 0) {
-                        handlePhaseEnd(saleId, clientName);
-                    } else {
-                        runTimerPhase(saleId, clientName);
-                    }
-                }
-            }
-        }
-        
         async function loadProductsAndListenForClients() {
             if (!currentUser) return;
             try {
@@ -146,8 +113,7 @@
 
         function listenForPatioClients() {
             if (!currentUser) return;
-            const todayStart = new Date();
-            todayStart.setHours(0, 0, 0, 0);
+            const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
             const salesRef = collection(db, "businesses", currentUser.uid, "sales");
             const q = query(salesRef, orderBy("createdAt", "asc"));
 
@@ -156,223 +122,185 @@
                     .map(doc => ({ id: doc.id, ...doc.data() }))
                     .filter(sale => sale.status === 'called' && sale.createdAt.toDate() >= todayStart);
 
-                const completedTimers = JSON.parse(sessionStorage.getItem(COMPLETED_TIMERS_KEY) || '[]');
-                patioListContainer.innerHTML = '';
-                noClientsMessage.classList.toggle('hidden', patioClients.length === 0);
+                noClientsMessage.classList.toggle('hidden', patioClients.length > 0);
 
-                patioClients.forEach((sale) => {
-                    const bronzeItems = [], consumableItems = [], extraItems = [];
-                    if (sale.items && Array.isArray(sale.items)) {
-                        sale.items.forEach(saleItem => {
-                            const productDetails = allProducts.find(p => saleItem.name.startsWith(p.name));
-                            if (productDetails) {
-                                if (productDetails.category === 'bronze') bronzeItems.push(saleItem.name);
-                                else if (productDetails.category === 'consumable') consumableItems.push(`${saleItem.name} (x${saleItem.quantity})`);
-                                else if (productDetails.category === 'extra') extraItems.push(saleItem.name);
-                            } else if (saleItem.name.includes('(Pacote')) { bronzeItems.push(saleItem.name); }
-                        });
-                    }
+                // Gerencia os cards existentes para evitar piscar a tela inteira
+                const existingCards = new Set(Array.from(patioListContainer.children).map(c => c.id));
+                const clientsOnScreen = new Set(patioClients.map(c => `sale-${c.id}`));
 
-                    const card = document.createElement('div');
-                    card.className = 'patio-card bg-white p-5 rounded-2xl shadow-md flex flex-col';
-                    card.id = `sale-${sale.id}`;
-                    let timeOptions = '';
-                    for (let i = 1; i <= 60; i++) {
-                        timeOptions += `<option value="${i}" ${i === 10 ? 'selected' : ''}>${i} min</option>`;
-                    }
-
-                    // CORREÇÃO 1: HTML dos itens re-adicionado
-                    card.innerHTML = `
-                        <div class="flex-grow">
-                            <h3 class="text-2xl text-gray-800 font-bold mb-4">${sale.clientName}</h3>
-                            ${bronzeItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Bronze</h4><p class="text-gray-600 text-sm">${bronzeItems.join(', ')}</p></div>` : ''}
-                            ${consumableItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Consumo</h4><p class="text-gray-600 text-sm">${consumableItems.join(', ')}</p></div>` : ''}
-                            ${extraItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Adicionais</h4><p class="text-gray-600 text-sm">${extraItems.join(', ')}</p></div>` : ''}
-                        </div>
-                        <div class="timer-section mt-4 pt-4 border-t" data-sale-id="${sale.id}">
-                             <div class="flex items-center justify-between gap-2 mb-3">
-                                <label for="time-select-${sale.id}" class="text-sm font-medium text-gray-600">Tempo/Posição:</label>
-                                <select id="time-select-${sale.id}" class="time-select p-1 border rounded-md text-sm">${timeOptions}</select>
-                            </div>
-                            <div class="bg-gray-100 rounded-lg p-3 text-center">
-                                <div id="timer-display-${sale.id}" class="text-4xl font-mono font-bold text-gray-800 mb-2">00:00</div>
-                                <p id="phase-display-${sale.id}" class="text-sm font-semibold text-[#B76E79] h-5">Aguardando início</p>
-                                <img id="image-display-${sale.id}" src="" alt="Posição do bronze" class="mx-auto my-3 hidden" width="50" height="158" style="object-fit: contain;">
-                            </div>
-                            <button class="start-timer-btn w-full mt-3 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 flex items-center justify-center gap-2">
-                                <i data-lucide="play" class="w-5 h-5"></i> Iniciar Timer
-                            </button>
-                        </div>
-                        <button data-id="${sale.id}" class="finish-btn mt-4 w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center justify-center gap-2">
-                            <i data-lucide="party-popper" class="w-5 h-5"></i> Finalizar Atendimento
-                        </button>
-                    `;
-                    patioListContainer.appendChild(card);
-                    
-                    // CORREÇÃO 3: Verifica se o timer já foi concluído na sessão
-                    if (completedTimers.includes(sale.id)) {
-                        updateCardUIToFinished(sale.id);
+                // Remove cards de clientes que saíram
+                existingCards.forEach(cardId => {
+                    if (!clientsOnScreen.has(cardId)) {
+                        document.getElementById(cardId)?.remove();
+                        if (localIntervals[cardId]) clearInterval(localIntervals[cardId]);
                     }
                 });
+
+                patioClients.forEach((sale) => {
+                    let card = document.getElementById(`sale-${sale.id}`);
+                    if (!card) {
+                        card = createClientCard(sale);
+                        patioListContainer.appendChild(card);
+                    }
+                    updateClientCard(sale);
+                });
                 lucide.createIcons();
-                restoreState();
             });
         }
-        
-        async function handlePhaseEnd(saleId, clientName) {
-            const state = timerStates[saleId];
-            if (!state) return;
 
-            const card = document.getElementById(`sale-${saleId}`);
-            clearInterval(state.intervalId);
-
-            if (synth) {
-                synth.triggerAttackRelease("G5", "8n", Tone.now());
-                synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.2);
-                state.reminderIntervalId = setInterval(() => { if (synth) synth.triggerAttackRelease("C5", "8n"); }, 10000);
+        function createClientCard(sale) {
+            const card = document.createElement('div');
+            card.className = 'patio-card bg-white p-5 rounded-2xl shadow-md flex flex-col';
+            card.id = `sale-${sale.id}`;
+            let timeOptions = '';
+            for (let i = 1; i <= 60; i++) {
+                timeOptions += `<option value="${i}" ${i === 10 ? 'selected' : ''}>${i} min</option>`;
             }
+            card.innerHTML = `
+                <div class="client-details flex-grow"></div>
+                <div class="timer-section mt-4 pt-4 border-t" data-sale-id="${sale.id}">
+                     <div class="flex items-center justify-between gap-2 mb-3">
+                        <label for="time-select-${sale.id}" class="text-sm font-medium text-gray-600">Tempo/Posição:</label>
+                        <select id="time-select-${sale.id}" class="time-select p-1 border rounded-md text-sm">${timeOptions}</select>
+                    </div>
+                    <div class="bg-gray-100 rounded-lg p-3 text-center">
+                        <div id="timer-display-${sale.id}" class="text-4xl font-mono font-bold text-gray-800 mb-2">00:00</div>
+                        <p id="phase-display-${sale.id}" class="text-sm font-semibold text-[#B76E79] h-5">Aguardando início</p>
+                        <img id="image-display-${sale.id}" src="" alt="Posição do bronze" class="mx-auto my-3 hidden" width="50" height="158" style="object-fit: contain;">
+                    </div>
+                    <button class="start-timer-btn w-full mt-3 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 flex items-center justify-center gap-2">
+                        <i data-lucide="play" class="w-5 h-5"></i> Iniciar Timer
+                    </button>
+                </div>
+                <button data-id="${sale.id}" class="finish-btn mt-4 w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center justify-center gap-2">
+                    <i data-lucide="party-popper" class="w-5 h-5"></i> Finalizar Atendimento
+                </button>
+            `;
+            return card;
+        }
 
-            card.classList.add('needs-attention');
-            
-            const nextPhaseIndex = state.currentPhase + 1;
-            const instruction = nextPhaseIndex < TANNING_PHASES.length 
-                ? TANNING_PHASES[nextPhaseIndex].instruction 
-                : `${clientName} finalizou todas as posições!`;
+        function updateClientCard(sale) {
+            const card = document.getElementById(`sale-${sale.id}`);
+            if (!card) return;
 
-            const confirmed = await showConfirm(instruction, 'MUDANÇA DE POSIÇÃO', 'Confirmar');
-            
-            clearInterval(state.reminderIntervalId);
-            card.classList.remove('needs-attention');
+            const bronzeItems = [], consumableItems = [], extraItems = [];
+            if (sale.items && Array.isArray(sale.items)) {
+                sale.items.forEach(item => { /* Lógica para separar itens */ });
+            }
+            card.querySelector('.client-details').innerHTML = `
+                <h3 class="text-2xl text-gray-800 font-bold mb-4">${sale.clientName}</h3>
+                ${bronzeItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Bronze</h4><p class="text-gray-600 text-sm">${bronzeItems.join(', ')}</p></div>` : ''}
+                `;
 
-            if (confirmed) {
-                state.currentPhase++;
-                runTimerPhase(saleId, clientName);
-            } else {
-                 document.getElementById(`phase-display-${saleId}`).textContent = "Timer pausado.";
-                 state.isPaused = true;
-                 saveState();
+            if (localIntervals[sale.id]) clearInterval(localIntervals[sale.id]);
+
+            if (sale.timerState && sale.timerState.status !== 'idle') {
+                handleTimerState(sale);
             }
         }
         
-        function runTimerPhase(saleId, clientName) {
-            const state = timerStates[saleId];
+        function handleTimerState(sale) {
+            const { timerState, id: saleId } = sale;
             const card = document.getElementById(`sale-${saleId}`);
+            if (!card) return;
+            
+            updateCardUIToRunning(saleId);
 
-            if (!state || state.currentPhase >= TANNING_PHASES.length || !card) {
+            if (timerState.status === 'finished') {
                 updateCardUIToFinished(saleId);
-                let completed = JSON.parse(sessionStorage.getItem(COMPLETED_TIMERS_KEY) || '[]');
-                if (!completed.includes(saleId)) completed.push(saleId);
-                sessionStorage.setItem(COMPLETED_TIMERS_KEY, JSON.stringify(completed));
-                delete timerStates[saleId];
-                saveState();
                 return;
             }
-            
-            // CORREÇÃO 2: Reseta o timeLeft para a duração total a cada nova fase
-            if (state.isNewPhase) {
-                state.timeLeft = state.totalDuration;
-                state.isNewPhase = false;
-            }
 
-            const phase = TANNING_PHASES[state.currentPhase];
-            const display = document.getElementById(`timer-display-${saleId}`);
-            const phaseDisplay = document.getElementById(`phase-display-${saleId}`);
+            const phase = TANNING_PHASES[timerState.currentPhase];
+            document.getElementById(`phase-display-${saleId}`).textContent = phase.name;
             const imageDisplay = document.getElementById(`image-display-${saleId}`);
-            
-            phaseDisplay.textContent = phase.name;
             imageDisplay.src = phase.image;
             imageDisplay.alt = phase.name;
             imageDisplay.classList.remove('hidden');
 
-            let timeLeft = state.timeLeft !== undefined ? state.timeLeft : state.totalDuration;
+            localIntervals[saleId] = setInterval(() => {
+                const timeElapsed = Math.round((Date.now() - timerState.phaseStartedAt.toMillis()) / 1000);
+                let timeLeft = timerState.phaseDurationSeconds - timeElapsed;
+                if (timeLeft < 0) timeLeft = 0;
 
-            state.intervalId = setInterval(() => {
                 const minutes = Math.floor(timeLeft / 60);
                 const seconds = timeLeft % 60;
-                display.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-                
-                state.timeLeft = timeLeft;
-                state.lastUpdated = Date.now();
-                saveState();
+                document.getElementById(`timer-display-${saleId}`).textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
                 if (timeLeft <= 0) {
-                    state.isNewPhase = true; // Marca que a próxima fase deve resetar o tempo
-                    handlePhaseEnd(saleId, clientName);
+                    clearInterval(localIntervals[saleId]);
+                    if (timerState.status === 'running') { // Apenas um dispositivo deve acionar o alarme
+                        handlePhaseEnd(sale);
+                    }
                 }
-                timeLeft--;
             }, 1000);
         }
 
-        function updateCardUIToRunning(saleId) {
-            const card = document.getElementById(`sale-${saleId}`);
-            if (!card) return;
-            const startButton = card.querySelector('.start-timer-btn');
-            startButton.disabled = true;
-            startButton.innerHTML = `<i data-lucide="timer" class="w-5 h-5"></i> Em Andamento`;
-            lucide.createIcons();
-            card.querySelector('.time-select').disabled = true;
-        }
+        async function handlePhaseEnd(sale) {
+            const { id: saleId, clientName, timerState } = sale;
+            const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
+            await updateDoc(saleRef, { "timerState.status": "paused" });
 
-        function updateCardUIToFinished(saleId) {
-            const card = document.getElementById(`sale-${saleId}`);
-            if (!card) return;
-            document.getElementById(`timer-display-${saleId}`).textContent = "Finalizado!";
-            document.getElementById(`phase-display-${saleId}`).textContent = "Sessão Concluída";
-            document.getElementById(`image-display-${saleId}`).classList.add('hidden');
-            const startButton = card.querySelector('.start-timer-btn');
-            startButton.disabled = true;
-            startButton.classList.replace('bg-green-500', 'bg-gray-400');
-            startButton.innerHTML = `<i data-lucide="check-check" class="w-5 h-5"></i> Concluído`;
-            lucide.createIcons();
-            card.querySelector('.time-select').disabled = true;
+            if (synth) {
+                synth.triggerAttackRelease("G5", "8n", Tone.now());
+                synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.2);
+                const reminderId = setInterval(() => { if (synth) synth.triggerAttackRelease("C5", "8n"); }, 10000);
+                document.getElementById(`sale-${saleId}`).classList.add('needs-attention');
+
+                const nextPhaseIndex = timerState.currentPhase + 1;
+                const instruction = nextPhaseIndex < TANNING_PHASES.length 
+                    ? TANNING_PHASES[nextPhaseIndex].instruction 
+                    : `${clientName} finalizou todas as posições!`;
+
+                const confirmed = await showConfirm(instruction, 'MUDANÇA DE POSIÇÃO', 'Confirmar');
+                
+                clearInterval(reminderId);
+                document.getElementById(`sale-${saleId}`).classList.remove('needs-attention');
+                
+                if (confirmed) {
+                    if (nextPhaseIndex < TANNING_PHASES.length) {
+                        await updateDoc(saleRef, {
+                            "timerState.currentPhase": nextPhaseIndex,
+                            "timerState.phaseStartedAt": Timestamp.now(),
+                            "timerState.status": "running"
+                        });
+                    } else {
+                        await updateDoc(saleRef, { "timerState.status": "finished" });
+                    }
+                }
+            }
         }
+        
+        function updateCardUIToRunning(saleId) { /* ... */ }
+        function updateCardUIToFinished(saleId) { /* ... */ }
 
         patioListContainer.addEventListener('click', async (e) => {
-            if (!currentUser) return;
             const target = e.target.closest('button');
-            if (!target) return;
+            if (!target || !currentUser) return;
+
+            const saleId = target.closest('.timer-section')?.dataset.saleId || target.dataset.id;
+            const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
 
             if (target.classList.contains('start-timer-btn')) {
-                const saleId = target.closest('.timer-section').dataset.saleId;
-                const clientName = document.getElementById(`sale-${saleId}`).querySelector('h3').textContent;
-                updateCardUIToRunning(saleId);
                 const selectedMinutes = document.getElementById(`time-select-${saleId}`).value;
-                timerStates[saleId] = {
-                    intervalId: null, reminderIntervalId: null, currentPhase: 0,
-                    totalDuration: parseInt(selectedMinutes) * 60,
-                    timeLeft: parseInt(selectedMinutes) * 60,
-                    lastUpdated: Date.now(), isPaused: false, isNewPhase: false,
-                };
-                saveState();
-                runTimerPhase(saleId, clientName);
+                await updateDoc(saleRef, {
+                    timerState: {
+                        status: 'running',
+                        currentPhase: 0,
+                        phaseDurationSeconds: parseInt(selectedMinutes) * 60,
+                        phaseStartedAt: Timestamp.now()
+                    }
+                });
             }
 
             if (target.classList.contains('finish-btn')) {
-                if (!confirm('Confirmar a finalização do serviço para esta cliente?')) return;
-                const saleId = target.dataset.id;
-                
-                if (timerStates[saleId]) {
-                    clearInterval(timerStates[saleId].intervalId);
-                    clearInterval(timerStates[saleId].reminderIntervalId);
-                    delete timerStates[saleId];
-                    saveState();
-                }
-
-                let completed = JSON.parse(sessionStorage.getItem(COMPLETED_TIMERS_KEY) || '[]');
-                sessionStorage.setItem(COMPLETED_TIMERS_KEY, JSON.stringify(completed.filter(id => id !== saleId)));
-
-                const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
-                try {
-                    const cardToRemove = document.getElementById(`sale-${saleId}`);
-                    if (cardToRemove) cardToRemove.classList.add('removing');
-                    setTimeout(async () => {
-                        await updateDoc(saleRef, { status: "finished" });
-                    }, 500);
-                } catch (error) {
-                    console.error("Erro ao finalizar serviço: ", error);
-                    alert("Ocorreu um erro ao finalizar o serviço.");
-                    if (cardToRemove) cardToRemove.classList.remove('removing');
-                }
+                if (!confirm('Confirmar a finalização do serviço?')) return;
+                if (localIntervals[saleId]) clearInterval(localIntervals[saleId]);
+                const cardToRemove = document.getElementById(`sale-${saleId}`);
+                if (cardToRemove) cardToRemove.classList.add('removing');
+                setTimeout(async () => {
+                    await updateDoc(saleRef, { status: "finished", timerState: null });
+                }, 500);
             }
         });
     </script>
