@@ -171,6 +171,8 @@
                         card = createClientCard(sale);
                         patioListContainer.appendChild(card);
                     }
+                    // Atualiza o dataset do card com o estado mais recente para o event listener de clique
+                    card.dataset.timerState = JSON.stringify(sale.timerState || {});
                     updateClientCard(sale);
                 });
                 lucide.createIcons();
@@ -248,7 +250,7 @@
         }
 
         function renderTimerState(sale) {
-            const { id: saleId, timerState, clientName } = sale;
+            const { id: saleId, timerState } = sale;
             const card = document.getElementById(`sale-${saleId}`);
             if (!card) return;
 
@@ -262,7 +264,6 @@
             const { status, currentPhase, remainingSeconds } = state;
             const phaseInfo = TANNING_PHASES[currentPhase];
 
-            // Formata o tempo para exibição
             const formatTime = (seconds) => {
                 if (isNaN(seconds) || seconds < 0) return "00:00";
                 const mins = Math.floor(seconds / 60);
@@ -270,7 +271,6 @@
                 return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
             };
             
-            // Configuração padrão da UI
             card.classList.remove('needs-attention');
             imageDisplay.classList.add('hidden');
             actionButton.disabled = false;
@@ -284,7 +284,6 @@
                     actionButton.innerHTML = `<i data-lucide="pause"></i> Pausar`;
                     actionButton.className = 'action-timer-btn w-full mt-3 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors bg-orange-500 hover:bg-orange-600';
                     
-                    // Inicia o intervalo de contagem regressiva
                     const endTime = Date.now() + remainingSeconds * 1000;
                     localIntervals[saleId] = setInterval(() => {
                         const newRemaining = Math.round((endTime - Date.now()) / 1000);
@@ -345,7 +344,6 @@
 
             const newStatus = isFinished ? 'finished' : 'phase-ended';
             
-            // Notificações
             await initializeAudio();
             playNotificationSound();
             const notificationBody = isFinished 
@@ -353,7 +351,6 @@
                 : `É hora de virar ${clientName} para a posição de ${TANNING_PHASES[nextPhaseIndex].name}.`;
             showLocalNotification("Hora de Virar!", notificationBody);
 
-            // Atualiza o estado no Firestore
             const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
             await updateDoc(saleRef, {
                 "timerState.status": newStatus,
@@ -361,7 +358,6 @@
                 "timerState.remainingSeconds": 0
             });
         }
-
 
         // --- EVENT LISTENERS PARA INTERAÇÃO DO USUÁRIO ---
         patioListContainer.addEventListener('click', async (e) => {
@@ -371,9 +367,8 @@
             const saleId = button.closest('.timer-section')?.dataset.saleId || button.dataset.id;
             const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
             
-            // Botão de Ação do Timer (Iniciar/Pausar/Retomar etc)
             if (button.classList.contains('action-timer-btn')) {
-                button.disabled = true; // Previne cliques duplos
+                button.disabled = true; 
                 await initializeAudio();
                 await requestNotificationPermission();
 
@@ -385,7 +380,7 @@
                 switch(status) {
                     case 'idle':
                     case 'phase-ended':
-                    case 'finished': // Também usado para tempo extra
+                    case 'finished':
                         const durationSeconds = parseInt(timeSelect.value) * 60;
                         const isExtraTime = status === 'finished';
                         await updateDoc(saleRef, {
@@ -414,7 +409,6 @@
                 }
             }
 
-            // Botão de Finalizar Atendimento
             if (button.classList.contains('finish-btn')) {
                 if (!confirm('Confirmar a finalização do serviço?')) return;
                 
@@ -430,69 +424,6 @@
                 }, 500);
             }
         });
-
-        // Listener para salvar o estado do timer no card (para evitar múltiplas leituras do DOM)
-        const observer = new MutationObserver(mutations => {
-            mutations.forEach(mutation => {
-                if (mutation.type === 'childList') {
-                    mutation.addedNodes.forEach(node => {
-                        if (node.nodeType === 1 && node.classList.contains('patio-card')) {
-                            const saleId = node.id.replace('sale-', '');
-                            // A lógica de atualização agora é centralizada em updateClientCard
-                        }
-                    });
-                }
-            });
-        });
-        observer.observe(patioListContainer, { childList: true });
-
-        // Atualiza o estado do timer no dataset do card para referência nos cliques
-        const updateCardDataset = (sale) => {
-             const card = document.getElementById(`sale-${sale.id}`);
-             if(card) card.dataset.timerState = JSON.stringify(sale.timerState || {});
-        }
-
-        // Modifica o onSnapshot para chamar a atualização do dataset
-        // (Isso é uma simplificação, a lógica principal já está em updateClientCard)
-        // A melhor abordagem é ter updateClientCard como única fonte da verdade para renderização.
-        // E para os cliques, ler o estado atual do firebase ou de um cache local atualizado pelo onSnapshot.
-        // Para simplificar, o clique vai ler o estado do dataset que será atualizado aqui.
-        function listenForPatioClients() {
-            if (!currentUser) return;
-            const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-            const salesRef = collection(db, "businesses", currentUser.uid, "sales");
-            const q = query(salesRef, orderBy("createdAt", "asc"));
-
-            onSnapshot(q, (snapshot) => {
-                const patioClients = snapshot.docs
-                    .map(doc => ({ id: doc.id, ...doc.data() }))
-                    .filter(sale => sale.status === 'called' && sale.createdAt.toDate() >= todayStart);
-
-                noClientsMessage.classList.toggle('hidden', patioClients.length > 0);
-                
-                const clientsOnScreenIds = new Set(patioClients.map(c => `sale-${c.id}`));
-                Array.from(patioListContainer.children).forEach(card => {
-                    if (!clientsOnScreenIds.has(card.id)) {
-                        const cleanId = card.id.replace('sale-', '');
-                        if (localIntervals[cleanId]) clearInterval(localIntervals[cleanId]);
-                        delete localIntervals[cleanId];
-                        card.remove();
-                    }
-                });
-
-                patioClients.forEach(sale => {
-                    let card = document.getElementById(`sale-${sale.id}`);
-                    if (!card) {
-                        card = createClientCard(sale);
-                        patioListContainer.appendChild(card);
-                    }
-                    // Atualiza o dataset do card com o estado mais recente
-                    card.dataset.timerState = JSON.stringify(sale.timerState || {});
-                    updateClientCard(sale);
-                });
-                lucide.createIcons();
-            });
-        }
     </script>
 </body>
 </html>
