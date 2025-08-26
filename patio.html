@@ -154,7 +154,6 @@
                 noClientsMessage.classList.toggle('hidden', patioClients.length > 0);
                 
                 const clientsOnScreenIds = new Set(patioClients.map(c => `sale-${c.id}`));
-                // Remove cards de clientes que não estão mais no pátio
                 Array.from(patioListContainer.children).forEach(card => {
                     if (!clientsOnScreenIds.has(card.id)) {
                         const cleanId = card.id.replace('sale-', '');
@@ -164,14 +163,12 @@
                     }
                 });
 
-                // Adiciona ou atualiza cards
                 patioClients.forEach(sale => {
                     let card = document.getElementById(`sale-${sale.id}`);
                     if (!card) {
                         card = createClientCard(sale);
                         patioListContainer.appendChild(card);
                     }
-                    // Atualiza o dataset do card com o estado mais recente para o event listener de clique
                     card.dataset.timerState = JSON.stringify(sale.timerState || {});
                     updateClientCard(sale);
                 });
@@ -216,7 +213,6 @@
             const card = document.getElementById(`sale-${sale.id}`);
             if (!card) return;
 
-            // Atualiza detalhes do cliente e itens
             const { clientName, items } = sale;
             const bronzeItems = [], consumableItems = [], extraItems = [];
              if (items && Array.isArray(items)) {
@@ -239,13 +235,11 @@
                 ${extraItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Adicionais</h4><p class="text-gray-600 text-sm">${extraItems.join(', ')}</p></div>` : ''}
             `;
 
-            // Limpa o intervalo local antigo antes de reavaliar
             if (localIntervals[sale.id]) {
                 clearInterval(localIntervals[sale.id]);
                 delete localIntervals[sale.id];
             }
             
-            // Renderiza o estado do timer e inicia o intervalo se necessário
             renderTimerState(sale);
         }
 
@@ -261,7 +255,7 @@
             const actionButton = card.querySelector('.action-timer-btn');
 
             const state = timerState || { status: 'idle', currentPhase: 0 };
-            const { status, currentPhase, remainingSeconds } = state;
+            const { status, currentPhase, remainingSeconds, endTime } = state;
             const phaseInfo = TANNING_PHASES[currentPhase];
 
             const formatTime = (seconds) => {
@@ -274,19 +268,19 @@
             card.classList.remove('needs-attention');
             imageDisplay.classList.add('hidden');
             actionButton.disabled = false;
+            timeSelect.disabled = false; // Permite alteração de tempo por padrão
 
             switch(status) {
                 case 'running':
-                    timeSelect.disabled = true;
                     phaseDisplay.textContent = `Posição: ${phaseInfo.name}`;
                     imageDisplay.src = phaseInfo.image;
                     imageDisplay.classList.remove('hidden');
                     actionButton.innerHTML = `<i data-lucide="pause"></i> Pausar`;
                     actionButton.className = 'action-timer-btn w-full mt-3 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors bg-orange-500 hover:bg-orange-600';
                     
-                    const endTime = Date.now() + remainingSeconds * 1000;
+                    const endTimestamp = endTime.toMillis();
                     localIntervals[saleId] = setInterval(() => {
-                        const newRemaining = Math.round((endTime - Date.now()) / 1000);
+                        const newRemaining = Math.round((endTimestamp - Date.now()) / 1000);
                         timerDisplay.textContent = formatTime(newRemaining);
                         if (newRemaining <= 0) {
                             clearInterval(localIntervals[saleId]);
@@ -296,7 +290,6 @@
                     break;
                 
                 case 'paused':
-                    timeSelect.disabled = true;
                     phaseDisplay.textContent = `Pausado em: ${phaseInfo.name}`;
                     timerDisplay.textContent = formatTime(remainingSeconds);
                     imageDisplay.src = phaseInfo.image;
@@ -312,7 +305,6 @@
                     timerDisplay.textContent = "00:00";
                     imageDisplay.src = nextPhase.image;
                     imageDisplay.classList.remove('hidden');
-                    timeSelect.disabled = false;
                     actionButton.innerHTML = `<i data-lucide="play"></i> Iniciar Próximo Lado`;
                     actionButton.className = 'action-timer-btn w-full mt-3 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors bg-green-500 hover:bg-green-600';
                     break;
@@ -320,14 +312,12 @@
                 case 'finished':
                     phaseDisplay.textContent = "Sessão Concluída!";
                     timerDisplay.textContent = "Finalizado";
-                    timeSelect.disabled = false;
                     actionButton.innerHTML = `<i data-lucide="plus-circle"></i> Iniciar Tempo Extra?`;
                     actionButton.className = 'action-timer-btn w-full mt-3 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors bg-purple-500 hover:bg-purple-600';
                     break;
 
                 case 'idle':
                 default:
-                    timeSelect.disabled = false;
                     phaseDisplay.textContent = "Aguardando início";
                     timerDisplay.textContent = "00:00";
                     actionButton.innerHTML = `<i data-lucide="play"></i> Iniciar Timer`;
@@ -355,7 +345,8 @@
             await updateDoc(saleRef, {
                 "timerState.status": newStatus,
                 "timerState.currentPhase": isFinished ? timerState.currentPhase : nextPhaseIndex,
-                "timerState.remainingSeconds": 0
+                "timerState.remainingSeconds": 0,
+                "timerState.endTime": null
             });
         }
 
@@ -380,7 +371,7 @@
                 switch(status) {
                     case 'idle':
                     case 'phase-ended':
-                    case 'finished':
+                    case 'finished': {
                         const durationSeconds = parseInt(timeSelect.value) * 60;
                         const isExtraTime = status === 'finished';
                         await updateDoc(saleRef, {
@@ -388,24 +379,30 @@
                                 status: 'running',
                                 currentPhase: isExtraTime ? currentTimerState.currentPhase : (currentTimerState.currentPhase || 0),
                                 remainingSeconds: durationSeconds,
-                                phaseDuration: durationSeconds
+                                phaseDuration: durationSeconds,
+                                endTime: Timestamp.fromMillis(Date.now() + durationSeconds * 1000)
                             }
                         });
                         break;
-
-                    case 'running':
-                        const timerDisplay = card.querySelector(`#timer-display-${saleId}`).textContent;
-                        const [min, sec] = timerDisplay.split(':').map(Number);
-                        const remainingSeconds = min * 60 + sec;
+                    }
+                    case 'running': {
+                        const endTimestamp = currentTimerState.endTime.seconds * 1000 + currentTimerState.endTime.nanoseconds / 1000000;
+                        const remaining = Math.round((endTimestamp - Date.now()) / 1000);
                         await updateDoc(saleRef, {
                             "timerState.status": "paused",
-                            "timerState.remainingSeconds": remainingSeconds
+                            "timerState.remainingSeconds": remaining > 0 ? remaining : 0,
+                            "timerState.endTime": null
                         });
                         break;
-                    
-                    case 'paused':
-                        await updateDoc(saleRef, { "timerState.status": "running" });
+                    }
+                    case 'paused': {
+                        const durationSeconds = currentTimerState.remainingSeconds;
+                        await updateDoc(saleRef, { 
+                            "timerState.status": "running",
+                            "timerState.endTime": Timestamp.fromMillis(Date.now() + durationSeconds * 1000)
+                        });
                         break;
+                    }
                 }
             }
 
@@ -423,6 +420,30 @@
                     await updateDoc(saleRef, { status: "finished", timerState: null });
                 }, 500);
             }
+        });
+
+        patioListContainer.addEventListener('change', async (e) => {
+            if (!e.target.classList.contains('time-select') || !currentUser) return;
+            
+            const select = e.target;
+            const saleId = select.closest('.timer-section').dataset.saleId;
+            const card = document.getElementById(`sale-${saleId}`);
+            const currentTimerState = JSON.parse(card.dataset.timerState || '{}');
+
+            if (!currentTimerState.status || currentTimerState.status === 'idle') return;
+
+            const newDurationInSeconds = parseInt(select.value) * 60;
+            const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
+            const updateData = {
+                "timerState.remainingSeconds": newDurationInSeconds,
+                "timerState.phaseDuration": newDurationInSeconds
+            };
+
+            if (currentTimerState.status === 'running') {
+                updateData["timerState.endTime"] = Timestamp.fromMillis(Date.now() + newDurationInSeconds * 1000);
+            }
+
+            await updateDoc(saleRef, updateData);
         });
     </script>
 </body>
