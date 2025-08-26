@@ -18,8 +18,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
-
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #FFF9F9; }
         h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
@@ -146,7 +144,7 @@
             const card = document.createElement('div');
             card.className = 'patio-card bg-white p-5 rounded-2xl shadow-md flex flex-col';
             card.id = `sale-${sale.id}`;
-            let timeOptions = '';
+            let timeOptions = `<option value="1">1 min (Teste)</option>`;
             for (let i = 5; i <= 60; i += 5) {
                 timeOptions += `<option value="${i}" ${i === 20 ? 'selected' : ''}>${i} min</option>`;
             }
@@ -232,13 +230,13 @@
             imageDisplay.classList.remove('hidden');
 
             localIntervals[saleId] = setInterval(() => {
-                const saleData = patioClientsData.find(s => s.id === saleId);
-                if (!saleData || !saleData.timerState) {
+                const currentSaleData = patioClientsData.find(s => s.id === saleId);
+                if (!currentSaleData || !currentSaleData.timerState) {
                     clearInterval(localIntervals[saleId]);
                     return;
                 }
-                const timeElapsed = Math.round((Date.now() - saleData.timerState.phaseStartedAt.toMillis()) / 1000);
-                let timeLeft = saleData.timerState.phaseDurationSeconds - timeElapsed;
+                const timeElapsed = Math.round((Date.now() - currentSaleData.timerState.phaseStartedAt.toMillis()) / 1000);
+                let timeLeft = currentSaleData.timerState.phaseDurationSeconds - timeElapsed;
                 if (timeLeft < 0) timeLeft = 0;
 
                 const minutes = Math.floor(timeLeft / 60);
@@ -246,9 +244,9 @@
                 const display = document.getElementById(`timer-display-${saleId}`);
                 if (display) display.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
-                if (timeLeft <= 0 && saleData.timerState.status === 'running') {
+                if (timeLeft <= 0 && currentSaleData.timerState.status === 'running') {
                     clearInterval(localIntervals[saleId]);
-                    handlePhaseEnd(saleData);
+                    handlePhaseEnd(currentSaleData);
                 }
             }, 1000);
         }
@@ -269,8 +267,8 @@
             };
 
             if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
-                await navigator.serviceWorker.ready;
-                navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, options });
+                const registration = await navigator.serviceWorker.ready;
+                registration.showNotification(title, options);
             }
         }
 
@@ -351,7 +349,6 @@
         patioListContainer.addEventListener('click', async (e) => {
             const target = e.target.closest('button');
             if (!target || !currentUser) return;
-
             const saleId = target.closest('.timer-section')?.dataset.saleId || target.dataset.id;
             const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
 
@@ -411,7 +408,6 @@
             }
         });
         
-        // BOTÃO DE AJUDA REATIVADO
         document.getElementById('help-btn').addEventListener('click', async () => {
             if (!currentUser) return;
             try {
