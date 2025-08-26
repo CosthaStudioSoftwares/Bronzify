@@ -299,8 +299,6 @@
                     break;
 
                 case 'phase-ended':
-                    // CORREÇÃO APLICADA AQUI:
-                    // Quando o status é 'phase-ended', 'currentPhase' já aponta para a PRÓXIMA fase.
                     const nextPhaseInfo = TANNING_PHASES[currentPhase];
                     card.classList.add('needs-attention');
                     phaseDisplay.textContent = `Mudar para: ${nextPhaseInfo.name}`;
@@ -379,7 +377,8 @@
                         await updateDoc(saleRef, {
                             timerState: {
                                 status: 'running',
-                                currentPhase: isExtraTime ? currentTimerState.currentPhase : (currentTimerState.currentPhase || 0),
+                                // CORREÇÃO APLICADA AQUI:
+                                currentPhase: isExtraTime ? 0 : (currentTimerState.currentPhase || 0),
                                 remainingSeconds: durationSeconds,
                                 phaseDuration: durationSeconds,
                                 endTime: Timestamp.fromMillis(Date.now() + durationSeconds * 1000)
