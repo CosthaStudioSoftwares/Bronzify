@@ -32,37 +32,9 @@
         @keyframes pulse { 0% { box-shadow: 0 0 0 0px rgba(251, 191, 36, 0.7); } 100% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); } }
         .sidebar-mobile { transform: translateX(-100%); transition: transform 0.3s ease-in-out; }
         .sidebar-mobile.open { transform: translateX(0); }
-        
-        /* Estilos para o novo modal customizado */
-        @keyframes modal-in {
-            to {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-        .animate-modal-in {
-            animation: modal-in 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-        }
-
-        /* Estilo para a tela de carregamento */
-        .loader {
-            border-top-color: #B76E79;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
     </style>
 </head>
 <body class="bg-gray-50">
-
-    <!-- INÍCIO: TELA DE CARREGAMENTO -->
-    <div id="loading-overlay" class="fixed inset-0 bg-white flex flex-col items-center justify-center z-50 transition-opacity duration-300">
-        <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-24 w-24 mb-4"></div>
-        <h2 class="text-center text-xl font-semibold text-gray-700">Carregando...</h2>
-        <p class="text-center text-gray-500">Aguarde enquanto verificamos sua sessão.</p>
-    </div>
-    <!-- FIM: TELA DE CARREGAMENTO -->
 
     <div class="flex h-screen">
         <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
@@ -88,22 +60,11 @@
       lucide.createIcons();
     </script>
     
-    <!-- Seus scripts de configuração e layout -->
-    <!-- <script src="./config.js"></script> -->
-    <!-- <script type="module" src="./layout.js"></script> -->
-    <!-- <script src="./utils.js"></script> -->
+    <script src="./config.js"></script>
+    <script type="module" src="./layout.js"></script>
+    <script src="./utils.js"></script>
     
     <script type="module">
-        // Simulação do firebaseConfig para demonstração
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
-
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, query, onSnapshot, orderBy, doc, updateDoc, getDocs, Timestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -125,79 +86,50 @@
             { name: "Lado Direito", image: "lado_direito.png", instruction: "Por favor, posicione a cliente de LADO DIREITO." },
         ];
 
-        // --- INÍCIO: NOVAS FUNÇÕES PARA MODAL SINCRONIZADO ---
-        
-        function showCustomConfirm(message, title, confirmText, saleId) {
-            closeCustomConfirm(saleId); 
-
-            return new Promise((resolve) => {
-                const modalHTML = `
-                    <div id="custom-confirm-${saleId}" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-                        <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8 max-w-md w-full text-center transform transition-all scale-95 opacity-0 animate-modal-in">
-                            <h3 class="text-2xl font-bold text-gray-800 mb-3">${title}</h3>
-                            <p class="text-gray-600 mb-6">${message}</p>
-                            <button id="confirm-btn-${saleId}" class="w-full bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75">
-                                ${confirmText}
-                            </button>
-                        </div>
-                    </div>
-                `;
-                document.body.insertAdjacentHTML('beforeend', modalHTML);
-                document.getElementById(`confirm-btn-${saleId}`).onclick = () => resolve(true);
-            });
-        }
-
-        function closeCustomConfirm(saleId) {
-            const modal = document.getElementById(`custom-confirm-${saleId}`);
-            if (modal) {
-                modal.remove();
-                activeModals.delete(saleId);
-            }
-        }
-
-        // --- FIM: NOVAS FUNÇÕES PARA MODAL SINCRONIZADO ---
-
         async function requestNotificationPermission() {
-             if (!('Notification' in window)) return false;
-             if (Notification.permission === 'granted') return true;
-             if (Notification.permission === 'denied') return false;
-             const permission = await Notification.requestPermission();
-             return permission === 'granted';
+            if (!('Notification' in window)) {
+                alert('Este navegador não suporta notificações.');
+                return false;
+            }
+            if (Notification.permission === 'granted') {
+                return true;
+            }
+            if (Notification.permission === 'denied') {
+                return false;
+            }
+            const permission = await Notification.requestPermission();
+            return permission === 'granted';
         }
 
         function showLocalNotification(title, body) {
-           if (!('serviceWorker' in navigator) || !('PushManager' in window) || Notification.permission !== 'granted') return;
-           navigator.serviceWorker.ready.then(registration => {
-               registration.showNotification(title, {
-                   body: body,
-                   icon: './apple-touch-icon.png',
-                   vibrate: [200, 100, 200],
-               });
-           });
+             if (!('serviceWorker' in navigator) || !('PushManager' in window) || Notification.permission !== 'granted') {
+                console.warn('Notificações não estão habilitadas ou não são suportadas.');
+                return;
+            }
+            navigator.serviceWorker.ready.then(registration => {
+                registration.showNotification(title, {
+                    body: body,
+                    icon: './apple-touch-icon.png',
+                    vibrate: [200, 100, 200],
+                });
+            });
         }
 
         async function initializeAudio() {
-            if (Tone.context.state !== 'running') await Tone.start();
-            if (!synth) synth = new Tone.Synth().toDestination();
+            if (Tone.context.state !== 'running') {
+                await Tone.start();
+            }
+            if (!synth) {
+                synth = new Tone.Synth().toDestination();
+            }
         }
 
-        // --- INÍCIO: LÓGICA DE AUTENTICAÇÃO ATUALIZADA ---
         onAuthStateChanged(auth, (user) => {
-            const loadingOverlay = document.getElementById('loading-overlay');
-            loadingOverlay.classList.add('opacity-0');
-            setTimeout(() => {
-                loadingOverlay.style.display = 'none';
-            }, 300); // Garante que a transição CSS termine
-
             if (user) {
                 currentUser = user;
                 loadProductsAndListenForClients();
-            } else { 
-                // Redireciona apenas se, após a verificação, não houver usuário.
-                window.location.href = './index.html'; 
-            }
+            } else { window.location.href = './index.html'; }
         });
-        // --- FIM: LÓGICA DE AUTENTICAÇÃO ATUALIZADA ---
         
         async function loadProductsAndListenForClients() {
             if (!currentUser) return;
@@ -286,25 +218,25 @@
             if (!card) return;
 
             const bronzeItems = [], consumableItems = [], extraItems = [];
-             if (sale.items && Array.isArray(sale.items)) {
-                 sale.items.forEach(saleItem => {
-                     const productDetails = allProducts.find(p => saleItem.name.startsWith(p.name));
-                     const itemName = saleItem.quantity > 1 ? `${saleItem.name} (x${saleItem.quantity})` : saleItem.name;
-                     if (productDetails) {
-                         if (productDetails.category === 'bronze') bronzeItems.push(itemName);
-                         else if (productDetails.category === 'consumable') consumableItems.push(itemName);
-                         else if (productDetails.category === 'extra') extraItems.push(itemName);
-                     } else if (saleItem.name.includes('(Pacote')) {
-                         bronzeItems.push(saleItem.name);
-                     }
-                 });
-             }
-             card.querySelector('.client-details').innerHTML = `
-                 <h3 class="text-2xl text-gray-800 font-bold mb-4">${sale.clientName}</h3>
-                 ${bronzeItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Bronze</h4><p class="text-gray-600 text-sm">${bronzeItems.join(', ')}</p></div>` : ''}
-                 ${consumableItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Consumo</h4><p class="text-gray-600 text-sm">${consumableItems.join(', ')}</p></div>` : ''}
-                 ${extraItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Adicionais</h4><p class="text-gray-600 text-sm">${extraItems.join(', ')}</p></div>` : ''}
-             `;
+            if (sale.items && Array.isArray(sale.items)) {
+                sale.items.forEach(saleItem => {
+                    const productDetails = allProducts.find(p => saleItem.name.startsWith(p.name));
+                    const itemName = saleItem.quantity > 1 ? `${saleItem.name} (x${saleItem.quantity})` : saleItem.name;
+                    if (productDetails) {
+                        if (productDetails.category === 'bronze') bronzeItems.push(itemName);
+                        else if (productDetails.category === 'consumable') consumableItems.push(itemName);
+                        else if (productDetails.category === 'extra') extraItems.push(itemName);
+                    } else if (saleItem.name.includes('(Pacote')) {
+                        bronzeItems.push(saleItem.name);
+                    }
+                });
+            }
+            card.querySelector('.client-details').innerHTML = `
+                <h3 class="text-2xl text-gray-800 font-bold mb-4">${sale.clientName}</h3>
+                ${bronzeItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Bronze</h4><p class="text-gray-600 text-sm">${bronzeItems.join(', ')}</p></div>` : ''}
+                ${consumableItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Consumo</h4><p class="text-gray-600 text-sm">${consumableItems.join(', ')}</p></div>` : ''}
+                ${extraItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Adicionais</h4><p class="text-gray-600 text-sm">${extraItems.join(', ')}</p></div>` : ''}
+            `;
 
             if (localIntervals[sale.id]) clearInterval(localIntervals[sale.id]);
 
@@ -317,38 +249,21 @@
         
         function handleTimerState(sale) {
             const { timerState, id: saleId } = sale;
+            if (timerState.status === 'idle' || !timerState.status) {
+                resetCardUIToIdle(saleId);
+                return;
+            }
+            
+            updateCardUIToRunning(saleId, timerState);
+
+            if (timerState.status === 'finished') {
+                updateCardUIToFinished(saleId);
+                return;
+            }
+            
             const card = document.getElementById(`sale-${saleId}`);
-            if (!card) return;
+            card.classList.toggle('needs-attention', timerState.status === 'paused');
 
-            if (timerState.status === 'running' || timerState.status === 'finished') {
-                closeCustomConfirm(saleId);
-            }
-
-            switch (timerState.status) {
-                case 'idle':
-                case undefined:
-                    resetCardUIToIdle(saleId);
-                    break;
-                case 'finished':
-                    updateCardUIToFinished(saleId);
-                    break;
-                case 'paused':
-                    updateCardUIToRunning(saleId, timerState); 
-                    card.classList.add('needs-attention');
-                    if (!activeModals.has(saleId)) {
-                        handlePhaseEnd(sale);
-                    }
-                    break;
-                case 'running':
-                    updateCardUIToRunning(saleId, timerState);
-                    card.classList.remove('needs-attention');
-                    startLocalTimer(sale); 
-                    break;
-            }
-        }
-
-        function startLocalTimer(sale) {
-            const { timerState, id: saleId } = sale;
             const phase = TANNING_PHASES[timerState.currentPhase];
             document.getElementById(`phase-display-${saleId}`).textContent = phase.name;
             const imageDisplay = document.getElementById(`image-display-${saleId}`);
@@ -356,7 +271,11 @@
             imageDisplay.alt = phase.name;
             imageDisplay.classList.remove('hidden');
 
-            localIntervals[saleId] = setInterval(async () => {
+            localIntervals[saleId] = setInterval(() => {
+                if (!sale.timerState) {
+                    clearInterval(localIntervals[saleId]);
+                    return;
+                }
                 const timeElapsed = Math.round((Date.now() - timerState.phaseStartedAt.toMillis()) / 1000);
                 let timeLeft = timerState.phaseDurationSeconds - timeElapsed;
                 if (timeLeft < 0) timeLeft = 0;
@@ -366,22 +285,16 @@
                 const display = document.getElementById(`timer-display-${saleId}`);
                 if (display) display.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
-                if (timeLeft <= 0) {
+                if (timeLeft <= 0 && timerState.status === 'running') {
                     clearInterval(localIntervals[saleId]);
-                    const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
-                    try {
-                        await updateDoc(saleRef, { "timerState.status": "paused" });
-                    } catch (error) {
-                        console.error("Erro ao pausar o timer via Firestore:", error);
-                    }
+                    handlePhaseEnd(sale);
                 }
             }, 1000);
         }
 
         async function handlePhaseEnd(sale) {
             const { id: saleId, clientName, timerState } = sale;
-            
-            if (activeModals.has(saleId)) return;
+            if (activeModals.has(saleId) || timerState.status !== 'running') return;
             activeModals.add(saleId);
 
             const nextPhaseIndex = timerState.currentPhase + 1;
@@ -391,24 +304,29 @@
                 : `Atenção: Mudar a posição de ${clientName}. Próxima: ${TANNING_PHASES[nextPhaseIndex].name}.`;
 
             showLocalNotification("Hora de virar!", instruction);
+            
             await initializeAudio();
             if (synth) {
                 synth.triggerAttackRelease("G5", "8n", Tone.now());
                 synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.2);
             }
             const reminderId = setInterval(() => { if (synth) synth.triggerAttackRelease("C5", "8n"); }, 10000);
+            document.getElementById(`sale-${saleId}`).classList.add('needs-attention');
+
+            const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
+            await updateDoc(saleRef, { "timerState.status": "paused" });
             
             const modalInstruction = isFinished 
                 ? `${clientName} finalizou todas as posições!`
                 : TANNING_PHASES[nextPhaseIndex].instruction;
 
-            const confirmed = await showCustomConfirm(modalInstruction, 'MUDANÇA DE POSIÇÃO', 'Confirmar', saleId);
+            const confirmed = await showConfirm(modalInstruction, 'MUDANÇA DE POSIÇÃO', 'Confirmar');
             
             clearInterval(reminderId);
-            activeModals.delete(saleId); 
+            document.getElementById(`sale-${saleId}`).classList.remove('needs-attention');
+            activeModals.delete(saleId);
 
             if (confirmed) {
-                const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
                 const updateData = isFinished
                     ? { "timerState.status": "finished" }
                     : { "timerState.currentPhase": nextPhaseIndex, "timerState.phaseStartedAt": Timestamp.now(), "timerState.status": "running" };
@@ -419,16 +337,12 @@
         function resetCardUIToIdle(saleId) {
             const card = document.getElementById(`sale-${saleId}`);
             if (!card) return;
-            card.classList.remove('needs-attention');
             card.querySelector('.time-select').disabled = false;
             const startButton = card.querySelector('.start-timer-btn');
             startButton.disabled = false;
             startButton.classList.remove('bg-gray-400');
             startButton.classList.add('bg-green-500');
             startButton.innerHTML = `<i data-lucide="play" class="w-5 h-5"></i> Iniciar Timer`;
-            document.getElementById(`timer-display-${saleId}`).textContent = '00:00';
-            document.getElementById(`phase-display-${saleId}`).textContent = 'Aguardando início';
-            document.getElementById(`image-display-${saleId}`).classList.add('hidden');
             lucide.createIcons();
         }
 
@@ -436,7 +350,7 @@
             const card = document.getElementById(`sale-${saleId}`);
             if(!card) return;
             const timeSelect = card.querySelector('.time-select');
-            timeSelect.disabled = true;
+            timeSelect.disabled = timerState.currentPhase > 0;
             timeSelect.value = timerState.phaseDurationSeconds / 60;
             const startButton = card.querySelector('.start-timer-btn');
             startButton.disabled = true;
@@ -447,14 +361,13 @@
         function updateCardUIToFinished(saleId) {
             const card = document.getElementById(`sale-${saleId}`);
             if(!card) return;
-            card.classList.remove('needs-attention');
             
             const timerState = { currentPhase: 99, phaseDurationSeconds: 0 }; 
             updateCardUIToRunning(saleId, timerState);
 
-            document.getElementById(`timer-display-${saleId}`).textContent = "Finalizado!";
+            const display = document.getElementById(`timer-display-${saleId}`);
+            display.textContent = "Finalizado!";
             document.getElementById(`phase-display-${saleId}`).textContent = "Sessão Concluída";
-            document.getElementById(`image-display-${saleId}`).classList.add('hidden');
             
             const startButton = card.querySelector('.start-timer-btn');
             startButton.classList.replace('bg-green-500', 'bg-gray-400');
@@ -462,6 +375,7 @@
             lucide.createIcons();
         }
 
+        // --- LÓGICA DE PERMISSÃO OTIMIZADA ---
         patioListContainer.addEventListener('click', async (e) => {
             const target = e.target.closest('button');
             if (!target || !currentUser) return;
@@ -470,10 +384,20 @@
             const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
 
             if (target.classList.contains('start-timer-btn')) {
+                // Primeiro, inicializa o áudio. Isso requer um gesto do usuário.
                 await initializeAudio();
-                await requestNotificationPermission();
                 
+                // Agora, checa a permissão de notificação de forma otimizada
+                const hasPermission = await requestNotificationPermission();
+                if (Notification.permission === 'default' && !hasPermission) {
+                     // Se a permissão era 'default' e o usuário negou, podemos avisar.
+                    alert("Para receber alertas e notificações, por favor, habilite as permissões no seu navegador.");
+                }
+
+                // A lógica do timer continua independentemente da permissão
                 target.disabled = true;
+                target.innerHTML = `<i data-lucide="timer" class="w-5 h-5"></i> Em Andamento`;
+                lucide.createIcons();
                 const selectedMinutes = document.getElementById(`time-select-${saleId}`).value;
                 await updateDoc(saleRef, {
                     timerState: {
