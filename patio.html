@@ -86,22 +86,24 @@
             { name: "Lado Direito", image: "lado_direito.png", instruction: "Por favor, posicione a cliente de LADO DIREITO." },
         ];
 
-        // --- NOVO: Funções para Notificação ---
         async function requestNotificationPermission() {
             if (!('Notification' in window)) {
                 alert('Este navegador não suporta notificações.');
-                return 'denied';
+                return false;
+            }
+            if (Notification.permission === 'granted') {
+                return true;
+            }
+            if (Notification.permission === 'denied') {
+                return false;
             }
             const permission = await Notification.requestPermission();
-            if (permission !== 'granted') {
-                console.log('Permissão para notificações negada.');
-            }
-            return permission;
+            return permission === 'granted';
         }
 
         function showLocalNotification(title, body) {
-             if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-                console.warn('Push notifications não são suportadas.');
+             if (!('serviceWorker' in navigator) || !('PushManager' in window) || Notification.permission !== 'granted') {
+                console.warn('Notificações não estão habilitadas ou não são suportadas.');
                 return;
             }
             navigator.serviceWorker.ready.then(registration => {
@@ -183,7 +185,7 @@
             card.className = 'patio-card bg-white p-5 rounded-2xl shadow-md flex flex-col';
             card.id = `sale-${sale.id}`;
             
-            let timeOptions = '<option value="1">1 min</option>'; // ALTERADO: Adicionado 1 min
+            let timeOptions = '<option value="1">1 min</option>';
             for (let i = 5; i <= 60; i += 5) {
                 timeOptions += `<option value="${i}" ${i === 20 ? 'selected' : ''}>${i} min</option>`;
             }
@@ -301,7 +303,6 @@
                 ? `${clientName} finalizou todas as posições!`
                 : `Atenção: Mudar a posição de ${clientName}. Próxima: ${TANNING_PHASES[nextPhaseIndex].name}.`;
 
-            // ALTERADO: Enviar notificação push
             showLocalNotification("Hora de virar!", instruction);
             
             await initializeAudio();
@@ -374,6 +375,7 @@
             lucide.createIcons();
         }
 
+        // --- LÓGICA DE PERMISSÃO OTIMIZADA ---
         patioListContainer.addEventListener('click', async (e) => {
             const target = e.target.closest('button');
             if (!target || !currentUser) return;
@@ -382,13 +384,17 @@
             const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
 
             if (target.classList.contains('start-timer-btn')) {
-                // ALTERADO: Pede permissão de notificação e inicializa o áudio
+                // Primeiro, inicializa o áudio. Isso requer um gesto do usuário.
                 await initializeAudio();
-                const permission = await requestNotificationPermission();
-                if (permission !== 'granted') {
-                    alert("Para receber alertas sonoros e notificações, por favor, habilite as permissões no seu navegador.");
+                
+                // Agora, checa a permissão de notificação de forma otimizada
+                const hasPermission = await requestNotificationPermission();
+                if (Notification.permission === 'default' && !hasPermission) {
+                     // Se a permissão era 'default' e o usuário negou, podemos avisar.
+                    alert("Para receber alertas e notificações, por favor, habilite as permissões no seu navegador.");
                 }
 
+                // A lógica do timer continua independentemente da permissão
                 target.disabled = true;
                 target.innerHTML = `<i data-lucide="timer" class="w-5 h-5"></i> Em Andamento`;
                 lucide.createIcons();
