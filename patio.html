@@ -43,14 +43,9 @@
                     <button id="open-menu-btn" class="lg:hidden p-2 -ml-2"><i data-lucide="menu" class="w-6 h-6 text-gray-800"></i></button>
                     <h2 class="text-3xl lg:text-4xl text-gray-800 w-full text-center sm:text-left">Pátio</h2>
                 </div>
-                <div class="flex items-center justify-center gap-2 w-full sm:w-auto flex-shrink-0">
-                    <button id="enable-notifications-btn" class="w-full sm:w-auto bg-sky-500 text-white px-4 py-2 rounded-lg hover:bg-sky-600 flex items-center justify-center gap-2">
-                        <i data-lucide="bell-plus"></i> Ativar Alertas
-                    </button>
-                    <button id="help-btn" class="w-full sm:w-auto bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 flex items-center justify-center gap-2">
-                        <i data-lucide="bell-ring"></i> Pedir Ajuda
-                    </button>
-                </div>
+                <button id="help-btn" class="w-full sm:w-auto bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 flex items-center justify-center gap-2 flex-shrink-0">
+                    <i data-lucide="bell-ring"></i> Pedir Ajuda
+                </button>
             </header>
 
             <div id="patio-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
@@ -80,10 +75,9 @@
         
         let currentUser = null;
         let allProducts = [];
-        let synth = null;
         let localIntervals = {};
         let activeModals = new Set();
-        let patioClientsData = []; // Armazena os dados dos clientes para acesso fácil
+        let patioClientsData = [];
 
         const TANNING_PHASES = [
             { name: "Frente", image: "frente.png", instruction: "Por favor, posicione a cliente de FRENTE." },
@@ -91,58 +85,6 @@
             { name: "Lado Esquerdo", image: "lado_esquerdo.png", instruction: "Por favor, posicione a cliente de LADO ESQUERDO." },
             { name: "Lado Direito", image: "lado_direito.png", instruction: "Por favor, posicione a cliente de LADO DIREITO." },
         ];
-
-        // --- LÓGICA DE NOTIFICAÇÕES ---
-        document.addEventListener('DOMContentLoaded', () => {
-            const notificationBtn = document.getElementById('enable-notifications-btn');
-            if ('Notification' in window && 'serviceWorker' in navigator) {
-                notificationBtn.addEventListener('click', async () => {
-                    const permission = await Notification.requestPermission();
-                    if (permission === 'granted') {
-                        alert('Notificações ativadas com sucesso!');
-                        notificationBtn.style.display = 'none';
-                    } else {
-                        alert('Você bloqueou as notificações. Ative nas configurações do navegador.');
-                    }
-                });
-
-                if (Notification.permission === 'granted') {
-                    notificationBtn.style.display = 'none';
-                }
-            } else {
-                notificationBtn.style.display = 'none';
-            }
-        });
-
-        function scheduleNotification(sale) {
-            if (!('Notification' in window) || !('serviceWorker' in navigator) || Notification.permission !== 'granted') {
-                console.log('Notificações não estão permitidas ou não são suportadas.');
-                return;
-            }
-
-            if (navigator.serviceWorker.controller) {
-                const selectedMinutes = document.getElementById(`time-select-${sale.id}`).value;
-                const delayInMs = parseInt(selectedMinutes) * 60 * 1000;
-
-                navigator.serviceWorker.controller.postMessage({
-                    command: 'scheduleNotification',
-                    clientName: sale.clientName,
-                    delay: delayInMs,
-                    saleId: sale.id
-                });
-            } else {
-                console.error("Service Worker não está ativo.");
-            }
-        }
-
-        async function initializeAudio() {
-            if (Tone.context.state !== 'running') {
-                await Tone.start();
-            }
-            if (!synth) {
-                synth = new Tone.Synth().toDestination();
-            }
-        }
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -171,15 +113,13 @@
             const q = query(salesRef, orderBy("createdAt", "asc"));
 
             onSnapshot(q, (querySnapshot) => {
-                const patioClients = querySnapshot.docs
+                patioClientsData = querySnapshot.docs
                     .map(doc => ({ id: doc.id, ...doc.data() }))
                     .filter(sale => sale.status === 'called' && sale.createdAt.toDate() >= todayStart);
-                
-                patioClientsData = patioClients; // Atualiza o array global
 
-                noClientsMessage.classList.toggle('hidden', patioClients.length > 0);
+                noClientsMessage.classList.toggle('hidden', patioClientsData.length === 0);
                 const existingCards = new Set(Array.from(patioListContainer.children).map(c => c.id));
-                const clientsOnScreen = new Set(patioClients.map(c => `sale-${c.id}`));
+                const clientsOnScreen = new Set(patioClientsData.map(c => `sale-${c.id}`));
 
                 existingCards.forEach(cardId => {
                     if (!clientsOnScreen.has(cardId)) {
@@ -190,7 +130,7 @@
                     }
                 });
 
-                patioClients.forEach((sale) => {
+                patioClientsData.forEach((sale) => {
                     let card = document.getElementById(`sale-${sale.id}`);
                     if (!card) {
                         card = createClientCard(sale);
@@ -206,12 +146,10 @@
             const card = document.createElement('div');
             card.className = 'patio-card bg-white p-5 rounded-2xl shadow-md flex flex-col';
             card.id = `sale-${sale.id}`;
-            
             let timeOptions = '';
             for (let i = 5; i <= 60; i += 5) {
                 timeOptions += `<option value="${i}" ${i === 20 ? 'selected' : ''}>${i} min</option>`;
             }
-
             card.innerHTML = `
                 <div class="client-details flex-grow"></div>
                 <div class="timer-section mt-4 pt-4 border-t" data-sale-id="${sale.id}">
@@ -294,12 +232,13 @@
             imageDisplay.classList.remove('hidden');
 
             localIntervals[saleId] = setInterval(() => {
-                if (!sale.timerState) {
+                const saleData = patioClientsData.find(s => s.id === saleId);
+                if (!saleData || !saleData.timerState) {
                     clearInterval(localIntervals[saleId]);
                     return;
                 }
-                const timeElapsed = Math.round((Date.now() - timerState.phaseStartedAt.toMillis()) / 1000);
-                let timeLeft = timerState.phaseDurationSeconds - timeElapsed;
+                const timeElapsed = Math.round((Date.now() - saleData.timerState.phaseStartedAt.toMillis()) / 1000);
+                let timeLeft = saleData.timerState.phaseDurationSeconds - timeElapsed;
                 if (timeLeft < 0) timeLeft = 0;
 
                 const minutes = Math.floor(timeLeft / 60);
@@ -307,45 +246,62 @@
                 const display = document.getElementById(`timer-display-${saleId}`);
                 if (display) display.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
-                if (timeLeft <= 0 && timerState.status === 'running') {
+                if (timeLeft <= 0 && saleData.timerState.status === 'running') {
                     clearInterval(localIntervals[saleId]);
-                    handlePhaseEnd(sale);
+                    handlePhaseEnd(saleData);
                 }
             }, 1000);
         }
 
-        async function handlePhaseEnd(sale) {
+        async function showSystemNotification(sale) {
             const { id: saleId, clientName, timerState } = sale;
-            if (activeModals.has(saleId) || timerState.status !== 'running') return;
-            activeModals.add(saleId);
-
-            // A notificação PWA já foi enviada. A lógica abaixo lida com a interface
-            // quando o usuário retorna ao aplicativo. O som e o modal foram removidos daqui
-            // para evitar o bloqueio do navegador móvel.
+            const nextPhaseIndex = timerState.currentPhase + 1;
+            const title = "Bronzify: Tempo Esgotado!";
+            const body = nextPhaseIndex < TANNING_PHASES.length
+                ? `Toque para continuar o bronze da ${clientName}.`
+                : `Toque para finalizar o bronze da ${clientName}.`;
             
-            document.getElementById(`sale-${saleId}`).classList.add('needs-attention');
+            const options = {
+                body: body,
+                icon: 'icon-192x192.png',
+                vibrate: [200, 100, 200],
+                data: { saleId: saleId }
+            };
+
+            if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
+                await navigator.serviceWorker.ready;
+                navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, options });
+            }
+        }
+
+        async function handlePhaseEnd(sale) {
+            const { id: saleId, timerState } = sale;
+            if (timerState.status !== 'running') return;
+            
             const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
             await updateDoc(saleRef, { "timerState.status": "paused" });
+            
+            showSystemNotification(sale);
+        }
 
-            // A partir daqui, a interação do usuário é necessária.
-            // A melhoria seria adicionar um botão "Próxima Posição" que, ao ser clicado,
-            // executaria a lógica de avançar a fase.
+        async function triggerConfirmationModal(sale) {
+            const { id: saleId, clientName, timerState } = sale;
+            if (activeModals.has(saleId)) return;
+            activeModals.add(saleId);
+
+            document.getElementById(`sale-${saleId}`)?.classList.add('needs-attention');
 
             const nextPhaseIndex = timerState.currentPhase + 1;
             const instruction = nextPhaseIndex < TANNING_PHASES.length 
                 ? TANNING_PHASES[nextPhaseIndex].instruction 
                 : `${clientName} finalizou todas as posições!`;
-            
-            // O showConfirm original foi removido. A confirmação agora deve ser
-            // por um botão na interface do card. Por enquanto, a lógica fica pausada.
-            
-            // Para manter a funcionalidade de avançar, temporariamente, vamos usar um 'confirm' simples
-            // que tem mais chance de funcionar se a aba estiver ativa.
+
             const confirmed = await showConfirm(instruction, 'MUDANÇA DE POSIÇÃO', 'Confirmar');
             
-            document.getElementById(`sale-${saleId}`).classList.remove('needs-attention');
+            document.getElementById(`sale-${saleId}`)?.classList.remove('needs-attention');
             activeModals.delete(saleId);
-
+            
+            const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
             if (confirmed) {
                 const updateData = nextPhaseIndex < TANNING_PHASES.length
                     ? { "timerState.currentPhase": nextPhaseIndex, "timerState.phaseStartedAt": Timestamp.now(), "timerState.status": "running" }
@@ -381,20 +337,17 @@
         function updateCardUIToFinished(saleId) {
             const card = document.getElementById(`sale-${saleId}`);
             if(!card) return;
-            
             const timerState = { currentPhase: 99, phaseDurationSeconds: 0 };
             updateCardUIToRunning(saleId, timerState);
-
             const display = document.getElementById(`timer-display-${saleId}`);
             display.textContent = "Finalizado!";
             document.getElementById(`phase-display-${saleId}`).textContent = "Sessão Concluída";
-            
             const startButton = card.querySelector('.start-timer-btn');
             startButton.classList.replace('bg-green-500', 'bg-gray-400');
             startButton.innerHTML = `<i data-lucide="check-check" class="w-5 h-5"></i> Bronze concluído!`;
             lucide.createIcons();
         }
-
+        
         patioListContainer.addEventListener('click', async (e) => {
             const target = e.target.closest('button');
             if (!target || !currentUser) return;
@@ -403,31 +356,31 @@
             const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
 
             if (target.classList.contains('start-timer-btn')) {
-                await initializeAudio();
-
+                if (Notification.permission === 'denied') {
+                    alert('As notificações estão bloqueadas. Por favor, habilite nas configurações do seu navegador para usar o timer.');
+                    return;
+                }
+                if (Notification.permission === 'default') {
+                    const permission = await Notification.requestPermission();
+                    if (permission !== 'granted') {
+                        alert('Permissão para notificações é necessária para os alertas do timer.');
+                        return;
+                    }
+                }
+                
+                target.disabled = true;
+                target.innerHTML = `<i data-lucide="timer" class="w-5 h-5"></i> Em Andamento`;
+                lucide.createIcons();
+                
                 const selectedMinutes = document.getElementById(`time-select-${saleId}`).value;
                 await updateDoc(saleRef, {
-                    timerState: {
-                        status: 'running',
-                        currentPhase: 0,
-                        phaseDurationSeconds: parseInt(selectedMinutes) * 60,
-                        phaseStartedAt: Timestamp.now()
-                    }
+                    timerState: { status: 'running', currentPhase: 0, phaseDurationSeconds: parseInt(selectedMinutes) * 60, phaseStartedAt: Timestamp.now() }
                 });
-                
-                // Encontra os dados completos do cliente para enviar para a notificação
-                const saleData = patioClientsData.find(client => client.id === saleId);
-                if(saleData) {
-                    scheduleNotification(saleData);
-                }
             }
 
             if (target.classList.contains('finish-btn')) {
                 if (!confirm('Confirmar a finalização do serviço?')) return;
-                if (localIntervals[saleId]) {
-                    clearInterval(localIntervals[saleId]);
-                    delete localIntervals[saleId];
-                }
+                if (localIntervals[saleId]) { clearInterval(localIntervals[saleId]); delete localIntervals[saleId]; }
                 const cardToRemove = document.getElementById(`sale-${saleId}`);
                 if (cardToRemove) cardToRemove.classList.add('removing');
                 setTimeout(async () => {
@@ -445,10 +398,35 @@
             const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
             try {
                 await updateDoc(saleRef, { "timerState.phaseDurationSeconds": newDurationInSeconds });
-            } catch (error) {
-                console.error("Erro ao atualizar a duração:", error);
+            } catch (error) { console.error("Erro ao atualizar a duração:", error); }
+        });
+
+        navigator.serviceWorker.addEventListener('message', event => {
+            if (event.data && event.data.type === 'NOTIFICATION_CLICK') {
+                const saleId = event.data.saleId;
+                const sale = patioClientsData.find(c => c.id === saleId);
+                if (sale && sale.timerState && sale.timerState.status === 'paused') {
+                    triggerConfirmationModal(sale);
+                }
             }
         });
+        
+        // BOTÃO DE AJUDA REATIVADO
+        document.getElementById('help-btn').addEventListener('click', async () => {
+            if (!currentUser) return;
+            try {
+                const helpRequestsRef = collection(db, "businesses", currentUser.uid, "help_requests");
+                await addDoc(helpRequestsRef, {
+                    page: "Pátio",
+                    createdAt: Timestamp.now()
+                });
+                showNotification("Pedido de ajuda enviado!", "info");
+            } catch (error) {
+                console.error("Erro ao enviar pedido de ajuda:", error);
+                showNotification("Não foi possível enviar o pedido de ajuda.", "error");
+            }
+        });
+
     </script>
 </body>
 </html>
