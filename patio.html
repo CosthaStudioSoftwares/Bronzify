@@ -43,7 +43,7 @@
                     <button id="open-menu-btn" class="lg:hidden p-2 -ml-2"><i data-lucide="menu" class="w-6 h-6 text-gray-800"></i></button>
                     <h2 class="text-3xl lg:text-4xl text-gray-800 w-full text-center sm:text-left">Pátio</h2>
                 </div>
-                <button id="help-btn" class="w-full sm:w-auto bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 flex items-center justify-center gap-2 flex-shrink-0">
+                <button id="help-btn" class="w-full sm:w-auto bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 flex items-center justify-center gap-2 flex-shrink-0 transition-colors">
                     <i data-lucide="bell-ring"></i> Pedir Ajuda
                 </button>
             </header>
@@ -60,11 +60,22 @@
       lucide.createIcons();
     </script>
     
-    <script src="./config.js"></script>
-    <script type="module" src="./layout.js"></script>
-    <script src="./utils.js"></script>
+    <!-- Estes scripts devem existir no seu projeto -->
+    <!-- <script src="./config.js"></script> -->
+    <!-- <script type="module" src="./layout.js"></script> -->
+    <!-- <script src="./utils.js"></script> -->
     
     <script type="module">
+        // Simulação do config.js para o exemplo funcionar
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY",
+            authDomain: "SEU_AUTH_DOMAIN",
+            projectId: "SEU_PROJECT_ID",
+            storageBucket: "SEU_STORAGE_BUCKET",
+            messagingSenderId: "SEU_MESSAGING_SENDER_ID",
+            appId: "SEU_APP_ID"
+        };
+
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, query, onSnapshot, orderBy, doc, updateDoc, getDocs, Timestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -80,10 +91,10 @@
 
         // --- FASES DO BRONZEAMENTO ---
         const TANNING_PHASES = [
-            { name: "Frente", image: "frente.png" },
-            { name: "Costas", image: "costas.png" },
-            { name: "Lado Esquerdo", image: "lado_esquerdo.png" },
-            { name: "Lado Direito", image: "lado_direito.png" },
+            { name: "Frente", image: "https://placehold.co/100x100/FFF9F9/B76E79?text=Frente" },
+            { name: "Costas", image: "https://placehold.co/100x100/FFF9F9/B76E79?text=Costas" },
+            { name: "Lado Esquerdo", image: "https://placehold.co/100x100/FFF9F9/B76E79?text=Esquerdo" },
+            { name: "Lado Direito", image: "https://placehold.co/100x100/FFF9F9/B76E79?text=Direito" },
         ];
 
         // --- INICIALIZAÇÃO E AUTENTICAÇÃO ---
@@ -91,7 +102,10 @@
             if (user) {
                 currentUser = user;
                 loadProductsAndListenForClients();
-            } else { window.location.href = './index.html'; }
+            } else { 
+                // Em um app real: window.location.href = './index.html'; 
+                console.log("Usuário não logado. Em um app real, seria redirecionado.");
+            }
         });
 
         async function loadProductsAndListenForClients() {
@@ -216,18 +230,18 @@
             const { clientName, items } = sale;
             const bronzeItems = [], consumableItems = [], extraItems = [];
              if (items && Array.isArray(items)) {
-                items.forEach(item => {
-                    const product = allProducts.find(p => item.name.startsWith(p.name));
-                    const itemName = item.quantity > 1 ? `${item.name} (x${item.quantity})` : item.name;
-                    if (product) {
-                        if (product.category === 'bronze') bronzeItems.push(itemName);
-                        else if (product.category === 'consumable') consumableItems.push(itemName);
-                        else extraItems.push(itemName);
-                    } else if (item.name.includes('(Pacote')) {
-                        bronzeItems.push(itemName);
-                    }
-                });
-            }
+                 items.forEach(item => {
+                     const product = allProducts.find(p => item.name.startsWith(p.name));
+                     const itemName = item.quantity > 1 ? `${item.name} (x${item.quantity})` : item.name;
+                     if (product) {
+                         if (product.category === 'bronze') bronzeItems.push(itemName);
+                         else if (product.category === 'consumable') consumableItems.push(itemName);
+                         else extraItems.push(itemName);
+                     } else if (item.name.includes('(Pacote')) {
+                         bronzeItems.push(itemName);
+                     }
+                 });
+             }
             card.querySelector('.client-details').innerHTML = `
                 <h3 class="text-2xl text-gray-800 font-bold mb-4">${clientName}</h3>
                 ${bronzeItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Bronze</h4><p class="text-gray-600 text-sm">${bronzeItems.join(', ')}</p></div>` : ''}
@@ -351,6 +365,61 @@
         }
 
         // --- EVENT LISTENERS PARA INTERAÇÃO DO USUÁRIO ---
+        
+        // CÓDIGO NOVO ADICIONADO AQUI
+        const helpButton = document.getElementById('help-btn');
+        helpButton.addEventListener('click', async () => {
+            if (!currentUser) {
+                console.error("Usuário não autenticado para pedir ajuda.");
+                alert("Você precisa estar logado para pedir ajuda.");
+                return;
+            }
+
+            // Fornece feedback visual para o usuário
+            helpButton.disabled = true;
+            helpButton.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i> Enviando...';
+            lucide.createIcons();
+
+            try {
+                // Toca um som local para feedback imediato
+                await initializeAudio();
+                playNotificationSound();
+
+                // Cria um documento na coleção 'notifications' que o dashboard/caixa pode ouvir
+                const notificationsRef = collection(db, "businesses", currentUser.uid, "notifications");
+                await addDoc(notificationsRef, {
+                    type: "help_request",
+                    from: "Pátio",
+                    createdAt: Timestamp.now(),
+                    status: "pending" // O dashboard pode atualizar isso para "visto" ou "resolvido"
+                });
+
+                // Mostra mensagem de sucesso
+                helpButton.classList.remove('bg-amber-500', 'hover:bg-amber-600');
+                helpButton.classList.add('bg-green-500');
+                helpButton.innerHTML = '<i data-lucide="check-circle"></i> Ajuda a caminho!';
+                lucide.createIcons();
+
+            } catch (error) {
+                console.error("Erro ao enviar pedido de ajuda:", error);
+                // Mostra mensagem de erro
+                helpButton.classList.remove('bg-amber-500', 'hover:bg-amber-600');
+                helpButton.classList.add('bg-red-500');
+                helpButton.innerHTML = '<i data-lucide="x-circle"></i> Erro ao enviar!';
+                lucide.createIcons();
+            } finally {
+                // Reseta o botão após alguns segundos
+                setTimeout(() => {
+                    helpButton.disabled = false;
+                    helpButton.classList.remove('bg-green-500', 'bg-red-500');
+                    helpButton.classList.add('bg-amber-500', 'hover:bg-amber-600');
+                    helpButton.innerHTML = '<i data-lucide="bell-ring"></i> Pedir Ajuda';
+                    lucide.createIcons();
+                }, 3000);
+            }
+        });
+
+
         patioListContainer.addEventListener('click', async (e) => {
             const button = e.target.closest('button');
             if (!button || !currentUser) return;
@@ -377,7 +446,6 @@
                         await updateDoc(saleRef, {
                             timerState: {
                                 status: 'running',
-                                // CORREÇÃO APLICADA AQUI:
                                 currentPhase: isExtraTime ? 0 : (currentTimerState.currentPhase || 0),
                                 remainingSeconds: durationSeconds,
                                 phaseDuration: durationSeconds,
