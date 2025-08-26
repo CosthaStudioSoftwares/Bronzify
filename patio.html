@@ -43,9 +43,26 @@
         .animate-modal-in {
             animation: modal-in 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
         }
+
+        /* Estilo para a tela de carregamento */
+        .loader {
+            border-top-color: #B76E79;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-gray-50">
+
+    <!-- INÍCIO: TELA DE CARREGAMENTO -->
+    <div id="loading-overlay" class="fixed inset-0 bg-white flex flex-col items-center justify-center z-50 transition-opacity duration-300">
+        <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-24 w-24 mb-4"></div>
+        <h2 class="text-center text-xl font-semibold text-gray-700">Carregando...</h2>
+        <p class="text-center text-gray-500">Aguarde enquanto verificamos sua sessão.</p>
+    </div>
+    <!-- FIM: TELA DE CARREGAMENTO -->
 
     <div class="flex h-screen">
         <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
@@ -110,16 +127,8 @@
 
         // --- INÍCIO: NOVAS FUNÇÕES PARA MODAL SINCRONIZADO ---
         
-        /**
-         * Cria e exibe um modal de confirmação customizado.
-         * @param {string} message - A mensagem a ser exibida no modal.
-         * @param {string} title - O título do modal.
-         * @param {string} confirmText - O texto do botão de confirmação.
-         * @param {string} saleId - O ID da venda para criar um ID único para o modal.
-         * @returns {Promise<boolean>} - Resolve como true se o botão de confirmação for clicado.
-         */
         function showCustomConfirm(message, title, confirmText, saleId) {
-            closeCustomConfirm(saleId); // Garante que não haja modais duplicados
+            closeCustomConfirm(saleId); 
 
             return new Promise((resolve) => {
                 const modalHTML = `
@@ -138,10 +147,6 @@
             });
         }
 
-        /**
-         * Fecha um modal de confirmação customizado específico.
-         * @param {string} saleId - O ID da venda associada ao modal.
-         */
         function closeCustomConfirm(saleId) {
             const modal = document.getElementById(`custom-confirm-${saleId}`);
             if (modal) {
@@ -176,12 +181,23 @@
             if (!synth) synth = new Tone.Synth().toDestination();
         }
 
+        // --- INÍCIO: LÓGICA DE AUTENTICAÇÃO ATUALIZADA ---
         onAuthStateChanged(auth, (user) => {
+            const loadingOverlay = document.getElementById('loading-overlay');
+            loadingOverlay.classList.add('opacity-0');
+            setTimeout(() => {
+                loadingOverlay.style.display = 'none';
+            }, 300); // Garante que a transição CSS termine
+
             if (user) {
                 currentUser = user;
                 loadProductsAndListenForClients();
-            } else { window.location.href = './index.html'; }
+            } else { 
+                // Redireciona apenas se, após a verificação, não houver usuário.
+                window.location.href = './index.html'; 
+            }
         });
+        // --- FIM: LÓGICA DE AUTENTICAÇÃO ATUALIZADA ---
         
         async function loadProductsAndListenForClients() {
             if (!currentUser) return;
@@ -269,7 +285,6 @@
             const card = document.getElementById(`sale-${sale.id}`);
             if (!card) return;
 
-            // Lógica para preencher detalhes do cliente (mantida como original)
             const bronzeItems = [], consumableItems = [], extraItems = [];
              if (sale.items && Array.isArray(sale.items)) {
                  sale.items.forEach(saleItem => {
@@ -300,52 +315,38 @@
             }
         }
         
-        // --- INÍCIO: LÓGICA DO TIMER E ESTADO CENTRALIZADA ---
-
-        /**
-         * Função central que gerencia o estado do timer com base nos dados do Firestore.
-         */
         function handleTimerState(sale) {
             const { timerState, id: saleId } = sale;
             const card = document.getElementById(`sale-${saleId}`);
             if (!card) return;
 
-            // Se o estado mudou de 'paused' para 'running' ou 'finished', fecha o modal de confirmação.
             if (timerState.status === 'running' || timerState.status === 'finished') {
                 closeCustomConfirm(saleId);
             }
 
-            // Gerencia o estado da UI com base no status do Firestore
             switch (timerState.status) {
                 case 'idle':
                 case undefined:
                     resetCardUIToIdle(saleId);
                     break;
-
                 case 'finished':
                     updateCardUIToFinished(saleId);
                     break;
-
                 case 'paused':
-                    updateCardUIToRunning(saleId, timerState); // Mantém a UI como 'Em andamento'
+                    updateCardUIToRunning(saleId, timerState); 
                     card.classList.add('needs-attention');
-                    // O modal é aberto apenas se não estiver ativo nesta tela
                     if (!activeModals.has(saleId)) {
                         handlePhaseEnd(sale);
                     }
                     break;
-
                 case 'running':
                     updateCardUIToRunning(saleId, timerState);
                     card.classList.remove('needs-attention');
-                    startLocalTimer(sale); // Inicia o contador local
+                    startLocalTimer(sale); 
                     break;
             }
         }
 
-        /**
-         * Inicia o contador de tempo local (setInterval) apenas para atualizar a UI.
-         */
         function startLocalTimer(sale) {
             const { timerState, id: saleId } = sale;
             const phase = TANNING_PHASES[timerState.currentPhase];
@@ -365,13 +366,10 @@
                 const display = document.getElementById(`timer-display-${saleId}`);
                 if (display) display.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
-                // MUDANÇA PRINCIPAL: Quando o tempo acaba, apenas atualiza o Firestore.
-                // A lógica de mostrar o modal será acionada pelo onSnapshot em todas as telas.
                 if (timeLeft <= 0) {
                     clearInterval(localIntervals[saleId]);
                     const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
                     try {
-                        // Apenas atualiza o status. Não chama mais handlePhaseEnd diretamente.
                         await updateDoc(saleRef, { "timerState.status": "paused" });
                     } catch (error) {
                         console.error("Erro ao pausar o timer via Firestore:", error);
@@ -380,14 +378,9 @@
             }, 1000);
         }
 
-        /**
-         * Lida com o final de uma fase, mostrando o modal de confirmação.
-         * Esta função agora é chamada quando o onSnapshot detecta o status 'paused'.
-         */
         async function handlePhaseEnd(sale) {
             const { id: saleId, clientName, timerState } = sale;
             
-            // Previne a abertura de múltiplos modais na mesma tela
             if (activeModals.has(saleId)) return;
             activeModals.add(saleId);
 
@@ -405,7 +398,6 @@
             }
             const reminderId = setInterval(() => { if (synth) synth.triggerAttackRelease("C5", "8n"); }, 10000);
             
-            // MUDANÇA: Usa o novo modal customizado
             const modalInstruction = isFinished 
                 ? `${clientName} finalizou todas as posições!`
                 : TANNING_PHASES[nextPhaseIndex].instruction;
@@ -413,7 +405,7 @@
             const confirmed = await showCustomConfirm(modalInstruction, 'MUDANÇA DE POSIÇÃO', 'Confirmar', saleId);
             
             clearInterval(reminderId);
-            activeModals.delete(saleId); // Libera o modal ao fechar
+            activeModals.delete(saleId); 
 
             if (confirmed) {
                 const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
@@ -424,8 +416,6 @@
             }
         }
         
-        // --- FIM: LÓGICA DO TIMER E ESTADO CENTRALIZADA ---
-
         function resetCardUIToIdle(saleId) {
             const card = document.getElementById(`sale-${saleId}`);
             if (!card) return;
@@ -496,7 +486,6 @@
             }
 
             if (target.classList.contains('finish-btn')) {
-                // Para uma melhor experiência, o ideal seria substituir este 'confirm' por um modal customizado também.
                 if (!confirm('Confirmar a finalização do serviço?')) return;
                 if (localIntervals[saleId]) {
                     clearInterval(localIntervals[saleId]);
