@@ -7,15 +7,19 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#B76E79">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Bronzify">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <meta name="theme-color" content="#B76E79">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Bronzify">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Adicionado Tone.js para efeitos sonoros -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+
     <style>
         body {
             font-family: 'Poppins', sans-serif;
@@ -66,15 +70,15 @@
         <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
             <header class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
                  <div class="flex items-center w-full">
-                    <button id="open-menu-btn" class="lg:hidden p-2 -ml-2">
-                        <i data-lucide="menu" class="w-6 h-6 text-gray-800"></i>
-                    </button>
-                    <h2 class="text-3xl lg:text-4xl text-gray-800 w-full text-center sm:text-left">Ordem de Chegada</h2>
-                </div>
-                <!-- BOTÃO DE AJUDA ADICIONADO -->
-                <button id="help-btn" class="w-full sm:w-auto bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 flex items-center justify-center gap-2 flex-shrink-0">
-                    <i data-lucide="bell-ring"></i> Pedir Ajuda
-                </button>
+                     <button id="open-menu-btn" class="lg:hidden p-2 -ml-2">
+                         <i data-lucide="menu" class="w-6 h-6 text-gray-800"></i>
+                     </button>
+                     <h2 class="text-3xl lg:text-4xl text-gray-800 w-full text-center sm:text-left">Ordem de Chegada</h2>
+                 </div>
+                 <!-- BOTÃO DE AJUDA -->
+                 <button id="help-btn" class="w-full sm:w-auto bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 flex items-center justify-center gap-2 flex-shrink-0 transition-colors">
+                     <i data-lucide="bell-ring"></i> Pedir Ajuda
+                 </button>
             </header>
 
             <div class="bg-white p-6 rounded-2xl shadow-md">
@@ -101,14 +105,12 @@
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, query, where, onSnapshot, orderBy, doc, updateDoc, Timestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // A variável firebaseConfig agora vem do arquivo config.js
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
         let currentUser = null;
-
-        // A lógica do menu e do logout foi movida para layout.js
+        let synth = null; // Adicionado para o som
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -119,19 +121,60 @@
             }
         });
 
-        // --- LÓGICA DO BOTÃO DE AJUDA ---
-        document.getElementById('help-btn').addEventListener('click', async () => {
-            if (!currentUser) return;
+        // --- FUNÇÕES DE ÁUDIO (ADICIONADAS) ---
+        async function initializeAudio() {
+            if (Tone.context.state !== 'running') await Tone.start();
+            if (!synth) synth = new Tone.Synth().toDestination();
+        }
+        
+        function playNotificationSound() {
+            if (synth) {
+                synth.triggerAttackRelease("G5", "8n", Tone.now());
+                synth.triggerAttackRelease("C6", "8n", Tone.now() + 0.2);
+            }
+        }
+
+        // --- LÓGICA DO BOTÃO DE AJUDA (ATUALIZADA) ---
+        const helpButton = document.getElementById('help-btn');
+        helpButton.addEventListener('click', async () => {
+            if (!currentUser) {
+                console.error("Usuário não autenticado para pedir ajuda.");
+                return;
+            }
+
+            helpButton.disabled = true;
+            helpButton.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i> Enviando...';
+            lucide.createIcons();
+
             try {
+                await initializeAudio();
+                playNotificationSound();
+
                 const helpRequestsRef = collection(db, "businesses", currentUser.uid, "help_requests");
                 await addDoc(helpRequestsRef, {
                     page: "Ordem de Chegada",
                     createdAt: Timestamp.now()
                 });
-                alert("Pedido de ajuda enviado para o Dashboard!");
+
+                helpButton.classList.remove('bg-amber-500', 'hover:bg-amber-600');
+                helpButton.classList.add('bg-green-500');
+                helpButton.innerHTML = '<i data-lucide="check-circle"></i> Ajuda a caminho!';
+                lucide.createIcons();
+
             } catch (error) {
                 console.error("Erro ao enviar pedido de ajuda:", error);
-                alert("Não foi possível enviar o pedido de ajuda.");
+                helpButton.classList.remove('bg-amber-500', 'hover:bg-amber-600');
+                helpButton.classList.add('bg-red-500');
+                helpButton.innerHTML = '<i data-lucide="x-circle"></i> Erro ao enviar!';
+                lucide.createIcons();
+            } finally {
+                setTimeout(() => {
+                    helpButton.disabled = false;
+                    helpButton.classList.remove('bg-green-500', 'bg-red-500');
+                    helpButton.classList.add('bg-amber-500', 'hover:bg-amber-600');
+                    helpButton.innerHTML = '<i data-lucide="bell-ring"></i> Pedir Ajuda';
+                    lucide.createIcons();
+                }, 3000);
             }
         });
 
@@ -207,7 +250,7 @@
                     
                 } catch (error) {
                     console.error("Erro ao atualizar status da venda: ", error);
-                    alert("Ocorreu um erro ao chamar a cliente.");
+                    // Evitando alert()
                     if(itemToRemove) itemToRemove.classList.remove('removing');
                 }
             }
@@ -215,16 +258,15 @@
     </script>
 
     <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').then(registration => {
-        console.log('Service Worker registrado com sucesso:', registration);
-      }).catch(error => {
-        console.log('Falha ao registrar Service Worker:', error);
-      });
-    });
-  }
-</script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('Service Worker registrado com sucesso:', registration);
+          }).catch(error => {
+            console.log('Falha ao registrar Service Worker:', error);
+          });
+        });
+      }
+    </script>
 </body>
 </html>
-
