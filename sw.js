@@ -46,20 +46,3 @@ self.addEventListener('fetch', event => {
       })
   );
 });
-
-// NOVO: Evento 'push' para lidar com notificações
-self.addEventListener('push', event => {
-    const data = event.data.json(); // Pega os dados enviados (título, corpo, etc.)
-    const title = data.title || 'Bronzify';
-    const options = {
-        body: data.body,
-        icon: './apple-touch-icon.png', // Ícone da notificação
-        badge: './apple-touch-icon.png', // Ícone menor (Android)
-        vibrate: [200, 100, 200], // Padrão de vibração
-        sound: './notification-sound.mp3' // Adicione um som de notificação se desejar
-    };
-
-    event.waitUntil(
-        self.registration.showNotification(title, options)
-    );
-});
