@@ -1,67 +1,65 @@
 // Define um nome e versão para o cache
-const CACHE_NAME = 'bronzify-cache-v4'; // Versão incrementada para forçar a atualização
+const CACHE_NAME = 'bronzify-cache-v1';
 
-// Lista de arquivos essenciais
+// Lista de arquivos essenciais para o funcionamento offline do app
 const URLS_TO_CACHE = [
-  '/', 'index.html', 'ativacao.html', 'caixa.html', 'clientes.html', 'dashboard.html',
-  'ordem-chegada.html', 'patio.html', 'vendas.html', 'config.js', 'layout.js', 'utils.js',
-  'manifest.json', 'icon-192x192.png', 'icon-512x512.png', 'apple-touch-icon.png',
-  'frente.png', 'costas.png', 'lado_esquerdo.png', 'lado_direito.png'
+  '/',
+  '/index.html',
+  '/ativacao.html',
+  '/caixa.html',
+  '/clientes.html',
+  '/dashboard.html',
+  '/ordem-chegada.html',
+  '/patio.html',
+  '/vendas.html',
+  '/config.js',
+  '/layout.js',
+  '/utils.js',
+  'https://cdn.tailwindcss.com',
+  'https://unpkg.com/lucide@latest',
+  'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap'
 ];
 
+// Evento 'install': é disparado quando o Service Worker é instalado.
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      console.log('Service Worker: Cache aberto');
-      return cache.addAll(URLS_TO_CACHE).catch(err => console.error("Falha ao adicionar arquivos ao cache", err));
-    })
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        console.log('Cache aberto');
+        return cache.addAll(URLS_TO_CACHE);
+      })
   );
-  self.skipWaiting();
 });
 
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Service Worker: Limpando cache antigo', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
-  self.clients.claim();
-});
-
+// Evento 'fetch': é disparado toda vez que a página faz uma requisição
 self.addEventListener('fetch', event => {
-  if (event.request.url.includes('firestore.googleapis.com')) { return; }
-  event.respondWith( caches.match(event.request).then(response => response || fetch(event.request)) );
+  event.respondWith(
+    // Procura a requisição no cache primeiro
+    caches.match(event.request)
+      .then(response => {
+        // Se encontrar no cache, retorna a resposta do cache
+        if (response) {
+          return response;
+        }
+        // Se não encontrar, faz a requisição à rede
+        return fetch(event.request);
+      })
+  );
 });
 
-// Lógica para responder ao clique na notificação
-self.addEventListener('notificationclick', event => {
-  const saleId = event.notification.data.saleId;
-  const urlToOpen = new URL('patio.html', self.location.origin).href;
+// NOVO: Evento 'push' para lidar com notificações
+self.addEventListener('push', event => {
+    const data = event.data.json(); // Pega os dados enviados (título, corpo, etc.)
+    const title = data.title || 'Bronzify';
+    const options = {
+        body: data.body,
+        icon: './apple-touch-icon.png', // Ícone da notificação
+        badge: './apple-touch-icon.png', // Ícone menor (Android)
+        vibrate: [200, 100, 200], // Padrão de vibração
+        sound: './notification-sound.mp3' // Adicione um som de notificação se desejar
+    };
 
-  event.notification.close();
-
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
-      for (const client of clientList) {
-        if (new URL(client.url).pathname === '/patio.html' && 'focus' in client) {
-          client.focus();
-          // Envia o saleId para a página já aberta
-          return client.postMessage({ type: 'NOTIFICATION_CLICK', saleId: saleId });
-        }
-      }
-      if (self.clients.openWindow) {
-        // Se a página não estiver aberta, abre uma nova
-        return self.clients.openWindow(urlToOpen).then(client => {
-          // A página, ao carregar, pode verificar se precisa mostrar um modal
-        });
-      }
-    })
-  );
+    event.waitUntil(
+        self.registration.showNotification(title, options)
+    );
 });
