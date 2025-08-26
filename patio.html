@@ -16,32 +16,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
 
     <style>
+        /* ... seus estilos ... */
         body { font-family: 'Poppins', sans-serif; background-color: #FFF9F9; }
         h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
-        .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1.25rem; border-radius: 0.75rem; color: #4A5568; transition: all 0.3s ease; font-weight: 500; }
-        .sidebar-link:hover, .sidebar-link.active { background-color: #FADADD; color: #B76E79; }
-        .sidebar-link svg { margin-right: 0.75rem; }
-        .patio-card { transition: opacity 0.5s ease, transform 0.5s ease, box-shadow 0.3s ease; }
-        .patio-card.removing { opacity: 0; transform: scale(0.95); }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; z-index: 50; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
+        .modal-overlay.visible { opacity: 1; pointer-events: auto; }
+        .modal-content { background-color: white; padding: 2rem; border-radius: 1rem; width: 90%; max-width: 400px; text-align: center; transform: scale(0.95); transition: transform 0.3s ease; }
+        .modal-overlay.visible .modal-content { transform: scale(1); }
         .patio-card.needs-attention { box-shadow: 0 0 0 4px #FBBF24; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0px rgba(251, 191, 36, 0.7); } 100% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); } }
-        .sidebar-mobile { transform: translateX(-100%); transition: transform 0.3s ease-in-out; }
-        .sidebar-mobile.open { transform: translateX(0); }
-
-        /* --- NOVO: Estilos para o modal de confirmação --- */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background-color: rgba(0, 0, 0, 0.6);
-            display: flex; align-items: center; justify-content: center;
-            z-index: 50; opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
-        }
-        .modal-overlay.visible { opacity: 1; pointer-events: auto; }
-        .modal-content {
-            background-color: white; padding: 2rem; border-radius: 1rem;
-            width: 90%; max-width: 400px; text-align: center;
-            transform: scale(0.95); transition: transform 0.3s ease;
-        }
-        .modal-overlay.visible .modal-content { transform: scale(1); }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -57,7 +40,7 @@
                     <i data-lucide="bell-ring"></i> Pedir Ajuda
                 </button>
             </header>
-            <div id="patio-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+            <div id="patio-list" class="grid grid-cols-1 md-grid-cols-2 lg-grid-cols-3 xl-grid-cols-4 gap-6"></div>
             <div id="no-clients-patio" class="text-center py-16 text-gray-500 hidden">
                 <i data-lucide="sun" class="mx-auto w-16 h-16 mb-4"></i>
                 <p class="text-xl">O pátio está vazio no momento.</p>
@@ -81,23 +64,23 @@
     </script>
     <script src="./config.js"></script>
     <script type="module" src="./layout.js"></script>
+    
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, query, onSnapshot, orderBy, doc, updateDoc, getDocs, Timestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, query, onSnapshot, orderBy, doc, updateDoc, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        // ... suas variáveis globais (currentUser, allProducts, etc)
         let currentUser = null;
         let allProducts = [];
         let synth = null;
         let localIntervals = {};
-        let activeModals = new Set(); // Já existia e é perfeito para isso
+        let activeModals = new Set(); 
 
-        // --- NOVO: LÓGICA DO MODAL CONTROLÁVEL ---
+        // Lógica do modal controlável (sem alterações)
         const modalElement = document.getElementById('custom-confirm-modal');
         const confirmTitle = document.getElementById('confirm-title');
         const confirmMessage = document.getElementById('confirm-message');
@@ -109,10 +92,7 @@
             confirmMessage.textContent = message;
             confirmBtn.textContent = btnText;
             modalElement.classList.add('visible');
-            
-            return new Promise((resolve) => {
-                confirmPromiseResolver = resolve;
-            });
+            return new Promise((resolve) => { confirmPromiseResolver = resolve; });
         }
 
         function closeConfirm(resolutionValue = false) {
@@ -122,9 +102,8 @@
             }
             modalElement.classList.remove('visible');
         }
-
         confirmBtn.addEventListener('click', () => closeConfirm(true));
-        // Fim da lógica do modal
+        // --- Fim da lógica do modal ---
 
         const TANNING_PHASES = [
             { name: "Frente", image: "frente.png", instruction: "Por favor, posicione a cliente de FRENTE." },
@@ -133,7 +112,6 @@
             { name: "Lado Direito", image: "lado_direito.png", instruction: "Por favor, posicione a cliente de LADO DIREITO." },
         ];
         
-        // ... o resto das suas funções (initializeAudio, onAuthStateChanged, etc)
         async function initializeAudio() { if (Tone.context.state !== 'running') { await Tone.start(); } if (!synth) { synth = new Tone.Synth().toDestination(); } }
         onAuthStateChanged(auth, (user) => { if (user) { currentUser = user; loadProductsAndListenForClients(); } else { window.location.href = './index.html'; } });
         async function loadProductsAndListenForClients() { if (!currentUser) return; try { const productsRef = collection(db, "businesses", currentUser.uid, "products"); const productsSnapshot = await getDocs(productsRef); allProducts = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); listenForPatioClients(); } catch (error) { console.error("Erro ao carregar produtos:", error); } }
@@ -148,17 +126,12 @@
             const q = query(salesRef, orderBy("createdAt", "asc"));
 
             onSnapshot(q, (querySnapshot) => {
-                const patioClients = querySnapshot.docs
-                    .map(doc => ({ id: doc.id, ...doc.data() }))
-                    .filter(sale => sale.status === 'called' && sale.createdAt.toDate() >= todayStart);
+                const patioClients = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(sale => sale.status === 'called' && sale.createdAt.toDate() >= todayStart);
                 
-                // --- ALTERADO: LÓGICA PARA FECHAR MODAL OBSOLETO ---
                 patioClients.forEach(sale => {
-                    // Se um modal está aberto para esta venda E o estado dela já não é mais 'paused',
-                    // significa que outro dispositivo confirmou. Então, fechamos o modal local.
                     if (activeModals.has(sale.id) && sale.timerState?.status !== 'paused') {
-                        closeConfirm(false); // Fecha o modal, resolvendo a promessa com 'false'
-                        activeModals.delete(sale.id); // Remove do nosso controle local
+                        closeConfirm(false); 
+                        activeModals.delete(sale.id);
                     }
                 });
 
@@ -177,29 +150,81 @@
 
                 patioClients.forEach((sale) => {
                     let card = document.getElementById(`sale-${sale.id}`);
-                    if (!card) {
-                        card = createClientCard(sale);
-                        patioListContainer.appendChild(card);
-                    }
+                    if (!card) { card = createClientCard(sale); patioListContainer.appendChild(card); }
                     updateClientCard(sale);
                 });
                 lucide.createIcons();
             });
         }
-        
-        // ... o resto das suas funções (createClientCard, updateClientCard, etc)
-        // Nenhuma alteração necessária nas funções abaixo, exceto em handlePhaseEnd
-        
-        async function handlePhaseEnd(sale) {
-            const { id: saleId, clientName, timerState } = sale;
-            // Adicionado um cheque extra para garantir que não abra múltiplos modais
-            if (activeModals.has(saleId) || timerState.status !== 'running') return;
-            activeModals.add(saleId);
 
-            // ... (o resto da sua lógica de notificação, som, etc.)
+        function updateClientCard(sale) {
+            // ... (código para exibir detalhes do cliente, sem alterações)
+            // Esta função apenas chama handleTimerState no final
+            const card = document.getElementById(`sale-${sale.id}`); if (!card) return; const bronzeItems = [], consumableItems = [], extraItems = []; if (sale.items && Array.isArray(sale.items)) { sale.items.forEach(saleItem => { const productDetails = allProducts.find(p => saleItem.name.startsWith(p.name)); const itemName = saleItem.quantity > 1 ? `${saleItem.name} (x${saleItem.quantity})` : saleItem.name; if (productDetails) { if (productDetails.category === 'bronze') bronzeItems.push(itemName); else if (productDetails.category === 'consumable') consumableItems.push(itemName); else if (productDetails.category === 'extra') extraItems.push(itemName); } else if (saleItem.name.includes('(Pacote')) { bronzeItems.push(saleItem.name); } }); } card.querySelector('.client-details').innerHTML = ` <h3 class="text-2xl text-gray-800 font-bold mb-4">${sale.clientName}</h3> ${bronzeItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Bronze</h4><p class="text-gray-600 text-sm">${bronzeItems.join(', ')}</p></div>` : ''} ${consumableItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Consumo</h4><p class="text-gray-600 text-sm">${consumableItems.join(', ')}</p></div>` : ''} ${extraItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Adicionais</h4><p class="text-gray-600 text-sm">${extraItems.join(', ')}</p></div>` : ''} `;
+            if (localIntervals[sale.id]) clearInterval(localIntervals[sale.id]);
+            if (sale.timerState) { handleTimerState(sale); } else { resetCardUIToIdle(sale.id); }
+        }
+
+        // --- ALTERADO --- Lógica centralizada para reagir ao estado 'paused'
+        function handleTimerState(sale) {
+            const { timerState, id: saleId } = sale;
+            if (timerState.status === 'idle' || !timerState.status) { resetCardUIToIdle(saleId); return; }
             
+            updateCardUIToRunning(saleId, timerState);
+            card.classList.toggle('needs-attention', timerState.status === 'paused');
+            
+            if (timerState.status === 'finished') { updateCardUIToFinished(saleId); return; }
+
+            // Se o estado é 'paused' e ainda não há um modal ativo, mostre-o.
+            if (timerState.status === 'paused' && !activeModals.has(saleId)) {
+                triggerConfirmationFlow(sale);
+            }
+            
+            if (timerState.status === 'running') {
+                const phase = TANNING_PHASES[timerState.currentPhase];
+                document.getElementById(`phase-display-${saleId}`).textContent = phase.name;
+                const imageDisplay = document.getElementById(`image-display-${saleId}`);
+                imageDisplay.src = phase.image; imageDisplay.alt = phase.name; imageDisplay.classList.remove('hidden');
+
+                localIntervals[saleId] = setInterval(() => {
+                    if (!sale.timerState) { clearInterval(localIntervals[saleId]); return; }
+                    const timeElapsed = Math.round((Date.now() - timerState.phaseStartedAt.toMillis()) / 1000);
+                    let timeLeft = timerState.phaseDurationSeconds - timeElapsed;
+                    if (timeLeft < 0) timeLeft = 0;
+                    const minutes = Math.floor(timeLeft / 60); const seconds = timeLeft % 60;
+                    const display = document.getElementById(`timer-display-${saleId}`);
+                    if (display) display.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+                    if (timeLeft <= 0 && sale.timerState.status === 'running') {
+                        clearInterval(localIntervals[saleId]);
+                        handlePhaseEnd(sale);
+                    }
+                }, 1000);
+            }
+        }
+
+        // --- ALTERADO --- Esta função agora só muda o status no Firebase.
+        async function handlePhaseEnd(sale) {
+            const { id: saleId, timerState } = sale;
+            if (timerState.status !== 'running') return; // Previne execuções duplicadas
+
+            // 1. Toca o som e notifica localmente
+            await initializeAudio();
+            if (synth) {
+                synth.triggerAttackRelease("G5", "8n", Tone.now());
+                synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.2);
+            }
+            // (Lógica de notificação pode ir aqui também se desejar)
+
+            // 2. Apenas atualiza o status no Firebase.
             const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
             await updateDoc(saleRef, { "timerState.status": "paused" });
+        }
+        
+        // --- NOVO --- Esta função contém a lógica do modal que foi movida.
+        async function triggerConfirmationFlow(sale) {
+            const { id: saleId, clientName, timerState } = sale;
+            activeModals.add(saleId);
 
             const nextPhaseIndex = timerState.currentPhase + 1;
             const isFinished = nextPhaseIndex >= TANNING_PHASES.length;
@@ -207,29 +232,21 @@
                 ? `${clientName} finalizou todas as posições!`
                 : TANNING_PHASES[nextPhaseIndex].instruction;
 
-            // --- ALTERADO: Usando o novo modal ---
             const confirmed = await showConfirm(modalInstruction, 'MUDANÇA DE POSIÇÃO', 'Confirmar');
             
-            // Se o modal foi fechado por outro dispositivo, 'confirmed' será 'false'
-            // e o código abaixo não executará a atualização duplicada.
             if (confirmed) {
+                const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
                 const updateData = isFinished
                     ? { "timerState.status": "finished" }
                     : { "timerState.currentPhase": nextPhaseIndex, "timerState.phaseStartedAt": Timestamp.now(), "timerState.status": "running" };
                 await updateDoc(saleRef, updateData);
             }
             
-            // Sempre remove do controle, não importa como foi fechado
             activeModals.delete(saleId);
         }
 
-        // --- COLE O RESTANTE DAS SUAS FUNÇÕES AQUI ---
-        // (createClientCard, updateClientCard, handleTimerState, resetCardUIToIdle, 
-        // updateCardUIToRunning, updateCardUIToFinished, e os event listeners)
-        // Nenhuma outra alteração é necessária nessas funções.
+        // --- Restante das funções (sem alterações) ---
         function createClientCard(sale) { const card = document.createElement('div'); card.className = 'patio-card bg-white p-5 rounded-2xl shadow-md flex flex-col'; card.id = `sale-${sale.id}`; let timeOptions = '<option value="1">1 min</option>'; for (let i = 5; i <= 60; i += 5) { timeOptions += `<option value="${i}" ${i === 20 ? 'selected' : ''}>${i} min</option>`; } card.innerHTML = ` <div class="client-details flex-grow"></div> <div class="timer-section mt-4 pt-4 border-t" data-sale-id="${sale.id}"> <div class="flex items-center justify-between gap-2 mb-3"> <label for="time-select-${sale.id}" class="text-sm font-medium text-gray-600">Tempo/Posição:</label> <select id="time-select-${sale.id}" class="time-select p-1 border rounded-md text-sm">${timeOptions}</select> </div> <div class="bg-gray-100 rounded-lg p-3 text-center"> <div id="timer-display-${sale.id}" class="text-4xl font-mono font-bold text-gray-800 mb-2">00:00</div> <p id="phase-display-${sale.id}" class="text-sm font-semibold text-[#B76E79] h-5">Aguardando início</p> <img id="image-display-${sale.id}" src="" alt="Posição do bronze" class="mx-auto my-3 hidden" width="50" height="158" style="object-fit: contain;"> </div> <button class="start-timer-btn w-full mt-3 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 flex items-center justify-center gap-2"> <i data-lucide="play" class="w-5 h-5"></i> Iniciar Timer </button> </div> <button data-id="${sale.id}" class="finish-btn mt-4 w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center justify-center gap-2"> <i data-lucide="party-popper" class="w-5 h-5"></i> Finalizar Atendimento </button> `; return card; }
-        function updateClientCard(sale) { const card = document.getElementById(`sale-${sale.id}`); if (!card) return; const bronzeItems = [], consumableItems = [], extraItems = []; if (sale.items && Array.isArray(sale.items)) { sale.items.forEach(saleItem => { const productDetails = allProducts.find(p => saleItem.name.startsWith(p.name)); const itemName = saleItem.quantity > 1 ? `${saleItem.name} (x${saleItem.quantity})` : saleItem.name; if (productDetails) { if (productDetails.category === 'bronze') bronzeItems.push(itemName); else if (productDetails.category === 'consumable') consumableItems.push(itemName); else if (productDetails.category === 'extra') extraItems.push(itemName); } else if (saleItem.name.includes('(Pacote')) { bronzeItems.push(saleItem.name); } }); } card.querySelector('.client-details').innerHTML = ` <h3 class="text-2xl text-gray-800 font-bold mb-4">${sale.clientName}</h3> ${bronzeItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Bronze</h4><p class="text-gray-600 text-sm">${bronzeItems.join(', ')}</p></div>` : ''} ${consumableItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Consumo</h4><p class="text-gray-600 text-sm">${consumableItems.join(', ')}</p></div>` : ''} ${extraItems.length > 0 ? `<div class="mb-3"><h4 class="font-semibold text-sm text-[#B76E79] mb-1">Adicionais</h4><p class="text-gray-600 text-sm">${extraItems.join(', ')}</p></div>` : ''} `; if (localIntervals[sale.id]) clearInterval(localIntervals[sale.id]); if (sale.timerState) { handleTimerState(sale); } else { resetCardUIToIdle(sale.id); } }
-        function handleTimerState(sale) { const { timerState, id: saleId } = sale; if (timerState.status === 'idle' || !timerState.status) { resetCardUIToIdle(saleId); return; } updateCardUIToRunning(saleId, timerState); if (timerState.status === 'finished') { updateCardUIToFinished(saleId); return; } const card = document.getElementById(`sale-${saleId}`); card.classList.toggle('needs-attention', timerState.status === 'paused'); const phase = TANNING_PHASES[timerState.currentPhase]; document.getElementById(`phase-display-${saleId}`).textContent = phase.name; const imageDisplay = document.getElementById(`image-display-${saleId}`); imageDisplay.src = phase.image; imageDisplay.alt = phase.name; imageDisplay.classList.remove('hidden'); localIntervals[saleId] = setInterval(() => { if (!sale.timerState) { clearInterval(localIntervals[saleId]); return; } const timeElapsed = Math.round((Date.now() - timerState.phaseStartedAt.toMillis()) / 1000); let timeLeft = timerState.phaseDurationSeconds - timeElapsed; if (timeLeft < 0) timeLeft = 0; const minutes = Math.floor(timeLeft / 60); const seconds = timeLeft % 60; const display = document.getElementById(`timer-display-${saleId}`); if (display) display.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`; if (timeLeft <= 0 && timerState.status === 'running') { clearInterval(localIntervals[saleId]); handlePhaseEnd(sale); } }, 1000); }
         function resetCardUIToIdle(saleId) { const card = document.getElementById(`sale-${saleId}`); if (!card) return; card.querySelector('.time-select').disabled = false; const startButton = card.querySelector('.start-timer-btn'); startButton.disabled = false; startButton.classList.remove('bg-gray-400'); startButton.classList.add('bg-green-500'); startButton.innerHTML = `<i data-lucide="play" class="w-5 h-5"></i> Iniciar Timer`; lucide.createIcons(); }
         function updateCardUIToRunning(saleId, timerState) { const card = document.getElementById(`sale-${saleId}`); if(!card) return; const timeSelect = card.querySelector('.time-select'); timeSelect.disabled = timerState.currentPhase > 0; timeSelect.value = timerState.phaseDurationSeconds / 60; const startButton = card.querySelector('.start-timer-btn'); startButton.disabled = true; startButton.innerHTML = `<i data-lucide="timer" class="w-5 h-5"></i> Em Andamento`; lucide.createIcons(); }
         function updateCardUIToFinished(saleId) { const card = document.getElementById(`sale-${saleId}`); if(!card) return; const timerState = { currentPhase: 99, phaseDurationSeconds: 0 }; updateCardUIToRunning(saleId, timerState); const display = document.getElementById(`timer-display-${saleId}`); display.textContent = "Finalizado!"; document.getElementById(`phase-display-${saleId}`).textContent = "Sessão Concluída"; const startButton = card.querySelector('.start-timer-btn'); startButton.classList.replace('bg-green-500', 'bg-gray-400'); startButton.innerHTML = `<i data-lucide="check-check" class="w-5 h-5"></i> Bronze concluído!`; lucide.createIcons(); }
