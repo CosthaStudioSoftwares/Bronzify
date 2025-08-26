@@ -268,7 +268,7 @@
             card.classList.remove('needs-attention');
             imageDisplay.classList.add('hidden');
             actionButton.disabled = false;
-            timeSelect.disabled = false; // Permite alteração de tempo por padrão
+            timeSelect.disabled = false;
 
             switch(status) {
                 case 'running':
@@ -299,11 +299,13 @@
                     break;
 
                 case 'phase-ended':
-                    const nextPhase = TANNING_PHASES[currentPhase + 1];
+                    // CORREÇÃO APLICADA AQUI:
+                    // Quando o status é 'phase-ended', 'currentPhase' já aponta para a PRÓXIMA fase.
+                    const nextPhaseInfo = TANNING_PHASES[currentPhase];
                     card.classList.add('needs-attention');
-                    phaseDisplay.textContent = `Mudar para: ${nextPhase.name}`;
+                    phaseDisplay.textContent = `Mudar para: ${nextPhaseInfo.name}`;
                     timerDisplay.textContent = "00:00";
-                    imageDisplay.src = nextPhase.image;
+                    imageDisplay.src = nextPhaseInfo.image;
                     imageDisplay.classList.remove('hidden');
                     actionButton.innerHTML = `<i data-lucide="play"></i> Iniciar Próximo Lado`;
                     actionButton.className = 'action-timer-btn w-full mt-3 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors bg-green-500 hover:bg-green-600';
