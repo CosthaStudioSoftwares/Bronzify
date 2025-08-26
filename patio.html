@@ -86,6 +86,35 @@
             { name: "Lado Direito", image: "lado_direito.png", instruction: "Por favor, posicione a cliente de LADO DIREITO." },
         ];
 
+        async function requestNotificationPermission() {
+            if (!('Notification' in window)) {
+                alert('Este navegador não suporta notificações.');
+                return false;
+            }
+            if (Notification.permission === 'granted') {
+                return true;
+            }
+            if (Notification.permission === 'denied') {
+                return false;
+            }
+            const permission = await Notification.requestPermission();
+            return permission === 'granted';
+        }
+
+        function showLocalNotification(title, body) {
+             if (!('serviceWorker' in navigator) || !('PushManager' in window) || Notification.permission !== 'granted') {
+                console.warn('Notificações não estão habilitadas ou não são suportadas.');
+                return;
+            }
+            navigator.serviceWorker.ready.then(registration => {
+                registration.showNotification(title, {
+                    body: body,
+                    icon: './apple-touch-icon.png',
+                    vibrate: [200, 100, 200],
+                });
+            });
+        }
+
         async function initializeAudio() {
             if (Tone.context.state !== 'running') {
                 await Tone.start();
@@ -156,7 +185,7 @@
             card.className = 'patio-card bg-white p-5 rounded-2xl shadow-md flex flex-col';
             card.id = `sale-${sale.id}`;
             
-            let timeOptions = '';
+            let timeOptions = '<option value="1">1 min</option>';
             for (let i = 5; i <= 60; i += 5) {
                 timeOptions += `<option value="${i}" ${i === 20 ? 'selected' : ''}>${i} min</option>`;
             }
@@ -268,6 +297,14 @@
             if (activeModals.has(saleId) || timerState.status !== 'running') return;
             activeModals.add(saleId);
 
+            const nextPhaseIndex = timerState.currentPhase + 1;
+            const isFinished = nextPhaseIndex >= TANNING_PHASES.length;
+            const instruction = isFinished
+                ? `${clientName} finalizou todas as posições!`
+                : `Atenção: Mudar a posição de ${clientName}. Próxima: ${TANNING_PHASES[nextPhaseIndex].name}.`;
+
+            showLocalNotification("Hora de virar!", instruction);
+            
             await initializeAudio();
             if (synth) {
                 synth.triggerAttackRelease("G5", "8n", Tone.now());
@@ -276,24 +313,23 @@
             const reminderId = setInterval(() => { if (synth) synth.triggerAttackRelease("C5", "8n"); }, 10000);
             document.getElementById(`sale-${saleId}`).classList.add('needs-attention');
 
-            const nextPhaseIndex = timerState.currentPhase + 1;
-            const instruction = nextPhaseIndex < TANNING_PHASES.length 
-                ? TANNING_PHASES[nextPhaseIndex].instruction 
-                : `${clientName} finalizou todas as posições!`;
-
             const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
             await updateDoc(saleRef, { "timerState.status": "paused" });
+            
+            const modalInstruction = isFinished 
+                ? `${clientName} finalizou todas as posições!`
+                : TANNING_PHASES[nextPhaseIndex].instruction;
 
-            const confirmed = await showConfirm(instruction, 'MUDANÇA DE POSIÇÃO', 'Confirmar');
+            const confirmed = await showConfirm(modalInstruction, 'MUDANÇA DE POSIÇÃO', 'Confirmar');
             
             clearInterval(reminderId);
             document.getElementById(`sale-${saleId}`).classList.remove('needs-attention');
             activeModals.delete(saleId);
 
             if (confirmed) {
-                const updateData = nextPhaseIndex < TANNING_PHASES.length
-                    ? { "timerState.currentPhase": nextPhaseIndex, "timerState.phaseStartedAt": Timestamp.now(), "timerState.status": "running" }
-                    : { "timerState.status": "finished" };
+                const updateData = isFinished
+                    ? { "timerState.status": "finished" }
+                    : { "timerState.currentPhase": nextPhaseIndex, "timerState.phaseStartedAt": Timestamp.now(), "timerState.status": "running" };
                 await updateDoc(saleRef, updateData);
             }
         }
@@ -326,7 +362,7 @@
             const card = document.getElementById(`sale-${saleId}`);
             if(!card) return;
             
-            const timerState = { currentPhase: 99, phaseDurationSeconds: 0 }; // Cria um estado final para desabilitar o select
+            const timerState = { currentPhase: 99, phaseDurationSeconds: 0 }; 
             updateCardUIToRunning(saleId, timerState);
 
             const display = document.getElementById(`timer-display-${saleId}`);
@@ -335,11 +371,11 @@
             
             const startButton = card.querySelector('.start-timer-btn');
             startButton.classList.replace('bg-green-500', 'bg-gray-400');
-            // ÚNICA ALTERAÇÃO NESTA VERSÃO:
             startButton.innerHTML = `<i data-lucide="check-check" class="w-5 h-5"></i> Bronze concluído!`;
             lucide.createIcons();
         }
 
+        // --- LÓGICA DE PERMISSÃO OTIMIZADA ---
         patioListContainer.addEventListener('click', async (e) => {
             const target = e.target.closest('button');
             if (!target || !currentUser) return;
@@ -348,10 +384,20 @@
             const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
 
             if (target.classList.contains('start-timer-btn')) {
+                // Primeiro, inicializa o áudio. Isso requer um gesto do usuário.
+                await initializeAudio();
+                
+                // Agora, checa a permissão de notificação de forma otimizada
+                const hasPermission = await requestNotificationPermission();
+                if (Notification.permission === 'default' && !hasPermission) {
+                     // Se a permissão era 'default' e o usuário negou, podemos avisar.
+                    alert("Para receber alertas e notificações, por favor, habilite as permissões no seu navegador.");
+                }
+
+                // A lógica do timer continua independentemente da permissão
                 target.disabled = true;
                 target.innerHTML = `<i data-lucide="timer" class="w-5 h-5"></i> Em Andamento`;
                 lucide.createIcons();
-                await initializeAudio();
                 const selectedMinutes = document.getElementById(`time-select-${saleId}`).value;
                 await updateDoc(saleRef, {
                     timerState: {
