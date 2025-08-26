@@ -357,7 +357,10 @@
         helpButton.addEventListener('click', async () => {
             if (!currentUser) {
                 console.error("Usuário não autenticado para pedir ajuda.");
-                alert("Você precisa estar logado para pedir ajuda.");
+                // Evitando alert()
+                const originalText = helpButton.innerHTML;
+                helpButton.innerHTML = 'Usuário não logado!';
+                setTimeout(() => { helpButton.innerHTML = originalText; }, 3000);
                 return;
             }
 
@@ -371,13 +374,12 @@
                 await initializeAudio();
                 playNotificationSound();
 
-                // Cria um documento na coleção 'notifications' que o dashboard/caixa pode ouvir
-                const notificationsRef = collection(db, "businesses", currentUser.uid, "notifications");
-                await addDoc(notificationsRef, {
-                    type: "help_request",
-                    from: "Pátio",
-                    createdAt: Timestamp.now(),
-                    status: "pending" // O dashboard pode atualizar isso para "visto" ou "resolvido"
+                // *** CORREÇÃO APLICADA AQUI ***
+                // Usa a coleção 'help_requests' e o formato de dados do código de referência
+                const helpRequestsRef = collection(db, "businesses", currentUser.uid, "help_requests");
+                await addDoc(helpRequestsRef, {
+                    page: "Pátio", // Identifica que o chamado veio do Pátio
+                    createdAt: Timestamp.now()
                 });
 
                 // Mostra mensagem de sucesso
