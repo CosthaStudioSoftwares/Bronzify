@@ -75,9 +75,9 @@
         
         let currentUser = null;
         let allProducts = [];
+        let synth = null;
         let localIntervals = {};
         let activeModals = new Set();
-        let patioClientsData = [];
 
         const TANNING_PHASES = [
             { name: "Frente", image: "frente.png", instruction: "Por favor, posicione a cliente de FRENTE." },
@@ -85,6 +85,15 @@
             { name: "Lado Esquerdo", image: "lado_esquerdo.png", instruction: "Por favor, posicione a cliente de LADO ESQUERDO." },
             { name: "Lado Direito", image: "lado_direito.png", instruction: "Por favor, posicione a cliente de LADO DIREITO." },
         ];
+
+        async function initializeAudio() {
+            if (Tone.context.state !== 'running') {
+                await Tone.start();
+            }
+            if (!synth) {
+                synth = new Tone.Synth().toDestination();
+            }
+        }
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -113,13 +122,13 @@
             const q = query(salesRef, orderBy("createdAt", "asc"));
 
             onSnapshot(q, (querySnapshot) => {
-                patioClientsData = querySnapshot.docs
+                const patioClients = querySnapshot.docs
                     .map(doc => ({ id: doc.id, ...doc.data() }))
                     .filter(sale => sale.status === 'called' && sale.createdAt.toDate() >= todayStart);
 
-                noClientsMessage.classList.toggle('hidden', patioClientsData.length === 0);
+                noClientsMessage.classList.toggle('hidden', patioClients.length > 0);
                 const existingCards = new Set(Array.from(patioListContainer.children).map(c => c.id));
-                const clientsOnScreen = new Set(patioClientsData.map(c => `sale-${c.id}`));
+                const clientsOnScreen = new Set(patioClients.map(c => `sale-${c.id}`));
 
                 existingCards.forEach(cardId => {
                     if (!clientsOnScreen.has(cardId)) {
@@ -130,7 +139,7 @@
                     }
                 });
 
-                patioClientsData.forEach((sale) => {
+                patioClients.forEach((sale) => {
                     let card = document.getElementById(`sale-${sale.id}`);
                     if (!card) {
                         card = createClientCard(sale);
@@ -146,10 +155,12 @@
             const card = document.createElement('div');
             card.className = 'patio-card bg-white p-5 rounded-2xl shadow-md flex flex-col';
             card.id = `sale-${sale.id}`;
+            
             let timeOptions = '';
             for (let i = 5; i <= 60; i += 5) {
                 timeOptions += `<option value="${i}" ${i === 20 ? 'selected' : ''}>${i} min</option>`;
             }
+
             card.innerHTML = `
                 <div class="client-details flex-grow"></div>
                 <div class="timer-section mt-4 pt-4 border-t" data-sale-id="${sale.id}">
@@ -252,56 +263,33 @@
             }, 1000);
         }
 
-        async function showSystemNotification(sale) {
-            const { id: saleId, clientName, timerState } = sale;
-            const nextPhaseIndex = timerState.currentPhase + 1;
-            const title = "Bronzify: Tempo Esgotado!";
-            const body = nextPhaseIndex < TANNING_PHASES.length
-                ? `Toque para continuar o bronze da ${clientName}.`
-                : `Toque para finalizar o bronze da ${clientName}.`;
-            
-            const options = {
-                body: body,
-                icon: 'icon-192x192.png',
-                vibrate: [200, 100, 200],
-                data: { saleId: saleId }
-            };
-
-            if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
-                navigator.serviceWorker.ready.then(registration => {
-                    registration.showNotification(title, options);
-                });
-            }
-        }
-
         async function handlePhaseEnd(sale) {
-            const { id: saleId, timerState } = sale;
-            if (timerState.status !== 'running') return;
-            
-            const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
-            await updateDoc(saleRef, { "timerState.status": "paused" });
-            
-            showSystemNotification(sale);
-        }
-
-        async function triggerConfirmationModal(sale) {
             const { id: saleId, clientName, timerState } = sale;
-            if (activeModals.has(saleId)) return;
+            if (activeModals.has(saleId) || timerState.status !== 'running') return;
             activeModals.add(saleId);
 
-            document.getElementById(`sale-${saleId}`)?.classList.add('needs-attention');
+            await initializeAudio();
+            if (synth) {
+                synth.triggerAttackRelease("G5", "8n", Tone.now());
+                synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.2);
+            }
+            const reminderId = setInterval(() => { if (synth) synth.triggerAttackRelease("C5", "8n"); }, 10000);
+            document.getElementById(`sale-${saleId}`).classList.add('needs-attention');
 
             const nextPhaseIndex = timerState.currentPhase + 1;
             const instruction = nextPhaseIndex < TANNING_PHASES.length 
                 ? TANNING_PHASES[nextPhaseIndex].instruction 
                 : `${clientName} finalizou todas as posições!`;
 
+            const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
+            await updateDoc(saleRef, { "timerState.status": "paused" });
+
             const confirmed = await showConfirm(instruction, 'MUDANÇA DE POSIÇÃO', 'Confirmar');
             
-            document.getElementById(`sale-${saleId}`)?.classList.remove('needs-attention');
+            clearInterval(reminderId);
+            document.getElementById(`sale-${saleId}`).classList.remove('needs-attention');
             activeModals.delete(saleId);
-            
-            const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
+
             if (confirmed) {
                 const updateData = nextPhaseIndex < TANNING_PHASES.length
                     ? { "timerState.currentPhase": nextPhaseIndex, "timerState.phaseStartedAt": Timestamp.now(), "timerState.status": "running" }
@@ -337,49 +325,50 @@
         function updateCardUIToFinished(saleId) {
             const card = document.getElementById(`sale-${saleId}`);
             if(!card) return;
-            const timerState = { currentPhase: 99, phaseDurationSeconds: 0 };
+            
+            const timerState = { currentPhase: 99, phaseDurationSeconds: 0 }; // Cria um estado final para desabilitar o select
             updateCardUIToRunning(saleId, timerState);
+
             const display = document.getElementById(`timer-display-${saleId}`);
             display.textContent = "Finalizado!";
             document.getElementById(`phase-display-${saleId}`).textContent = "Sessão Concluída";
+            
             const startButton = card.querySelector('.start-timer-btn');
             startButton.classList.replace('bg-green-500', 'bg-gray-400');
+            // ÚNICA ALTERAÇÃO NESTA VERSÃO:
             startButton.innerHTML = `<i data-lucide="check-check" class="w-5 h-5"></i> Bronze concluído!`;
             lucide.createIcons();
         }
-        
+
         patioListContainer.addEventListener('click', async (e) => {
             const target = e.target.closest('button');
             if (!target || !currentUser) return;
+
             const saleId = target.closest('.timer-section')?.dataset.saleId || target.dataset.id;
             const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
 
             if (target.classList.contains('start-timer-btn')) {
-                if (Notification.permission === 'denied') {
-                    alert('As notificações estão bloqueadas. Por favor, habilite nas configurações do seu navegador para usar o timer.');
-                    return;
-                }
-                if (Notification.permission === 'default') {
-                    const permission = await Notification.requestPermission();
-                    if (permission !== 'granted') {
-                        alert('Permissão para notificações é necessária para os alertas do timer.');
-                        return;
-                    }
-                }
-                
                 target.disabled = true;
                 target.innerHTML = `<i data-lucide="timer" class="w-5 h-5"></i> Em Andamento`;
                 lucide.createIcons();
-                
+                await initializeAudio();
                 const selectedMinutes = document.getElementById(`time-select-${saleId}`).value;
                 await updateDoc(saleRef, {
-                    timerState: { status: 'running', currentPhase: 0, phaseDurationSeconds: parseInt(selectedMinutes) * 60, phaseStartedAt: Timestamp.now() }
+                    timerState: {
+                        status: 'running',
+                        currentPhase: 0,
+                        phaseDurationSeconds: parseInt(selectedMinutes) * 60,
+                        phaseStartedAt: Timestamp.now()
+                    }
                 });
             }
 
             if (target.classList.contains('finish-btn')) {
                 if (!confirm('Confirmar a finalização do serviço?')) return;
-                if (localIntervals[saleId]) { clearInterval(localIntervals[saleId]); delete localIntervals[saleId]; }
+                if (localIntervals[saleId]) {
+                    clearInterval(localIntervals[saleId]);
+                    delete localIntervals[saleId];
+                }
                 const cardToRemove = document.getElementById(`sale-${saleId}`);
                 if (cardToRemove) cardToRemove.classList.add('removing');
                 setTimeout(async () => {
@@ -397,16 +386,8 @@
             const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
             try {
                 await updateDoc(saleRef, { "timerState.phaseDurationSeconds": newDurationInSeconds });
-            } catch (error) { console.error("Erro ao atualizar a duração:", error); }
-        });
-
-        navigator.serviceWorker.addEventListener('message', event => {
-            if (event.data && event.data.type === 'NOTIFICATION_CLICK') {
-                const saleId = event.data.saleId;
-                const sale = patioClientsData.find(c => c.id === saleId);
-                if (sale && sale.timerState && sale.timerState.status === 'paused') {
-                    triggerConfirmationModal(sale);
-                }
+            } catch (error) {
+                console.error("Erro ao atualizar a duração:", error);
             }
         });
     </script>
