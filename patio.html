@@ -60,22 +60,11 @@
       lucide.createIcons();
     </script>
     
-    <!-- Estes scripts devem existir no seu projeto -->
-    <!-- <script src="./config.js"></script> -->
-    <!-- <script type="module" src="./layout.js"></script> -->
-    <!-- <script src="./utils.js"></script> -->
+    <script src="./config.js"></script>
+    <script type="module" src="./layout.js"></script>
+    <script src="./utils.js"></script>
     
     <script type="module">
-        // Simulação do config.js para o exemplo funcionar
-        const firebaseConfig = {
-            apiKey: "SUA_API_KEY",
-            authDomain: "SEU_AUTH_DOMAIN",
-            projectId: "SEU_PROJECT_ID",
-            storageBucket: "SEU_STORAGE_BUCKET",
-            messagingSenderId: "SEU_MESSAGING_SENDER_ID",
-            appId: "SEU_APP_ID"
-        };
-
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, query, onSnapshot, orderBy, doc, updateDoc, getDocs, Timestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -103,8 +92,7 @@
                 currentUser = user;
                 loadProductsAndListenForClients();
             } else { 
-                // Em um app real: window.location.href = './index.html'; 
-                console.log("Usuário não logado. Em um app real, seria redirecionado.");
+                window.location.href = './index.html'; 
             }
         });
 
@@ -365,8 +353,6 @@
         }
 
         // --- EVENT LISTENERS PARA INTERAÇÃO DO USUÁRIO ---
-        
-        // CÓDIGO NOVO ADICIONADO AQUI
         const helpButton = document.getElementById('help-btn');
         helpButton.addEventListener('click', async () => {
             if (!currentUser) {
