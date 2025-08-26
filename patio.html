@@ -156,7 +156,6 @@
             card.className = 'patio-card bg-white p-5 rounded-2xl shadow-md flex flex-col';
             card.id = `sale-${sale.id}`;
             
-            // ALTERAÇÃO 1: Loop do tempo alterado para 5 em 5 minutos.
             let timeOptions = '';
             for (let i = 5; i <= 60; i += 5) {
                 timeOptions += `<option value="${i}" ${i === 20 ? 'selected' : ''}>${i} min</option>`;
@@ -299,27 +298,48 @@
             }
         }
         
-        function resetCardUIToIdle(saleId) { /* ... */ }
+        function resetCardUIToIdle(saleId) {
+            const card = document.getElementById(`sale-${saleId}`);
+            if (!card) return;
+            card.querySelector('.time-select').disabled = false;
+            const startButton = card.querySelector('.start-timer-btn');
+            startButton.disabled = false;
+            startButton.classList.remove('bg-gray-400');
+            startButton.classList.add('bg-green-500');
+            startButton.innerHTML = `<i data-lucide="play" class="w-5 h-5"></i> Iniciar Timer`;
+            lucide.createIcons();
+        }
 
         function updateCardUIToRunning(saleId, timerState) {
             const card = document.getElementById(`sale-${saleId}`);
             if(!card) return;
-
             const timeSelect = card.querySelector('.time-select');
-            // ALTERAÇÃO 2: Lógica para habilitar/desabilitar o seletor
             timeSelect.disabled = timerState.currentPhase > 0;
-            // Garante que o valor exibido seja o correto
             timeSelect.value = timerState.phaseDurationSeconds / 60;
-
             const startButton = card.querySelector('.start-timer-btn');
             startButton.disabled = true;
             startButton.innerHTML = `<i data-lucide="timer" class="w-5 h-5"></i> Em Andamento`;
             lucide.createIcons();
         }
 
-        function updateCardUIToFinished(saleId) { /* ... */ }
+        function updateCardUIToFinished(saleId) {
+            const card = document.getElementById(`sale-${saleId}`);
+            if(!card) return;
+            
+            const timerState = { currentPhase: 99, phaseDurationSeconds: 0 }; // Cria um estado final para desabilitar o select
+            updateCardUIToRunning(saleId, timerState);
 
-        // Event listener principal para cliques E MUDANÇAS
+            const display = document.getElementById(`timer-display-${saleId}`);
+            display.textContent = "Finalizado!";
+            document.getElementById(`phase-display-${saleId}`).textContent = "Sessão Concluída";
+            
+            const startButton = card.querySelector('.start-timer-btn');
+            startButton.classList.replace('bg-green-500', 'bg-gray-400');
+            // ÚNICA ALTERAÇÃO NESTA VERSÃO:
+            startButton.innerHTML = `<i data-lucide="check-check" class="w-5 h-5"></i> Bronze concluído!`;
+            lucide.createIcons();
+        }
+
         patioListContainer.addEventListener('click', async (e) => {
             const target = e.target.closest('button');
             if (!target || !currentUser) return;
@@ -335,7 +355,8 @@
                 const selectedMinutes = document.getElementById(`time-select-${saleId}`).value;
                 await updateDoc(saleRef, {
                     timerState: {
-                        status: 'running', currentPhase: 0,
+                        status: 'running',
+                        currentPhase: 0,
                         phaseDurationSeconds: parseInt(selectedMinutes) * 60,
                         phaseStartedAt: Timestamp.now()
                     }
@@ -344,7 +365,10 @@
 
             if (target.classList.contains('finish-btn')) {
                 if (!confirm('Confirmar a finalização do serviço?')) return;
-                if (localIntervals[saleId]) { clearInterval(localIntervals[saleId]); delete localIntervals[saleId]; }
+                if (localIntervals[saleId]) {
+                    clearInterval(localIntervals[saleId]);
+                    delete localIntervals[saleId];
+                }
                 const cardToRemove = document.getElementById(`sale-${saleId}`);
                 if (cardToRemove) cardToRemove.classList.add('removing');
                 setTimeout(async () => {
@@ -352,31 +376,20 @@
                 }, 500);
             }
         });
-
-        // ALTERAÇÃO 2: Novo event listener para o evento 'change'
+        
         patioListContainer.addEventListener('change', async (e) => {
             if (!e.target.classList.contains('time-select') || !currentUser) return;
-            
             const select = e.target;
-            // A própria UI já nos diz se podemos alterar. Se estiver desabilitado, não faz nada.
             if (select.disabled) return;
-
             const saleId = select.closest('.timer-section').dataset.saleId;
             const newDurationInSeconds = parseInt(select.value) * 60;
-
             const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
             try {
-                // Atualiza apenas a duração. A sincronização do onSnapshot cuidará do resto.
-                await updateDoc(saleRef, {
-                    "timerState.phaseDurationSeconds": newDurationInSeconds
-                });
+                await updateDoc(saleRef, { "timerState.phaseDurationSeconds": newDurationInSeconds });
             } catch (error) {
                 console.error("Erro ao atualizar a duração:", error);
-                // Opcional: reverter a seleção visualmente em caso de erro
-                // select.value = ???
             }
         });
-
     </script>
 </body>
 </html>
