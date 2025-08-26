@@ -43,9 +43,14 @@
                     <button id="open-menu-btn" class="lg:hidden p-2 -ml-2"><i data-lucide="menu" class="w-6 h-6 text-gray-800"></i></button>
                     <h2 class="text-3xl lg:text-4xl text-gray-800 w-full text-center sm:text-left">Pátio</h2>
                 </div>
-                <button id="help-btn" class="w-full sm:w-auto bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 flex items-center justify-center gap-2 flex-shrink-0">
-                    <i data-lucide="bell-ring"></i> Pedir Ajuda
-                </button>
+                <div class="flex items-center justify-center gap-2 w-full sm:w-auto flex-shrink-0">
+                    <button id="enable-notifications-btn" class="w-full sm:w-auto bg-sky-500 text-white px-4 py-2 rounded-lg hover:bg-sky-600 flex items-center justify-center gap-2">
+                        <i data-lucide="bell-plus"></i> Ativar Alertas
+                    </button>
+                    <button id="help-btn" class="w-full sm:w-auto bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 flex items-center justify-center gap-2">
+                        <i data-lucide="bell-ring"></i> Pedir Ajuda
+                    </button>
+                </div>
             </header>
 
             <div id="patio-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
@@ -78,6 +83,7 @@
         let synth = null;
         let localIntervals = {};
         let activeModals = new Set();
+        let patioClientsData = []; // Armazena os dados dos clientes para acesso fácil
 
         const TANNING_PHASES = [
             { name: "Frente", image: "frente.png", instruction: "Por favor, posicione a cliente de FRENTE." },
@@ -85,6 +91,49 @@
             { name: "Lado Esquerdo", image: "lado_esquerdo.png", instruction: "Por favor, posicione a cliente de LADO ESQUERDO." },
             { name: "Lado Direito", image: "lado_direito.png", instruction: "Por favor, posicione a cliente de LADO DIREITO." },
         ];
+
+        // --- LÓGICA DE NOTIFICAÇÕES ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const notificationBtn = document.getElementById('enable-notifications-btn');
+            if ('Notification' in window && 'serviceWorker' in navigator) {
+                notificationBtn.addEventListener('click', async () => {
+                    const permission = await Notification.requestPermission();
+                    if (permission === 'granted') {
+                        alert('Notificações ativadas com sucesso!');
+                        notificationBtn.style.display = 'none';
+                    } else {
+                        alert('Você bloqueou as notificações. Ative nas configurações do navegador.');
+                    }
+                });
+
+                if (Notification.permission === 'granted') {
+                    notificationBtn.style.display = 'none';
+                }
+            } else {
+                notificationBtn.style.display = 'none';
+            }
+        });
+
+        function scheduleNotification(sale) {
+            if (!('Notification' in window) || !('serviceWorker' in navigator) || Notification.permission !== 'granted') {
+                console.log('Notificações não estão permitidas ou não são suportadas.');
+                return;
+            }
+
+            if (navigator.serviceWorker.controller) {
+                const selectedMinutes = document.getElementById(`time-select-${sale.id}`).value;
+                const delayInMs = parseInt(selectedMinutes) * 60 * 1000;
+
+                navigator.serviceWorker.controller.postMessage({
+                    command: 'scheduleNotification',
+                    clientName: sale.clientName,
+                    delay: delayInMs,
+                    saleId: sale.id
+                });
+            } else {
+                console.error("Service Worker não está ativo.");
+            }
+        }
 
         async function initializeAudio() {
             if (Tone.context.state !== 'running') {
@@ -125,6 +174,8 @@
                 const patioClients = querySnapshot.docs
                     .map(doc => ({ id: doc.id, ...doc.data() }))
                     .filter(sale => sale.status === 'called' && sale.createdAt.toDate() >= todayStart);
+                
+                patioClientsData = patioClients; // Atualiza o array global
 
                 noClientsMessage.classList.toggle('hidden', patioClients.length > 0);
                 const existingCards = new Set(Array.from(patioListContainer.children).map(c => c.id));
@@ -268,25 +319,30 @@
             if (activeModals.has(saleId) || timerState.status !== 'running') return;
             activeModals.add(saleId);
 
-            await initializeAudio();
-            if (synth) {
-                synth.triggerAttackRelease("G5", "8n", Tone.now());
-                synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.2);
-            }
-            const reminderId = setInterval(() => { if (synth) synth.triggerAttackRelease("C5", "8n"); }, 10000);
+            // A notificação PWA já foi enviada. A lógica abaixo lida com a interface
+            // quando o usuário retorna ao aplicativo. O som e o modal foram removidos daqui
+            // para evitar o bloqueio do navegador móvel.
+            
             document.getElementById(`sale-${saleId}`).classList.add('needs-attention');
+            const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
+            await updateDoc(saleRef, { "timerState.status": "paused" });
+
+            // A partir daqui, a interação do usuário é necessária.
+            // A melhoria seria adicionar um botão "Próxima Posição" que, ao ser clicado,
+            // executaria a lógica de avançar a fase.
 
             const nextPhaseIndex = timerState.currentPhase + 1;
             const instruction = nextPhaseIndex < TANNING_PHASES.length 
                 ? TANNING_PHASES[nextPhaseIndex].instruction 
                 : `${clientName} finalizou todas as posições!`;
-
-            const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
-            await updateDoc(saleRef, { "timerState.status": "paused" });
-
+            
+            // O showConfirm original foi removido. A confirmação agora deve ser
+            // por um botão na interface do card. Por enquanto, a lógica fica pausada.
+            
+            // Para manter a funcionalidade de avançar, temporariamente, vamos usar um 'confirm' simples
+            // que tem mais chance de funcionar se a aba estiver ativa.
             const confirmed = await showConfirm(instruction, 'MUDANÇA DE POSIÇÃO', 'Confirmar');
             
-            clearInterval(reminderId);
             document.getElementById(`sale-${saleId}`).classList.remove('needs-attention');
             activeModals.delete(saleId);
 
@@ -326,7 +382,7 @@
             const card = document.getElementById(`sale-${saleId}`);
             if(!card) return;
             
-            const timerState = { currentPhase: 99, phaseDurationSeconds: 0 }; // Cria um estado final para desabilitar o select
+            const timerState = { currentPhase: 99, phaseDurationSeconds: 0 };
             updateCardUIToRunning(saleId, timerState);
 
             const display = document.getElementById(`timer-display-${saleId}`);
@@ -335,7 +391,6 @@
             
             const startButton = card.querySelector('.start-timer-btn');
             startButton.classList.replace('bg-green-500', 'bg-gray-400');
-            // ÚNICA ALTERAÇÃO NESTA VERSÃO:
             startButton.innerHTML = `<i data-lucide="check-check" class="w-5 h-5"></i> Bronze concluído!`;
             lucide.createIcons();
         }
@@ -348,10 +403,8 @@
             const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
 
             if (target.classList.contains('start-timer-btn')) {
-                target.disabled = true;
-                target.innerHTML = `<i data-lucide="timer" class="w-5 h-5"></i> Em Andamento`;
-                lucide.createIcons();
                 await initializeAudio();
+
                 const selectedMinutes = document.getElementById(`time-select-${saleId}`).value;
                 await updateDoc(saleRef, {
                     timerState: {
@@ -361,6 +414,12 @@
                         phaseStartedAt: Timestamp.now()
                     }
                 });
+                
+                // Encontra os dados completos do cliente para enviar para a notificação
+                const saleData = patioClientsData.find(client => client.id === saleId);
+                if(saleData) {
+                    scheduleNotification(saleData);
+                }
             }
 
             if (target.classList.contains('finish-btn')) {
