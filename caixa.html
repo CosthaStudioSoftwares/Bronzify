@@ -224,7 +224,7 @@
     </script>
     
     <!-- SCRIPTS CENTRALIZADOS -->
-    <script src="./config.js"></script>
+    <script src="./config.js"></script> <!-- VOLTANDO A USAR O CONFIG.JS -->
     <script type="module" src="./layout.js"></script>
     <script src="./utils.js"></script>
     
@@ -233,6 +233,7 @@
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, where, getDocs, Timestamp, increment, orderBy, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+        // A variável firebaseConfig vem do arquivo config.js
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -772,6 +773,11 @@
                     // LINHA MODIFICADA
                     const urlToEncode = `${window.location.origin}/status-cliente.html?businessId=${currentUser.uid}&id=${newSaleId}`;
                     
+                    // NOVO: LOG DE DIAGNÓSTICO
+                    console.log("--- DEBUG QR CODE ---");
+                    console.log("URL Gerada para o QR Code:", urlToEncode);
+                    console.log("Verifique se 'businessId' e 'id' têm valores corretos.");
+
                     new QRCode(qrcodeContainer, {
                         text: urlToEncode,
                         width: 200,
@@ -987,20 +993,3 @@
     </script>
 </body>
 </html>
-```
-
----
-
-### 2. Código Corrigido: `status-cliente.html` (No seu Canvas)
-
-Eu atualizei seu Canvas com a versão mais recente e correta deste arquivo. Ele já está preparado para ler o `businessId` da URL. Não há mais nada para alterar aqui.
-
----
-
-### O que Fazer Agora
-
-1.  **Substitua o código completo** do seu arquivo `caixa.html` pelo código que forneci acima.
-2.  **Verifique se o seu Canvas** com o arquivo `status-cliente.html` está com a última versão que enviei (a que lê o `businessId` da URL).
-3.  **Faça o upload dos dois arquivos** para o seu servidor.
-
-Depois disso, o sistema estará 100% funcional para múltiplos salões. Cada QR Code gerado conterá as informações do salão específico, e a página do cliente saberá exatamente onde procur
