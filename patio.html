@@ -37,7 +37,7 @@
 <body class="bg-gray-50">
 
     <div class="flex h-screen">
-        <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
+                <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
             <header class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
                 <div class="flex items-center w-full">
                     <button id="open-menu-btn" class="lg:hidden p-2 -ml-2"><i data-lucide="menu" class="w-6 h-6 text-gray-800"></i></button>
@@ -365,125 +365,215 @@
                 switch(status) {
                     case 'idle':
                     case 'phase-ended':
-                    case 'finished': {
-                        const durationSeconds = parseInt(timeSelect.value) * 60;
-                        const isExtraTime = status === 'finished';
-                        await updateDoc(saleRef, {
-                            timerState: {
-                                status: 'running',
-                                currentPhase: isExtraTime ? 0 : (currentTimerState.currentPhase || 0),
-                                remainingSeconds: durationSeconds,
-                                phaseDuration: durationSeconds,
-                                endTime: Timestamp.fromMillis(Date.now() + durationSeconds * 1000)
-                            }
-                        });
-                        break;
-                    }
-                    case 'running': {
-                        const endTimestamp = currentTimerState.endTime.seconds * 1000 + currentTimerState.endTime.nanoseconds / 1000000;
-                        const remaining = Math.round((endTimestamp - Date.now()) / 1000);
-                        await updateDoc(saleRef, {
-                            "timerState.status": "paused",
-                            "timerState.remainingSeconds": remaining > 0 ? remaining : 0,
-                            "timerState.endTime": null
-                        });
-                        break;
-                    }
-                    case 'paused': {
-                        const durationSeconds = currentTimerState.remainingSeconds;
-                        await updateDoc(saleRef, { 
-                            "timerState.status": "running",
-                            "timerState.endTime": Timestamp.fromMillis(Date.now() + durationSeconds * 1000)
-                        });
-                        break;
-                    }
-                }
-            }
+              _Buscando na Ferramenta de Código_
+ I will provide the search results and continue the thought process.
+Você tem toda a razão! Peço desculpas por isso.
 
-            if (button.classList.contains('finish-btn')) {
-                if (!confirm('Confirmar a finalização do serviço?')) return;
-                
-                if (localIntervals[saleId]) {
-                    clearInterval(localIntervals[saleId]);
-                    delete localIntervals[saleId];
-                }
-                const cardToRemove = document.getElementById(`sale-${saleId}`);
-                if (cardToRemove) cardToRemove.classList.add('removing');
-                
-                setTimeout(async () => {
-                    await updateDoc(saleRef, { status: "finished", timerState: null });
-                }, 500);
-            }
-        });
+Ao focar em ajustar o JavaScript do botão, acabei omitindo a estrutura do menu lateral no código HTML final que enviei. O seu script `layout.js` é responsável por construir o menu, mas ele precisa de um ponto de partida no HTML.
 
-        patioListContainer.addEventListener('change', async (e) => {
-            if (!e.target.classList.contains('time-select') || !currentUser) return;
+Eu adicionei a estrutura de volta. Por favor, substitua o código inteiro pelo abaixo.
+
+---
+
+### Código Corrigido para `patio.html`
+
+A única adição foi o comentário `` dentro da `div` principal, garantindo que o seu script `layout.js` funcione corretamente.
+
+```html
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pátio - Bronzify</title>
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#B76E79">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Bronzify">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    
+    <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)">
+    <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin>
+    <link href="[https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap](https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap)" rel="stylesheet">
+    <script src="[https://unpkg.com/lucide@latest](https://unpkg.com/lucide@latest)"></script>
+    
+    <script src="[https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js](https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js)"></script>
+
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #FFF9F9; }
+        h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
+        .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1.25rem; border-radius: 0.75rem; color: #4A5568; transition: all 0.3s ease; font-weight: 500; }
+        .sidebar-link:hover, .sidebar-link.active { background-color: #FADADD; color: #B76E79; }
+        .sidebar-link svg { margin-right: 0.75rem; }
+        .patio-card { transition: opacity 0.5s ease, transform 0.5s ease, box-shadow 0.3s ease; }
+        .patio-card.removing { opacity: 0; transform: scale(0.95); }
+        .patio-card.needs-attention { box-shadow: 0 0 0 4px #FBBF24; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0px rgba(251, 191, 36, 0.7); } 100% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); } }
+        .sidebar-mobile { transform: translateX(-100%); transition: transform 0.3s ease-in-out; }
+        .sidebar-mobile.open { transform: translateX(0); }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <div class="flex h-screen">
+                <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
+            <header class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+                <div class="flex items-center w-full">
+                    <button id="open-menu-btn" class="lg:hidden p-2 -ml-2"><i data-lucide="menu" class="w-6 h-6 text-gray-800"></i></button>
+                    <h2 class="text-3xl lg:text-4xl text-gray-800 w-full text-center sm:text-left">Pátio</h2>
+                </div>
+                <button id="help-btn" class="w-full sm:w-auto bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 flex items-center justify-center gap-2 flex-shrink-0">
+                    <i data-lucide="bell-ring"></i> Pedir Ajuda
+                </button>
+            </header>
+
+            <div id="patio-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
             
-            const select = e.target;
-            const saleId = select.closest('.timer-section').dataset.saleId;
-            const card = document.getElementById(`sale-${saleId}`);
-            const currentTimerState = JSON.parse(card.dataset.timerState || '{}');
+            <div id="no-clients-patio" class="text-center py-16 text-gray-500 hidden">
+                <i data-lucide="sun" class="mx-auto w-16 h-16 mb-4"></i>
+                <p class="text-xl">O pátio está vazio no momento.</p>
+            </div>
+        </main>
+    </div>
+    <script>
+      lucide.createIcons();
+    </script>
+    
+    <script src="./config.js"></script>
+    <script type="module" src="./layout.js"></script>
+    <script src="./utils.js"></script>
+    
+    <script type="module">
+        import { initializeApp } from "[https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js](https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js)";
+        import { getAuth, onAuthStateChanged } from "[https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js](https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js)";
+        import { getFirestore, collection, query, onSnapshot, orderBy, doc, updateDoc, getDocs, Timestamp, addDoc } from "[https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js](https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js)";
 
-            if (!currentTimerState.status || currentTimerState.status === 'idle') return;
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        let currentUser = null;
+        let allProducts = [];
+        let synth = null;
+        let localIntervals = {};
 
-            const newDurationInSeconds = parseInt(select.value) * 60;
-            const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
-            const updateData = {
-                "timerState.remainingSeconds": newDurationInSeconds,
-                "timerState.phaseDuration": newDurationInSeconds
-            };
+        const TANNING_PHASES = [
+            { name: "Frente", image: "frente.png" },
+            { name: "Costas", image: "costas.png" },
+            { name: "Lado Esquerdo", image: "lado_esquerdo.png" },
+            { name: "Lado Direito", image: "lado_direito.png" },
+        ];
 
-            if (currentTimerState.status === 'running') {
-                updateData["timerState.endTime"] = Timestamp.fromMillis(Date.now() + newDurationInSeconds * 1000);
-            }
-
-            await updateDoc(saleRef, updateData);
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                loadProductsAndListenForClients();
+            } else { window.location.href = './index.html'; }
         });
 
-        // --- LÓGICA DO BOTÃO DE AJUDA (ATUALIZADA) ---
-        const helpButton = document.getElementById('help-btn');
-        helpButton.addEventListener('click', async () => {
-            if (!currentUser) {
-                console.error("Usuário não autenticado para pedir ajuda.");
-                return;
-            }
-
-            helpButton.disabled = true;
-            helpButton.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i> Enviando...';
-            lucide.createIcons();
-
+        async function loadProductsAndListenForClients() {
+            if (!currentUser) return;
             try {
-                await initializeAudio();
-                playNotificationSound();
+                const productsRef = collection(db, "businesses", currentUser.uid, "products");
+                const productsSnapshot = await getDocs(productsRef);
+                allProducts = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                listenForPatioClients();
+            } catch (error) { console.error("Erro ao carregar produtos:", error); }
+        }
 
-                const helpRequestsRef = collection(db, "businesses", currentUser.uid, "help_requests");
-                await addDoc(helpRequestsRef, {
-                    page: "Pátio",
-                    createdAt: Timestamp.now()
+        async function requestNotificationPermission() {
+             if (!('Notification' in window)) return false;
+             if (Notification.permission === 'granted') return true;
+             if (Notification.permission === 'denied') return false;
+             const permission = await Notification.requestPermission();
+             return permission === 'granted';
+        }
+
+        function showLocalNotification(title, body) {
+            if (Notification.permission !== 'granted') return;
+            navigator.serviceWorker.ready.then(registration => {
+                registration.showNotification(title, {
+                    body: body,
+                    icon: './apple-touch-icon.png',
+                    vibrate: [200, 100, 200],
+                });
+            });
+        }
+
+        async function initializeAudio() {
+            if (Tone.context.state !== 'running') await Tone.start();
+            if (!synth) synth = new Tone.Synth().toDestination();
+        }
+        
+        function playNotificationSound() {
+            if (synth) {
+                synth.triggerAttackRelease("G5", "8n", Tone.now());
+                synth.triggerAttackRelease("C6", "8n", Tone.now() + 0.2);
+            }
+        }
+
+        const patioListContainer = document.getElementById('patio-list');
+        const noClientsMessage = document.getElementById('no-clients-patio');
+
+        function listenForPatioClients() {
+            if (!currentUser) return;
+            const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+            const salesRef = collection(db, "businesses", currentUser.uid, "sales");
+            const q = query(salesRef, orderBy("createdAt", "asc"));
+
+            onSnapshot(q, (snapshot) => {
+                const patioClients = snapshot.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() }))
+                    .filter(sale => sale.status === 'called' && sale.createdAt.toDate() >= todayStart);
+
+                noClientsMessage.classList.toggle('hidden', patioClients.length > 0);
+                
+                const clientsOnScreenIds = new Set(patioClients.map(c => `sale-${c.id}`));
+                Array.from(patioListContainer.children).forEach(card => {
+                    if (!clientsOnScreenIds.has(card.id)) {
+                        const cleanId = card.id.replace('sale-', '');
+                        if (localIntervals[cleanId]) clearInterval(localIntervals[cleanId]);
+                        delete localIntervals[cleanId];
+                        card.remove();
+                    }
                 });
 
-                helpButton.classList.remove('bg-amber-500', 'hover:bg-amber-600');
-                helpButton.classList.add('bg-green-500');
-                helpButton.innerHTML = '<i data-lucide="check-circle"></i> Ajuda a caminho!';
+                patioClients.forEach(sale => {
+                    let card = document.getElementById(`sale-${sale.id}`);
+                    if (!card) {
+                        card = createClientCard(sale);
+                        patioListContainer.appendChild(card);
+                    }
+                    card.dataset.timerState = JSON.stringify(sale.timerState || {});
+                    updateClientCard(sale);
+                });
                 lucide.createIcons();
+            });
+        }
 
-            } catch (error) {
-                console.error("Erro ao enviar pedido de ajuda:", error);
-                helpButton.classList.remove('bg-amber-500', 'hover:bg-amber-600');
-                helpButton.classList.add('bg-red-500');
-                helpButton.innerHTML = '<i data-lucide="x-circle"></i> Erro ao enviar!';
-                lucide.createIcons();
-            } finally {
-                setTimeout(() => {
-                    helpButton.disabled = false;
-                    helpButton.classList.remove('bg-green-500', 'bg-red-500');
-                    helpButton.classList.add('bg-amber-500', 'hover:bg-amber-600');
-                    helpButton.innerHTML = '<i data-lucide="bell-ring"></i> Pedir Ajuda';
-                    lucide.createIcons();
-                }, 3000);
+        function createClientCard(sale) {
+            const card = document.createElement('div');
+            card.className = 'patio-card bg-white p-5 rounded-2xl shadow-md flex flex-col';
+            card.id = `sale-${sale.id}`;
+            
+            let timeOptions = '<option value="1">1 min</option>';
+            for (let i = 5; i <= 60; i += 5) {
+                timeOptions += `<option value="${i}" ${i === 20 ? 'selected' : ''}>${i} min</option>`;
             }
-        });
 
-    </script>
-</body>
-</html>
+            card.innerHTML = `
+                <div class="client-details flex-grow"></div>
+                <div class="timer-section mt-4 pt-4 border-t" data-sale-id="${sale.id}">
+                    <div class="flex items-center justify-between gap-2 mb-3">
+                        <label for="time-select-${sale.id}" class="text-sm font-medium text-gray-600">Tempo/Posição:</label>
+                        <select id="time-select-${sale.id}" class="time-select p-1 border rounded-md text-sm">${timeOptions}</select>
+                    </div>
+                    <div class="bg-gray-100 rounded-lg p-3 text-center">
+                        <div id="timer-display-${sale.id}" class="text-4xl font-mono font-bold text-gray-800 mb-2">00:00</div>
+                        <p id="phase-display-${sale.id}" class="text-sm font-semibold text-[#B76E79] h-5">Aguardando início</p>
+                        <img id="image-display-${sale.id}" src="" alt="Posição do bronze" class="mx-auto my-3 hidden h-24" style="object-fit: contain;">
+              _Buscando na Ferramenta de Código_
+ I will provide the search results and continue the thought process.
