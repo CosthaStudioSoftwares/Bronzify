@@ -440,44 +440,51 @@
             await updateDoc(saleRef, updateData);
         });
 
-        // --- FUNCIONALIDADE DO BOTÃO DE AJUDA ---
-        const helpButton = document.getElementById('help-btn');
-        helpButton.addEventListener('click', async () => {
-            if (!currentUser) {
-                alert('Você precisa estar logado para pedir ajuda.');
-                return;
-            }
+       // --- LÓGICA DO BOTÃO DE AJUDA (ATUALIZADA) ---
+const helpButton = document.getElementById('help-btn');
+helpButton.addEventListener('click', async () => {
+    if (!currentUser) {
+        console.error("Usuário não autenticado para pedir ajuda.");
+        return;
+    }
 
-            helpButton.disabled = true;
+    helpButton.disabled = true;
+    helpButton.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i> Enviando...';
+    lucide.createIcons();
 
-            try {
-                const helpRequestsRef = collection(db, "businesses", currentUser.uid, "help_requests");
-                await addDoc(helpRequestsRef, {
-                    createdAt: Timestamp.now(),
-                    from: 'Pátio' // Identifica a origem do pedido
-                });
+    try {
+        await initializeAudio();
+        playNotificationSound();
 
-                // Feedback visual para o usuário
-                helpButton.innerHTML = `<i data-lucide="check"></i> Ajuda a caminho!`;
-                helpButton.classList.remove('bg-amber-500', 'hover:bg-amber-600');
-                helpButton.classList.add('bg-green-500');
-                lucide.createIcons();
-
-                setTimeout(() => {
-                    helpButton.innerHTML = `<i data-lucide="bell-ring"></i> Pedir Ajuda`;
-                    helpButton.classList.remove('bg-green-500');
-                    helpButton.classList.add('bg-amber-500', 'hover:bg-amber-600');
-                    lucide.createIcons();
-                    helpButton.disabled = false;
-                }, 4000);
-
-            } catch (error) {
-                console.error("Erro ao solicitar ajuda:", error);
-                alert("Não foi possível solicitar ajuda. Tente novamente.");
-                helpButton.disabled = false;
-            }
+        const helpRequestsRef = collection(db, "businesses", currentUser.uid, "help_requests");
+        await addDoc(helpRequestsRef, {
+            page: "Pátio",
+            createdAt: Timestamp.now()
         });
+
+        helpButton.classList.remove('bg-amber-500', 'hover:bg-amber-600');
+        helpButton.classList.add('bg-green-500');
+        helpButton.innerHTML = '<i data-lucide="check-circle"></i> Ajuda a caminho!';
+        lucide.createIcons();
+
+    } catch (error) {
+        console.error("Erro ao enviar pedido de ajuda:", error);
+        helpButton.classList.remove('bg-amber-500', 'hover:bg-amber-600');
+        helpButton.classList.add('bg-red-500');
+        helpButton.innerHTML = '<i data-lucide="x-circle"></i> Erro ao enviar!';
+        lucide.createIcons();
+    } finally {
+        setTimeout(() => {
+            helpButton.disabled = false;
+            helpButton.classList.remove('bg-green-500', 'bg-red-500');
+            helpButton.classList.add('bg-amber-500', 'hover:bg-amber-600');
+            helpButton.innerHTML = '<i data-lucide="bell-ring"></i> Pedir Ajuda';
+            lucide.createIcons();
+        }, 3000);
+    }
+});
 
     </script>
 </body>
 </html>
+
