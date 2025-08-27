@@ -773,7 +773,7 @@
                     // NOVO: Lógica para gerar e mostrar o QR Code
                     modalPasswordEl.textContent = password;
                     qrcodeContainer.innerHTML = ''; // Limpa QR Code anterior
-                    const urlToEncode = `${window.location.origin}/status-cliente.html?id=${newSaleId}`;
+                    const urlToEncode = `${window.location.origin}/status-cliente.html?businessId=${currentUser.uid}&id=${newSaleId}`;
                     new QRCode(qrcodeContainer, {
                         text: urlToEncode,
                         width: 200,
@@ -989,3 +989,4 @@
     </script>
 </body>
 </html>
+
