@@ -138,7 +138,6 @@
 
         function playNotificationSound() {
             if (synth) {
-                // Toca uma sequência de notas para chamar a atenção
                 const now = Tone.now();
                 synth.triggerAttackRelease("G5", "8n", now);
                 synth.triggerAttackRelease("C6", "8n", now + 0.2);
@@ -148,7 +147,6 @@
 
         function triggerVibration() {
             if ('vibrate' in navigator) {
-                // Vibra por 500ms, pausa por 200ms, vibra por 500ms (padrão longo)
                 navigator.vibrate([500, 200, 500, 200, 500]);
             }
         }
@@ -165,29 +163,27 @@
         async function main() {
             const params = new URLSearchParams(window.location.search);
             const saleId = params.get('id');
+            // NOVO: Captura o ID do negócio a partir da URL
+            const businessId = params.get('businessId'); 
 
-            if (!saleId) {
+            // NOVO: Verifica se ambos os IDs existem
+            if (!saleId || !businessId) {
                 showState('error-state');
                 return;
             }
 
             try {
-                // Autentica o usuário anonimamente para ter permissão de leitura
                 await signInAnonymously(auth);
                 
                 onAuthStateChanged(auth, (user) => {
                     if (user) {
-                        // O UID do negócio é necessário para construir o caminho do documento
-                        // IMPORTANTE: Substitua 'ID_DO_NEGOCIO_AQUI' pelo UID real do seu negócio.
-                        const businessId = "ID_DO_NEGOCIO_AQUI"; 
-                        
+                        // NOVO: Usa o businessId da URL para montar o caminho correto
                         const saleRef = doc(db, "businesses", businessId, "sales", saleId);
 
                         onSnapshot(saleRef, (docSnap) => {
                             if (docSnap.exists()) {
                                 const saleData = docSnap.data();
                                 
-                                // Atualiza o título da página
                                 document.title = `${saleData.password} - ${saleData.clientName}`;
 
                                 if (saleData.status === 'waiting') {
@@ -198,14 +194,11 @@
                                     calledPasswordEl.textContent = saleData.password;
                                     showState('called-state');
                                     
-                                    // Dispara as notificações
                                     playNotificationSound();
                                     triggerVibration();
                                     
-                                    // Atualiza o título para ser mais chamativo
                                     document.title = `✨ SUA VEZ! (${saleData.password}) ✨`;
                                 } else {
-                                    // Se o status for 'finished' ou outro, mostra como finalizado.
                                     errorState.querySelector('h2').textContent = "Atendimento Finalizado";
                                     errorState.querySelector('p').textContent = "Obrigado por utilizar nossos serviços!";
                                     errorState.querySelector('i').setAttribute('data-lucide', 'check-circle-2');
