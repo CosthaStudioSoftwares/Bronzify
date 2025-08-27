@@ -87,11 +87,12 @@
         </div>
     </div>
 
-    <!-- NOVO: Painel de Diagnóstico -->
+    <!-- Painel de Diagnóstico -->
     <div id="debug-panel" class="fixed bottom-0 left-0 w-full bg-gray-800 text-white p-2 text-xs font-mono z-50">
         <p class="font-bold mb-1">Informações de Depuração:</p>
         <p id="debug-business-id">businessId recebido: (aguardando)</p>
         <p id="debug-sale-id">saleId recebido: (aguardando)</p>
+        <p id="debug-error" class="text-red-400">Erro do Firebase: (nenhum)</p>
     </div>
 
 
@@ -133,9 +134,10 @@
         const audioOverlay = document.getElementById('audio-overlay');
         const startAudioBtn = document.getElementById('start-audio-btn');
 
-        // NOVO: Elementos do painel de diagnóstico
+        // Elementos do painel de diagnóstico
         const debugBusinessIdEl = document.getElementById('debug-business-id');
         const debugSaleIdEl = document.getElementById('debug-sale-id');
+        const debugErrorEl = document.getElementById('debug-error');
 
         // Lógica para iniciar o áudio
         startAudioBtn.addEventListener('click', async () => {
@@ -176,7 +178,6 @@
             const saleId = params.get('id');
             const businessId = params.get('businessId'); 
 
-            // NOVO: Exibe os parâmetros recebidos no painel de diagnóstico
             debugBusinessIdEl.textContent = `businessId recebido: ${businessId || 'nulo'}`;
             debugSaleIdEl.textContent = `saleId recebido: ${saleId || 'nulo'}`;
 
@@ -222,6 +223,8 @@
                             }
                         }, (error) => {
                             console.error("Erro ao ouvir o documento:", error);
+                            // NOVO: Exibe o erro no painel de diagnóstico
+                            debugErrorEl.textContent = `Erro do Firebase: ${error.code}`;
                             showState('error-state');
                         });
                     }
@@ -229,6 +232,7 @@
 
             } catch (error) {
                 console.error("Erro de autenticação ou ao buscar dados:", error);
+                debugErrorEl.textContent = `Erro de Autenticação: ${error.code}`;
                 showState('error-state');
             }
         }
