@@ -7,11 +7,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#B76E79">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Bronzify">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <meta name="theme-color" content="#B76E79">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Bronzify">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,6 +19,8 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Biblioteca de Som -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <!-- NOVO: Biblioteca para gerar QR Code -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         body {
             font-family: 'Poppins', sans-serif;
@@ -65,7 +67,6 @@
             -webkit-appearance: none;
             margin: 0;
         }
-        /* Estilos para a barra lateral móvel */
         .sidebar-mobile {
             transform: translateX(-100%);
             transition: transform 0.3s ease-in-out;
@@ -162,7 +163,6 @@
                             <option>Dinheiro</option><option>PIX</option><option>Débito</option><option>Crédito</option><option>A Prazo</option><option>Parceria</option>
                         </select>
                         <button id="save-sale-btn" class="w-full bg-gradient-to-r from-pink-500 to-[#B76E79] text-white py-3 rounded-lg hover:opacity-90 font-bold text-lg">Salvar Venda</button>
-                        <div id="password-display" class="mt-4 text-center hidden"><p class="text-gray-600">Senha Gerada:</p><p id="generated-password" class="text-4xl font-bold text-[#B76E79]"></p></div>
                     </div>
                 </div>
             </div>
@@ -203,8 +203,23 @@
         <button id="close-help-alert" class="w-full mt-4 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300">OK, Entendido</button>
     </div>
 
+    <!-- NOVO: Modal de Senha e QR Code -->
+    <div id="password-qr-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 text-center modal-content transform scale-95">
+            <h3 class="text-2xl text-gray-800 mb-2">Venda Concluída!</h3>
+            <p class="text-gray-600">A senha da cliente é:</p>
+            <p id="modal-password" class="text-7xl font-bold text-[#B76E79] my-4"></p>
+            <p class="text-gray-600 mb-4">Peça para a cliente escanear o QR Code abaixo para acompanhar a chamada.</p>
+            <div id="qrcode-container" class="flex justify-center items-center p-4 border rounded-lg">
+                <!-- QR Code será inserido aqui -->
+            </div>
+            <button id="close-qr-modal-btn" class="w-full mt-6 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 font-semibold">Fechar</button>
+        </div>
+    </div>
+
+
     <script>
-      lucide.createIcons();
+        lucide.createIcons();
     </script>
     
     <!-- SCRIPTS CENTRALIZADOS -->
@@ -641,6 +656,16 @@
             }));
         }
         
+        // NOVO: Referências para o modal de QR Code
+        const passwordQrModal = document.getElementById('password-qr-modal');
+        const modalPasswordEl = document.getElementById('modal-password');
+        const qrcodeContainer = document.getElementById('qrcode-container');
+        const closeQrModalBtn = document.getElementById('close-qr-modal-btn');
+
+        closeQrModalBtn.addEventListener('click', () => {
+            passwordQrModal.classList.add('hidden');
+        });
+
         document.getElementById('save-sale-btn').addEventListener('click', async () => {
             if (!currentUser) return;
             const totalString = totalEl.textContent.replace(/\D/g, '');
@@ -704,6 +729,7 @@
 
             try {
                 if (editingSaleId) {
+                    // Lógica de edição de venda (mantida como estava)
                     const saleRef = doc(db, "businesses", currentUser.uid, "sales", editingSaleId);
                     const originalSaleDoc = await getDoc(saleRef);
                     const originalSaleData = originalSaleDoc.data();
@@ -730,16 +756,34 @@
                     await updateDoc(saleRef, salePayload);
                     showNotification('Venda atualizada com sucesso!', 'success');
                 } else {
+                    // Lógica de nova venda (MODIFICADA para incluir QR Code)
                     const password = await getNextPassword();
                     salePayload.password = password;
                     const salesRef = collection(db, "businesses", currentUser.uid, "sales");
-                    await addDoc(salesRef, salePayload);
+                    
+                    // Adiciona o documento e captura a referência para obter o ID
+                    const newSaleRef = await addDoc(salesRef, salePayload);
+                    const newSaleId = newSaleRef.id; // NOVO: Captura o ID da nova venda
+
                     if (selectedClient && Object.keys(packageUpdatePayload).length > 0) {
                         const clientRef = doc(db, "businesses", currentUser.uid, "clients", selectedClient.id);
                         await updateDoc(clientRef, packageUpdatePayload);
                     }
-                    document.getElementById('generated-password').textContent = password;
-                    document.getElementById('password-display').classList.remove('hidden');
+                    
+                    // NOVO: Lógica para gerar e mostrar o QR Code
+                    modalPasswordEl.textContent = password;
+                    qrcodeContainer.innerHTML = ''; // Limpa QR Code anterior
+                    const urlToEncode = `${window.location.origin}/status-cliente.html?id=${newSaleId}`;
+                    new QRCode(qrcodeContainer, {
+                        text: urlToEncode,
+                        width: 200,
+                        height: 200,
+                        colorDark : "#B76E79",
+                        colorLight : "#ffffff",
+                        correctLevel : QRCode.CorrectLevel.H
+                    });
+                    passwordQrModal.classList.remove('hidden');
+                    
                     showNotification(`Venda salva! Senha do cliente: ${password}`, 'success');
                 }
                 await loadAllClients();
@@ -793,7 +837,6 @@
             resetServicesUI();
             calculateTotal();
             document.getElementById('save-sale-btn').textContent = 'Salvar Venda';
-            setTimeout(() => document.getElementById('password-display').classList.add('hidden'), 5000);
         }
 
         async function loadDailySales() {
@@ -934,16 +977,15 @@
     </script>
 
     <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').then(registration => {
-        console.log('Service Worker registrado com sucesso:', registration);
-      }).catch(error => {
-        console.log('Falha ao registrar Service Worker:', error);
-      });
-    });
-  }
-</script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('Service Worker registrado com sucesso:', registration);
+        }).catch(error => {
+            console.log('Falha ao registrar Service Worker:', error);
+        });
+        });
+    }
+    </script>
 </body>
 </html>
-
