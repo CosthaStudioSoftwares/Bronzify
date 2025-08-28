@@ -46,12 +46,14 @@
                 <h2 class="text-2xl text-gray-800">Olá, <span id="client-name" class="font-bold">Cliente</span>!</h2>
                 <p class="text-gray-600 mt-2">A sua senha para atendimento é:</p>
                 <p id="password-display" class="text-8xl font-bold text-[#B76E79] my-4 tracking-wider"></p>
-                <div class="bg-rose-50 border-l-4 border-rose-400 p-4 rounded-r-lg mt-6 text-left">
+                
+                <!-- Seção para ativar notificações -->
+                <div id="notification-prompt" class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg mt-6 text-left">
                     <div class="flex">
-                        <div class="py-1"><i data-lucide="info" class="w-6 h-6 text-rose-500 mr-4"></i></div>
+                        <div class="py-1"><i data-lucide="bell-plus" class="w-6 h-6 text-amber-500 mr-4"></i></div>
                         <div>
-                            <p class="font-semibold text-rose-800">Importante!</p>
-                            <p class="text-sm text-rose-700">Para garantir que ouve o aviso, por favor, mantenha esta página aberta e o volume do seu telemóvel ligado.</p>
+                            <p class="font-semibold text-amber-800">Receba um alerta da sua vez!</p>
+                            <button id="enable-notifications-btn" class="text-sm text-amber-700 underline font-bold">Clique aqui para ativar as notificações.</button>
                         </div>
                     </div>
                 </div>
@@ -94,7 +96,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 
         // Configuração do Firebase
         const firebaseConfig = {
@@ -109,12 +112,9 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const messaging = getMessaging(app);
 
         let synth = null;
-        let soundInterval = null; 
-        let titleInterval = null; 
-        let originalTitle = document.title;
-        let wasInBackground = false; // Variável para rastrear se a página esteve em segundo plano
 
         // Elementos da UI
         const loadingState = document.getElementById('loading-state');
@@ -129,7 +129,9 @@
         const audioOverlay = document.getElementById('audio-overlay');
         const startAudioBtn = document.getElementById('start-audio-btn');
 
-        // Lógica para iniciar o áudio
+        const notificationPrompt = document.getElementById('notification-prompt');
+        const enableNotificationsBtn = document.getElementById('enable-notifications-btn');
+
         startAudioBtn.addEventListener('click', async () => {
             if (typeof Tone !== 'undefined') {
                 await Tone.start();
@@ -147,56 +149,6 @@
             }
         }
 
-        function triggerVibration() {
-            if ('vibrate' in navigator) {
-                navigator.vibrate([200, 100, 200]);
-            }
-        }
-
-        function startAlerts() {
-            if (!soundInterval) {
-                soundInterval = setInterval(() => {
-                    playNotificationSound();
-                    triggerVibration();
-                }, 2000); 
-            }
-            if (!titleInterval) {
-                let isTitleVisible = true;
-                titleInterval = setInterval(() => {
-                    document.title = isTitleVisible ? "✨ É A SUA VEZ! ✨" : originalTitle;
-                    isTitleVisible = !isTitleVisible;
-                }, 1000); 
-            }
-        }
-
-        function stopAlerts() {
-            clearInterval(soundInterval);
-            clearInterval(titleInterval);
-            soundInterval = null;
-            titleInterval = null;
-            document.title = originalTitle;
-        }
-
-        document.addEventListener('click', stopAlerts);
-        
-        // LÓGICA ATUALIZADA para recarregar a página
-        document.addEventListener('visibilitychange', () => {
-            // Marca que a página esteve em segundo plano
-            if (document.visibilityState === 'hidden') {
-                wasInBackground = true;
-            }
-            
-            // Se a página se tornar visível novamente
-            if (document.visibilityState === 'visible') {
-                stopAlerts();
-                // E se ela esteve em segundo plano antes, recarrega para garantir os dados mais recentes
-                if (wasInBackground) {
-                    window.location.reload();
-                }
-            }
-        });
-
-
         function showState(state) {
             loadingState.classList.add('hidden');
             waitingState.classList.add('hidden');
@@ -205,7 +157,37 @@
             document.getElementById(state).classList.remove('hidden');
         }
 
-        // Função principal
+        async function requestNotificationPermission(saleRef) {
+            console.log('A pedir permissão para notificações...');
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    console.log('Permissão de notificação concedida.');
+                    // IMPORTANTE: Cole a sua Chave VAPID aqui
+                    const vapidKey = "BPD-J34Q7x5-G-4q1v-2y-9z-1x-8c-7v-6b-5a-4n-3m-2l-1k-0j";
+                    const currentToken = await getToken(messaging, { vapidKey: vapidKey });
+
+                    if (currentToken) {
+                        console.log('Token FCM obtido:', currentToken);
+                        await updateDoc(saleRef, {
+                            fcmTokens: arrayUnion(currentToken)
+                        });
+                        console.log('Token guardado no Firestore.');
+                        notificationPrompt.innerHTML = '<p class="text-sm text-green-700 font-semibold">Tudo pronto! Você será notificada.</p>';
+                    } else {
+                        console.log('Nenhum token de registo disponível.');
+                        notificationPrompt.innerHTML = '<p class="text-sm text-red-700">Não foi possível obter o token. Tente recarregar a página.</p>';
+                    }
+                } else {
+                    console.log('Não foi possível obter permissão para notificar.');
+                    notificationPrompt.innerHTML = '<p class="text-sm text-gray-600">As notificações foram bloqueadas. Pode ativá-las nas definições do seu navegador.</p>';
+                }
+            } catch (err) {
+                console.error('Ocorreu um erro ao obter o token. ', err);
+                notificationPrompt.innerHTML = `<p class="text-sm text-red-700">Erro ao ativar notificações: ${err.message}</p>`;
+            }
+        }
+
         async function main() {
             const params = new URLSearchParams(window.location.search);
             const saleId = params.get('id');
@@ -223,12 +205,13 @@
                     if (user) {
                         const saleRef = doc(db, "businesses", businessId, "sales", saleId);
 
+                        enableNotificationsBtn.onclick = () => requestNotificationPermission(saleRef);
+
                         onSnapshot(saleRef, (docSnap) => {
                             if (docSnap.exists()) {
                                 const saleData = docSnap.data();
                                 
-                                originalTitle = `${saleData.password} - ${saleData.clientName}`;
-                                document.title = originalTitle;
+                                document.title = `${saleData.password} - ${saleData.clientName}`;
 
                                 if (saleData.status === 'waiting') {
                                     clientNameEl.textContent = saleData.clientName;
@@ -237,7 +220,9 @@
                                 } else if (saleData.status === 'called') {
                                     calledPasswordEl.textContent = saleData.password;
                                     showState('called-state');
-                                    startAlerts(); // Inicia os alertas em loop
+                                    // O som agora é acionado pela notificação push,
+                                    // mas mantemos aqui para o caso da aba estar aberta.
+                                    playNotificationSound();
                                 } else {
                                     errorState.querySelector('h2').textContent = "Atendimento Finalizado";
                                     errorState.querySelector('p').textContent = "Obrigado por utilizar os nossos serviços!";
@@ -262,6 +247,12 @@
         }
 
         main();
+
+        // Ouve as mensagens recebidas enquanto a página está aberta
+        onMessage(messaging, (payload) => {
+            console.log('Mensagem recebida em primeiro plano. ', payload);
+            playNotificationSound();
+        });
 
     </script>
 </body>
