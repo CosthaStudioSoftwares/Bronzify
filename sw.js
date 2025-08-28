@@ -18,49 +18,43 @@ const messaging = firebase.messaging();
 
 // --- LÓGICA MELHORADA PARA NOTIFICAÇÕES EM SEGUNDO PLANO ---
 messaging.onBackgroundMessage((payload) => {
-  console.log("[sw.js] Mensagem recebida em segundo plano: ", payload);
+  console.log("[sw.js] Mensagem de DADOS recebida em segundo plano: ", payload);
 
-  const notificationTitle = payload.notification.title;
+  // --- ALTERAÇÃO PRINCIPAL AQUI ---
+  // Lemos os detalhes da notificação a partir de 'payload.data'
+  const notificationTitle = payload.data.title;
   const notificationOptions = {
-    body: payload.notification.body,
-    icon: "/apple-touch-icon.png",
+    body: payload.data.body,
+    icon: payload.data.icon,
     // Guarda o URL para ser usado quando a notificação for clicada
     data: {
-        url: payload.notification.click_action
+        url: payload.data.click_action
     }
   };
 
-  // self.waitUntil garante que o Service Worker não seja terminado
-  // pelo navegador antes de a notificação ser exibida.
   self.waitUntil(
     self.registration.showNotification(notificationTitle, notificationOptions)
   );
 });
 
-// --- NOVO: GESTOR DE EVENTOS PARA O CLIQUE NA NOTIFICAÇÃO ---
-// Este código é executado quando o utilizador clica na notificação.
+// --- GESTOR DE EVENTOS PARA O CLIQUE NA NOTIFICAÇÃO (SEM ALTERAÇÕES) ---
 self.addEventListener('notificationclick', (event) => {
   console.log('[sw.js] Notificação clicada.');
   
-  // Fecha a notificação
   event.notification.close();
 
   const urlToOpen = event.notification.data.url;
 
-  // Procura por uma janela já aberta com o mesmo URL e foca-a.
-  // Se não encontrar, abre uma nova janela.
   event.waitUntil(
     clients.matchAll({
       type: "window",
       includeUncontrolled: true
     }).then((clientList) => {
       for (const client of clientList) {
-        // Se encontrar uma janela já aberta, foca-a
         if (client.url === urlToOpen && 'focus' in client) {
           return client.focus();
         }
       }
-      // Se não, abre uma nova janela
       if (clients.openWindow) {
         return clients.openWindow(urlToOpen);
       }
