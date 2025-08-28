@@ -158,15 +158,15 @@
         }
 
         async function requestNotificationPermission(saleRef) {
+            enableNotificationsBtn.disabled = true;
+            notificationPrompt.querySelector('p').textContent = "A processar...";
             console.log('A pedir permissão para notificações...');
             try {
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted') {
                     console.log('Permissão de notificação concedida.');
-                    // IMPORTANTE: Cole a sua Chave VAPID aqui
                     const vapidKey = "BPD-J34Q7x5-G-4q1v-2y-9z-1x-8c-7v-6b-5a-4n-3m-2l-1k-0j";
                     
-                    // CORRIGIDO: Espera o service worker ficar pronto e ativo
                     console.log('A aguardar pelo service worker ativo...');
                     const registration = await navigator.serviceWorker.ready;
                     console.log('Service worker está ativo e pronto:', registration);
@@ -202,7 +202,6 @@
             const saleId = params.get('id');
             const businessId = params.get('businessId'); 
 
-            // Regista o service worker assim que a página carrega
             if ('serviceWorker' in navigator) {
                 try {
                     await navigator.serviceWorker.register('/sw.js');
@@ -217,14 +216,24 @@
                 return;
             }
 
+            // CORRIGIDO: Adiciona o ouvinte de clique imediatamente
+            enableNotificationsBtn.addEventListener('click', () => {
+                const user = auth.currentUser;
+                if (user) {
+                    const saleRef = doc(db, "businesses", businessId, "sales", saleId);
+                    requestNotificationPermission(saleRef);
+                } else {
+                    console.log("A aguardar pela autenticação para ativar as notificações...");
+                    notificationPrompt.querySelector('p').textContent = "A autenticar... por favor, tente novamente em instantes.";
+                }
+            });
+
             try {
                 await signInAnonymously(auth);
                 
                 onAuthStateChanged(auth, (user) => {
                     if (user) {
                         const saleRef = doc(db, "businesses", businessId, "sales", saleId);
-
-                        enableNotificationsBtn.onclick = () => requestNotificationPermission(saleRef);
 
                         onSnapshot(saleRef, (docSnap) => {
                             if (docSnap.exists()) {
