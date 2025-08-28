@@ -1,209 +1,306 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aguardando sua vez - Bronzify</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
-  <style>
-    body { font-family: 'Poppins', sans-serif; background-color: #FFF9F9; }
-    h1,h2,h3,h4 { font-family: 'Playfair Display', serif; }
-    .called-animation { animation: pulse-bg 1.5s infinite; }
-    @keyframes pulse-bg { 0% { background-color: #10B981; } 50% { background-color: #34D399; } 100% { background-color: #10B981; } }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aguardando sua vez - Bronzify</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #FFF9F9;
+        }
+        h1, h2, h3, h4 {
+            font-family: 'Playfair Display', serif;
+        }
+        .called-animation {
+            animation: pulse-bg 1.5s infinite;
+        }
+        @keyframes pulse-bg {
+            0% { background-color: #10B981; } /* emerald-500 */
+            50% { background-color: #34D399; } /* emerald-400 */
+            100% { background-color: #10B981; } /* emerald-500 */
+        }
+    </style>
 </head>
 <body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
 
-<div id="status-container" class="w-full max-w-md text-center">
+    <!-- Container Principal de Status -->
+    <div id="status-container" class="w-full max-w-md text-center">
 
-  <!-- Estado Carregando -->
-  <div id="loading-state" class="text-center">
-    <i data-lucide="loader-2" class="w-16 h-16 text-gray-400 mx-auto animate-spin"></i>
-    <p class="mt-4 text-gray-600">A carregar informações...</p>
-  </div>
-
-  <!-- Estado Aguardando -->
-  <div id="waiting-state" class="hidden">
-    <div class="bg-white p-8 rounded-2xl shadow-lg">
-      <img src="./apple-touch-icon.png" alt="Logo Bronzify" class="w-24 h-24 mx-auto mb-4 rounded-full shadow-md">
-      <h2 class="text-2xl text-gray-800">Olá, <span id="client-name" class="font-bold">Cliente</span>!</h2>
-      <p class="text-gray-600 mt-2">A sua senha para atendimento é:</p>
-      <p id="password-display" class="text-8xl font-bold text-[#B76E79] my-4 tracking-wider"></p>
-
-      <div id="notification-prompt" class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg mt-6 text-left">
-        <div class="flex">
-          <div class="py-1"><i data-lucide="bell-plus" class="w-6 h-6 text-amber-500 mr-4"></i></div>
-          <div>
-            <p class="font-semibold text-amber-800">Receba um alerta da sua vez!</p>
-            <button id="enable-notifications-btn" class="text-sm text-amber-700 underline font-bold">Clique aqui para ativar as notificações.</button>
-          </div>
+        <!-- Estado de Carregamento -->
+        <div id="loading-state" class="text-center">
+            <i data-lucide="loader-2" class="w-16 h-16 text-gray-400 mx-auto animate-spin"></i>
+            <p class="mt-4 text-gray-600">A carregar informações...</p>
         </div>
-      </div>
+
+        <!-- Estado de Aguardando -->
+        <div id="waiting-state" class="hidden">
+            <div class="bg-white p-8 rounded-2xl shadow-lg">
+                <img src="./apple-touch-icon.png" alt="Logo Bronzify" class="w-24 h-24 mx-auto mb-4 rounded-full shadow-md">
+                <h2 class="text-2xl text-gray-800">Olá, <span id="client-name" class="font-bold">Cliente</span>!</h2>
+                <p class="text-gray-600 mt-2">A sua senha para atendimento é:</p>
+                <p id="password-display" class="text-8xl font-bold text-[#B76E79] my-4 tracking-wider"></p>
+                
+                <!-- Seção para ativar notificações -->
+                <div id="notification-prompt" class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg mt-6 text-left">
+                    <div class="flex">
+                        <div class="py-1"><i data-lucide="bell-plus" class="w-6 h-6 text-amber-500 mr-4"></i></div>
+                        <div>
+                            <p class="font-semibold text-amber-800">Receba um alerta da sua vez!</p>
+                            <button id="enable-notifications-btn" class="text-sm text-amber-700 underline font-bold">Clique aqui para ativar as notificações.</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estado de Chamado -->
+        <div id="called-state" class="hidden">
+            <div class="bg-emerald-500 p-8 rounded-2xl shadow-lg text-white called-animation">
+                <i data-lucide="party-popper" class="w-24 h-24 mx-auto animate-bounce"></i>
+                <h1 class="text-5xl font-bold mt-6">É a sua vez!</h1>
+                <p class="text-2xl mt-2">Senha <span id="called-password" class="font-bold"></span></p>
+                <p class="mt-8 text-lg bg-white/20 p-3 rounded-lg">Por favor, dirija-se à receção para iniciar o seu atendimento.</p>
+            </div>
+        </div>
+
+        <!-- Estado de Erro / Finalizado -->
+        <div id="error-state" class="hidden">
+            <div class="bg-white p-8 rounded-2xl shadow-lg">
+                <i data-lucide="frown" class="w-16 h-16 text-red-400 mx-auto"></i>
+                <h2 class="text-2xl text-gray-800 mt-4">Atendimento não encontrado</h2>
+                <p class="text-gray-600 mt-2">O link pode estar incorreto ou este atendimento já foi finalizado. Por favor, verifique na receção.</p>
+            </div>
+        </div>
     </div>
-  </div>
-
-  <!-- Estado Chamado -->
-  <div id="called-state" class="hidden">
-    <div class="bg-emerald-500 p-8 rounded-2xl shadow-lg text-white called-animation">
-      <i data-lucide="party-popper" class="w-24 h-24 mx-auto animate-bounce"></i>
-      <h1 class="text-5xl font-bold mt-6">É a sua vez!</h1>
-      <p class="text-2xl mt-2">Senha <span id="called-password" class="font-bold"></span></p>
-      <p class="mt-8 text-lg bg-white/20 p-3 rounded-lg">Por favor, dirija-se à receção para iniciar o seu atendimento.</p>
+    
+    <!-- Overlay para iniciar áudio -->
+    <div id="audio-overlay" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 text-white text-center p-4">
+        <div>
+            <h2 class="text-3xl font-bold">Bem-vinda!</h2>
+            <p class="mt-2 mb-6">Para ativarmos o som de notificação, por favor, toque na tela.</p>
+            <button id="start-audio-btn" class="bg-[#B76E79] px-8 py-3 rounded-lg font-semibold text-lg hover:opacity-90">Tudo pronto!</button>
+        </div>
     </div>
-  </div>
 
-  <!-- Estado Erro / Finalizado -->
-  <div id="error-state" class="hidden">
-    <div class="bg-white p-8 rounded-2xl shadow-lg">
-      <i data-lucide="frown" class="w-16 h-16 text-red-400 mx-auto"></i>
-      <h2 class="text-2xl text-gray-800 mt-4">Atendimento não encontrado</h2>
-      <p class="text-gray-600 mt-2">O link pode estar incorreto ou este atendimento já foi finalizado. Por favor, verifique na receção.</p>
-    </div>
-  </div>
-</div>
+    <script>
+        lucide.createIcons();
+    </script>
 
-<script>
-  lucide.createIcons();
-</script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, onSnapshot, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
+            authDomain: "bronzify-b2491.firebaseapp.com",
+            projectId: "bronzify-b2491",
+            storageBucket: "bronzify-b2491.appspot.com",
+            messagingSenderId: "399230151633",
+            appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
+        };
 
-// Config Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
-  authDomain: "bronzify-b2491.firebaseapp.com",
-  projectId: "bronzify-b2491",
-  storageBucket: "bronzify-b2491.appspot.com",
-  messagingSenderId: "399230151633",
-  appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
-};
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const messaging = getMessaging(app);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const messaging = getMessaging(app);
 
-let synth = null;
+        let synth = null;
 
-// Elements
-const loadingState = document.getElementById('loading-state');
-const waitingState = document.getElementById('waiting-state');
-const calledState = document.getElementById('called-state');
-const errorState = document.getElementById('error-state');
+        // Elementos da UI
+        const loadingState = document.getElementById('loading-state');
+        const waitingState = document.getElementById('waiting-state');
+        const calledState = document.getElementById('called-state');
+        const errorState = document.getElementById('error-state');
+        
+        const clientNameEl = document.getElementById('client-name');
+        const passwordDisplayEl = document.getElementById('password-display');
+        const calledPasswordEl = document.getElementById('called-password');
 
-const clientNameEl = document.getElementById('client-name');
-const passwordDisplayEl = document.getElementById('password-display');
-const calledPasswordEl = document.getElementById('called-password');
+        const audioOverlay = document.getElementById('audio-overlay');
+        const startAudioBtn = document.getElementById('start-audio-btn');
 
-const notificationPrompt = document.getElementById('notification-prompt');
-const enableNotificationsBtn = document.getElementById('enable-notifications-btn');
+        const notificationPrompt = document.getElementById('notification-prompt');
+        const enableNotificationsBtn = document.getElementById('enable-notifications-btn');
 
-function showState(state) {
-  loadingState.classList.add('hidden');
-  waitingState.classList.add('hidden');
-  calledState.classList.add('hidden');
-  errorState.classList.add('hidden');
-  document.getElementById(state).classList.remove('hidden');
-}
+        startAudioBtn.addEventListener('click', async () => {
+            if (typeof Tone !== 'undefined') {
+                await Tone.start();
+                synth = new Tone.Synth().toDestination();
+                console.log("Audio context started for client.");
+            }
+            audioOverlay.classList.add('hidden');
+        });
 
-function playNotificationSound() {
-  if (synth) {
-    const now = Tone.now();
-    synth.triggerAttackRelease("G5", "8n", now);
-    synth.triggerAttackRelease("C6", "8n", now + 0.2);
-  }
-}
-
-// Função para obter token FCM
-async function getFCMToken() {
-  const vapidKey = "SUA_CHAVE_VAPID_AQUI";
-  const registration = await navigator.serviceWorker.ready;
-  const currentToken = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
-  if (!currentToken) throw new Error("Não foi possível obter o token.");
-  return currentToken;
-}
-
-// Pedir permissão notificações
-async function requestNotificationPermission(saleRef) {
-  enableNotificationsBtn.disabled = true;
-  try {
-    if (Notification.permission === 'granted') {
-      const token = await getFCMToken();
-      await updateDoc(saleRef, { fcmTokens: arrayUnion(token) });
-      return;
-    }
-    if (Notification.permission === 'denied') return;
-    const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
-      const token = await getFCMToken();
-      await updateDoc(saleRef, { fcmTokens: arrayUnion(token) });
-    }
-  } catch (err) { console.error(err); }
-}
-
-async function main() {
-  const params = new URLSearchParams(window.location.search);
-  const saleId = params.get('id');
-  const businessId = params.get('businessId'); 
-
-  if (!saleId || !businessId) { showState('error-state'); return; }
-
-  // Registra SW
-  if ('serviceWorker' in navigator) {
-    try { await navigator.serviceWorker.register('/firebase-messaging-sw.js'); } 
-    catch(e){ console.error('Erro registrar SW:', e); }
-  }
-
-  enableNotificationsBtn.addEventListener('click', () => {
-    const user = auth.currentUser;
-    if (user) {
-      const saleRef = doc(db, "businesses", businessId, "sales", saleId);
-      requestNotificationPermission(saleRef);
-    }
-  });
-
-  try {
-    await signInAnonymously(auth);
-    onAuthStateChanged(auth, (user) => {
-      if (!user) return;
-      const saleRef = doc(db, "businesses", businessId, "sales", saleId);
-      onSnapshot(saleRef, (docSnap) => {
-        if (!docSnap.exists()) { showState('error-state'); return; }
-        const saleData = docSnap.data();
-        document.title = `${saleData.password} - ${saleData.clientName}`;
-        if (saleData.status === 'waiting') {
-          clientNameEl.textContent = saleData.clientName;
-          passwordDisplayEl.textContent = saleData.password;
-          showState('waiting-state');
-        } else if (saleData.status === 'called') {
-          calledPasswordEl.textContent = saleData.password;
-          showState('called-state');
-          playNotificationSound();
-        } else {
-          showState('error-state');
+        function playNotificationSound() {
+            if (synth) {
+                const now = Tone.now();
+                synth.triggerAttackRelease("G5", "8n", now);
+                synth.triggerAttackRelease("C6", "8n", now + 0.2);
+            }
         }
-      }, (err) => { console.error(err); showState('error-state'); });
-    });
-  } catch(e){ console.error(e); showState('error-state'); }
 
-  // Receber mensagens foreground
-  onMessage(messaging, (payload) => {
-    new Notification(payload.notification.title, { body: payload.notification.body, icon: "/apple-touch-icon.png" });
-    const audio = new Audio("/notification.mp3");
-    audio.play();
-  });
-}
+        function showState(state) {
+            loadingState.classList.add('hidden');
+            waitingState.classList.add('hidden');
+            calledState.classList.add('hidden');
+            errorState.classList.add('hidden');
+            document.getElementById(state).classList.remove('hidden');
+        }
 
-main();
-</script>
+        // Função separada para obter o token
+        async function getFCMToken() {
+            const vapidKey = "BPD-J34Q7x5-G-4q1v-2y-9z-1x-8c-7v-6b-5a-4n-3m-2l-1k-0j";
+            
+            console.log('A aguardar pelo service worker ativo...');
+            const registration = await navigator.serviceWorker.ready;
+            console.log('Service worker está ativo e pronto:', registration);
 
+            const currentToken = await getToken(messaging, { 
+                vapidKey: vapidKey,
+                serviceWorkerRegistration: registration 
+            });
+
+            if (currentToken) {
+                return currentToken;
+            } else {
+                throw new Error("Não foi possível obter o token. Tente recarregar a página.");
+            }
+        }
+        
+        // Lógica de permissão melhorada
+        async function requestNotificationPermission(saleRef) {
+            enableNotificationsBtn.disabled = true;
+            const promptContainer = notificationPrompt.querySelector('div');
+
+            const updatePrompt = (icon, color, text, subtext = "") => {
+                const subtextHTML = subtext ? `<p class="text-xs text-gray-600">${subtext}</p>` : "";
+                promptContainer.innerHTML = `<div class="flex items-center"><i data-lucide="${icon}" class="w-5 h-5 text-${color}-600 mr-2"></i><div><p class="text-sm text-${color}-700 font-semibold">${text}</p>${subtextHTML}</div></div>`;
+                lucide.createIcons();
+            };
+
+            try {
+                if (Notification.permission === 'granted') {
+                    updatePrompt("loader-2 animate-spin", "amber", "Permissão já concedida. A obter token...");
+                    const token = await getFCMToken();
+                    await updateDoc(saleRef, { fcmTokens: arrayUnion(token) });
+                    updatePrompt("check-circle", "green", "Tudo pronto! Você será notificada.");
+                    return;
+                }
+
+                if (Notification.permission === 'denied') {
+                    updatePrompt("ban", "red", "As notificações estão bloqueadas.", "Por favor, ative-as nas definições do seu navegador.");
+                    return;
+                }
+
+                updatePrompt("help-circle", "amber", "Por favor, autorize as notificações no seu navegador...");
+                const permission = await Notification.requestPermission();
+
+                if (permission === 'granted') {
+                    updatePrompt("loader-2 animate-spin", "amber", "Permissão concedida. A obter token...");
+                    const token = await getFCMToken();
+                    await updateDoc(saleRef, { fcmTokens: arrayUnion(token) });
+                    updatePrompt("check-circle", "green", "Tudo pronto! Você será notificada.");
+                } else {
+                    updatePrompt("ban", "gray", "Você não ativou as notificações.");
+                }
+            } catch (err) {
+                console.error('Ocorreu um erro ao pedir permissão ou obter token. ', err);
+                updatePrompt("x-circle", "red", "Erro ao ativar notificações.", err.message);
+            }
+        }
+
+
+        async function main() {
+            const params = new URLSearchParams(window.location.search);
+            const saleId = params.get('id');
+            const businessId = params.get('businessId'); 
+
+            if ('serviceWorker' in navigator) {
+                try {
+                    await navigator.serviceWorker.register('/sw.js');
+                    console.log('Service worker registado no início.');
+                } catch (error) {
+                    console.error('Falha ao registar o service worker no início:', error);
+                }
+            }
+
+            if (!saleId || !businessId) {
+                showState('error-state');
+                return;
+            }
+
+            enableNotificationsBtn.addEventListener('click', () => {
+                const user = auth.currentUser;
+                if (user) {
+                    const saleRef = doc(db, "businesses", businessId, "sales", saleId);
+                    requestNotificationPermission(saleRef);
+                } else {
+                    console.log("A aguardar pela autenticação para ativar as notificações...");
+                    notificationPrompt.querySelector('p').textContent = "A autenticar... por favor, tente novamente em instantes.";
+                }
+            });
+
+            try {
+                await signInAnonymously(auth);
+                
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        const saleRef = doc(db, "businesses", businessId, "sales", saleId);
+
+                        onSnapshot(saleRef, (docSnap) => {
+                            if (docSnap.exists()) {
+                                const saleData = docSnap.data();
+                                
+                                document.title = `${saleData.password} - ${saleData.clientName}`;
+
+                                if (saleData.status === 'waiting') {
+                                    clientNameEl.textContent = saleData.clientName;
+                                    passwordDisplayEl.textContent = saleData.password;
+                                    showState('waiting-state');
+                                } else if (saleData.status === 'called') {
+                                    calledPasswordEl.textContent = saleData.password;
+                                    showState('called-state');
+                                    playNotificationSound();
+                                } else {
+                                    errorState.querySelector('h2').textContent = "Atendimento Finalizado";
+                                    errorState.querySelector('p').textContent = "Obrigado por utilizar os nossos serviços!";
+                                    errorState.querySelector('i').setAttribute('data-lucide', 'check-circle-2');
+                                    lucide.createIcons();
+                                    showState('error-state');
+                                }
+                            } else {
+                                showState('error-state');
+                            }
+                        }, (error) => {
+                            console.error("Erro ao ouvir o documento:", error);
+                            showState('error-state');
+                        });
+                    }
+                });
+
+            } catch (error) {
+                console.error("Erro de autenticação ou ao buscar dados:", error);
+                showState('error-state');
+            }
+        }
+
+        main();
+
+        onMessage(messaging, (payload) => {
+            console.log('Mensagem recebida em primeiro plano. ', payload);
+            playNotificationSound();
+        });
+
+    </script>
 </body>
 </html>
