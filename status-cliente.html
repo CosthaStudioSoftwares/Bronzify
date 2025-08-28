@@ -76,13 +76,16 @@
         import { getFirestore, doc, onSnapshot, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 
+        // --- ATENÇÃO: A SUA CONFIGURAÇÃO ORIGINAL ESTAVA AQUI, MAS É MELHOR USAR O config.js ---
+        // --- CERTIFIQUE-SE DE QUE TEM UM FICHEIRO config.js COM A SUA firebaseConfig ---
+        // --- SE NÃO TIVER, DESCOMENTE AS LINHAS ABAIXO E COLOQUE A SUA CONFIGURAÇÃO ---
         const firebaseConfig = {
-            apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
-            authDomain: "bronzify-b2491.firebaseapp.com",
-            projectId: "bronzify-b2491",
-            storageBucket: "bronzify-b2491.appspot.com",
-            messagingSenderId: "399230151633",
-            appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
+             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
+             authDomain: "bronzify-b2491.firebaseapp.com",
+             projectId: "bronzify-b2491",
+             storageBucket: "bronzify-b2491.appspot.com",
+             messagingSenderId: "399230151633",
+             appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -124,66 +127,110 @@
         };
 
         async function getFCMToken() {
-            const vapidKey = "BHlm-hpFYrWSyKzBw2R9h6xK0ib6FyqmAM31HHJxwZD8qlOsxh3TMTTXFSYTbCJbj3UaSH-yrJmzPaaUqpek-Jw";
-            const registration = await navigator.serviceWorker.ready;
-            const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
-            if (token) return token;
-            throw new Error("Não foi possível obter o token.");
+            console.log("[DEBUG] Tentando obter o token FCM...");
+            try {
+                const vapidKey = "BHlm-hpFYrWSyKzBw2R9h6xK0ib6FyqmAM31HHJxwZD8qlOsxh3TMTTXFSYTbCJbj3UaSH-yrJmzPaaUqpek-Jw";
+                const registration = await navigator.serviceWorker.ready;
+                console.log("[DEBUG] Service Worker pronto:", registration);
+                const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
+                if (token) {
+                    console.log("[DEBUG] Token FCM obtido com sucesso:", token);
+                    return token;
+                }
+                // Esta linha nunca deveria ser alcançada se getToken falhar, pois ele lança um erro.
+                throw new Error("Não foi possível obter o token, mas não houve erro explícito.");
+            } catch (err) {
+                console.error("[DEBUG] Erro CRÍTICO ao obter o token FCM:", err);
+                throw err; // Re-lança o erro para a função que chamou
+            }
         }
 
         async function requestNotificationPermission(saleRef) {
+            console.log("[DEBUG] Iniciando o processo de pedido de notificação.");
             ui.enableNotificationsBtn.disabled = true;
             try {
                 if (Notification.permission === 'granted') {
+                    console.log("[DEBUG] Permissão já concedida.");
                     updatePrompt("loader-2 animate-spin", "amber", "Permissão já concedida. A obter token...");
                     const token = await getFCMToken();
+                    console.log("[DEBUG] Tentando guardar o token no Firestore...");
                     await updateDoc(saleRef, { fcmTokens: arrayUnion(token) });
+                    console.log("[DEBUG] Token guardado com sucesso no Firestore.");
                     updatePrompt("check-circle", "green", "Tudo pronto! Você será notificada.");
                     return;
                 }
                 if (Notification.permission === 'denied') {
+                    console.log("[DEBUG] Permissão negada pelo utilizador.");
                     updatePrompt("ban", "red", "As notificações estão bloqueadas.", "Por favor, ative-as nas definições do seu navegador.");
                     return;
                 }
+                
+                console.log("[DEBUG] Pedindo permissão ao utilizador...");
                 updatePrompt("help-circle", "amber", "Por favor, autorize as notificações no seu navegador...");
                 const permission = await Notification.requestPermission();
+                
                 if (permission === 'granted') {
+                    console.log("[DEBUG] Permissão concedida pelo utilizador agora.");
                     updatePrompt("loader-2 animate-spin", "amber", "Permissão concedida. A obter token...");
                     const token = await getFCMToken();
+                    console.log("[DEBUG] Tentando guardar o token no Firestore...");
                     await updateDoc(saleRef, { fcmTokens: arrayUnion(token) });
+                    console.log("[DEBUG] Token guardado com sucesso no Firestore.");
                     updatePrompt("check-circle", "green", "Tudo pronto! Você será notificada.");
                 } else {
+                    console.log("[DEBUG] O utilizador não concedeu a permissão.");
                     updatePrompt("ban", "gray", "Você não ativou as notificações.");
                 }
             } catch (err) {
+                console.error("[DEBUG] Erro no processo de pedido de permissão:", err);
                 updatePrompt("x-circle", "red", "Erro ao ativar notificações.", err.message);
             }
         }
 
         async function main() {
+            console.log("[DEBUG] Iniciando a aplicação do cliente.");
             if ('serviceWorker' in navigator) {
-                await navigator.serviceWorker.register('/sw.js');
+                try {
+                    await navigator.serviceWorker.register('/sw.js');
+                    console.log("[DEBUG] Service Worker registado com sucesso.");
+                } catch (err) {
+                    console.error("[DEBUG] Falha ao registar o Service Worker:", err);
+                }
             }
             const params = new URLSearchParams(window.location.search);
             const saleId = params.get('id');
             const businessId = params.get('businessId');
 
-            if (!saleId || !businessId) return showState('error');
+            console.log(`[DEBUG] ID da Venda: ${saleId}, ID do Negócio: ${businessId}`);
+
+            if (!saleId || !businessId) {
+                console.error("[DEBUG] Faltam parâmetros na URL. A mostrar erro.");
+                return showState('error');
+            }
 
             ui.startAudioBtn.onclick = async () => {
                 await Tone.start();
                 synth = new Tone.Synth().toDestination();
                 ui.audioOverlay.classList.add('hidden');
+                console.log("[DEBUG] Contexto de áudio iniciado.");
             };
 
-            await signInAnonymously(auth);
+            try {
+                await signInAnonymously(auth);
+                console.log("[DEBUG] Login anónimo bem-sucedido.");
+            } catch (err) {
+                console.error("[DEBUG] Falha no login anónimo:", err);
+            }
+            
             onAuthStateChanged(auth, (user) => {
                 if (user) {
+                    console.log("[DEBUG] Utilizador autenticado. A escutar alterações no documento.");
                     const saleRef = doc(db, "businesses", businessId, "sales", saleId);
                     ui.enableNotificationsBtn.onclick = () => requestNotificationPermission(saleRef);
                     onSnapshot(saleRef, (docSnap) => {
                         if (docSnap.exists()) {
                             const data = docSnap.data();
+                            console.log("[DEBUG] Dados recebidos do Firestore:", data);
                             document.title = `${data.password} - ${data.clientName}`;
                             if (data.status === 'waiting') {
                                 ui.clientName.textContent = data.clientName;
@@ -201,18 +248,25 @@
                                 showState('error');
                             }
                         } else {
+                            console.warn("[DEBUG] O documento da venda não existe.");
                             showState('error');
                         }
+                    }, (error) => {
+                        console.error("[DEBUG] Erro no onSnapshot:", error);
                     });
                 }
             });
         }
 
         main().catch(err => {
-            console.error("Erro principal:", err);
+            console.error("[DEBUG] Erro fatal na função main:", err);
             showState('error');
         });
-        onMessage(messaging, (payload) => playSound());
+
+        onMessage(messaging, (payload) => {
+            console.log("[DEBUG] Mensagem recebida com a página aberta:", payload);
+            playSound();
+        });
     </script>
 </body>
 </html>
