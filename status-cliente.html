@@ -22,7 +22,7 @@
     </style>
 </head>
 <body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
-    <!-- Conteúdo HTML (inalterado) -->
+    <!-- Conteúdo HTML -->
     <div id="status-container" class="w-full max-w-md text-center">
         <div id="loading-state" class="text-center">
             <i data-lucide="loader-2" class="w-16 h-16 text-gray-400 mx-auto animate-spin"></i>
@@ -105,7 +105,11 @@
             enableNotificationsBtn: document.getElementById('enable-notifications-btn'),
         };
 
-        const showState = (state) => Object.keys(ui).forEach(key => ui[key] && ui[key].classList.add('hidden') ) && ui[state].classList.remove('hidden');
+        const showState = (state) => {
+            Object.values(ui).forEach(el => el.classList.add('hidden'));
+            if (ui[state]) ui[state].classList.remove('hidden');
+        };
+
         const playSound = () => synth && synth.triggerAttackRelease("G5", "8n", Tone.now());
 
         const updatePrompt = (icon, color, text, subtext = "") => {
