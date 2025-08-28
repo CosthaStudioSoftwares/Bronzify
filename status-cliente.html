@@ -157,72 +157,65 @@
             document.getElementById(state).classList.remove('hidden');
         }
 
-        // NOVO: Função separada para obter o token
-        async function getFCMToken(saleRef) {
-             try {
-                const vapidKey = "BPD-J34Q7x5-G-4q1v-2y-9z-1x-8c-7v-6b-5a-4n-3m-2l-1k-0j";
-                
-                console.log('A aguardar pelo service worker ativo...');
-                const registration = await navigator.serviceWorker.ready;
-                console.log('Service worker está ativo e pronto:', registration);
+        // Função separada para obter o token
+        async function getFCMToken() {
+            const vapidKey = "BPD-J34Q7x5-G-4q1v-2y-9z-1x-8c-7v-6b-5a-4n-3m-2l-1k-0j";
+            
+            console.log('A aguardar pelo service worker ativo...');
+            const registration = await navigator.serviceWorker.ready;
+            console.log('Service worker está ativo e pronto:', registration);
 
-                const currentToken = await getToken(messaging, { 
-                    vapidKey: vapidKey,
-                    serviceWorkerRegistration: registration 
-                });
+            const currentToken = await getToken(messaging, { 
+                vapidKey: vapidKey,
+                serviceWorkerRegistration: registration 
+            });
 
-                if (currentToken) {
-                    console.log('Token FCM obtido:', currentToken);
-                    await updateDoc(saleRef, {
-                        fcmTokens: arrayUnion(currentToken)
-                    });
-                    console.log('Token guardado no Firestore.');
-                    notificationPrompt.innerHTML = '<div class="flex items-center"><i data-lucide="check-circle" class="w-5 h-5 text-green-600 mr-2"></i><p class="text-sm text-green-700 font-semibold">Tudo pronto! Você será notificada.</p></div>';
-                    lucide.createIcons();
-                } else {
-                    console.log('Nenhum token de registo disponível.');
-                    notificationPrompt.innerHTML = '<p class="text-sm text-red-700">Não foi possível obter o token. Tente recarregar a página.</p>';
-                }
-            } catch (err) {
-                console.error('Ocorreu um erro ao obter o token. ', err);
-                notificationPrompt.innerHTML = `<p class="text-sm text-red-700">Erro ao obter token: ${err.message}</p>`;
+            if (currentToken) {
+                return currentToken;
+            } else {
+                throw new Error("Não foi possível obter o token. Tente recarregar a página.");
             }
         }
         
-        // NOVO: Lógica de permissão melhorada
+        // Lógica de permissão melhorada
         async function requestNotificationPermission(saleRef) {
             enableNotificationsBtn.disabled = true;
-            const promptContent = notificationPrompt.querySelector('div');
-            promptContent.innerHTML = '<p class="font-semibold text-amber-800">A verificar permissões...</p>';
+            const promptContainer = notificationPrompt.querySelector('div');
 
-            if (Notification.permission === 'granted') {
-                console.log('Permissão já concedida. A obter token...');
-                await getFCMToken(saleRef);
-                return;
-            }
-
-            if (Notification.permission === 'denied') {
-                console.log('Permissão de notificação foi negada anteriormente.');
-                notificationPrompt.innerHTML = '<div class="flex items-center"><i data-lucide="ban" class="w-5 h-5 text-red-600 mr-2"></i><div><p class="text-sm text-red-700 font-semibold">As notificações estão bloqueadas.</p><p class="text-xs text-gray-600">Por favor, ative-as nas definições do seu navegador.</p></div></div>';
+            const updatePrompt = (icon, color, text, subtext = "") => {
+                const subtextHTML = subtext ? `<p class="text-xs text-gray-600">${subtext}</p>` : "";
+                promptContainer.innerHTML = `<div class="flex items-center"><i data-lucide="${icon}" class="w-5 h-5 text-${color}-600 mr-2"></i><div><p class="text-sm text-${color}-700 font-semibold">${text}</p>${subtextHTML}</div></div>`;
                 lucide.createIcons();
-                return;
-            }
-
-            console.log('A pedir permissão para notificações...');
-            promptContent.innerHTML = '<p class="font-semibold text-amber-800">Por favor, autorize as notificações no seu navegador...</p>';
+            };
 
             try {
+                if (Notification.permission === 'granted') {
+                    updatePrompt("loader-2 animate-spin", "amber", "Permissão já concedida. A obter token...");
+                    const token = await getFCMToken();
+                    await updateDoc(saleRef, { fcmTokens: arrayUnion(token) });
+                    updatePrompt("check-circle", "green", "Tudo pronto! Você será notificada.");
+                    return;
+                }
+
+                if (Notification.permission === 'denied') {
+                    updatePrompt("ban", "red", "As notificações estão bloqueadas.", "Por favor, ative-as nas definições do seu navegador.");
+                    return;
+                }
+
+                updatePrompt("help-circle", "amber", "Por favor, autorize as notificações no seu navegador...");
                 const permission = await Notification.requestPermission();
+
                 if (permission === 'granted') {
-                    await getFCMToken(saleRef);
+                    updatePrompt("loader-2 animate-spin", "amber", "Permissão concedida. A obter token...");
+                    const token = await getFCMToken();
+                    await updateDoc(saleRef, { fcmTokens: arrayUnion(token) });
+                    updatePrompt("check-circle", "green", "Tudo pronto! Você será notificada.");
                 } else {
-                    console.log('Não foi possível obter permissão para notificar.');
-                    notificationPrompt.innerHTML = '<div class="flex items-center"><i data-lucide="ban" class="w-5 h-5 text-red-600 mr-2"></i><p class="text-sm text-gray-600">Você não ativou as notificações.</p></div>';
-                    lucide.createIcons();
+                    updatePrompt("ban", "gray", "Você não ativou as notificações.");
                 }
             } catch (err) {
-                console.error('Ocorreu um erro ao pedir permissão. ', err);
-                notificationPrompt.innerHTML = `<p class="text-sm text-red-700">Erro ao ativar notificações: ${err.message}</p>`;
+                console.error('Ocorreu um erro ao pedir permissão ou obter token. ', err);
+                updatePrompt("x-circle", "red", "Erro ao ativar notificações.", err.message);
             }
         }
 
