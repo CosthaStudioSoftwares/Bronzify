@@ -106,8 +106,13 @@
         };
 
         const showState = (state) => {
-            Object.values(ui).forEach(el => el.classList.add('hidden'));
-            if (ui[state]) ui[state].classList.remove('hidden');
+            ui.loading.classList.add('hidden');
+            ui.waiting.classList.add('hidden');
+            ui.called.classList.add('hidden');
+            ui.error.classList.add('hidden');
+            if (ui[state]) {
+                ui[state].classList.remove('hidden');
+            }
         };
 
         const playSound = () => synth && synth.triggerAttackRelease("G5", "8n", Tone.now());
