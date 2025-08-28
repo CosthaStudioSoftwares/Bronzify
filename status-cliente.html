@@ -106,8 +106,13 @@
         };
 
         const showState = (state) => {
-            Object.values(ui).forEach(el => el && el.classList.add('hidden'));
-            if (ui[state]) ui[state].classList.remove('hidden');
+            ui.loading.classList.add('hidden');
+            ui.waiting.classList.add('hidden');
+            ui.called.classList.add('hidden');
+            ui.error.classList.add('hidden');
+            if (ui[state]) {
+                ui[state].classList.remove('hidden');
+            }
         };
 
         const playSound = () => synth && synth.triggerAttackRelease("G5", "8n", Tone.now());
@@ -129,7 +134,18 @@
         async function requestNotificationPermission(saleRef) {
             ui.enableNotificationsBtn.disabled = true;
             try {
-                // A lógica de verificação foi movida para a função checkPermissionOnLoad
+                if (Notification.permission === 'granted') {
+                    updatePrompt("loader-2 animate-spin", "amber", "Permissão já concedida. A obter token...");
+                    const token = await getFCMToken();
+                    await updateDoc(saleRef, { fcmTokens: arrayUnion(token) });
+                    updatePrompt("check-circle", "green", "Tudo pronto! Você será notificada.");
+                    return;
+                }
+                if (Notification.permission === 'denied') {
+                    updatePrompt("ban", "red", "As notificações estão bloqueadas.", "Por favor, ative-as nas definições do seu navegador.");
+                    return;
+                }
+                updatePrompt("help-circle", "amber", "Por favor, autorize as notificações no seu navegador...");
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted') {
                     updatePrompt("loader-2 animate-spin", "amber", "Permissão concedida. A obter token...");
@@ -141,24 +157,6 @@
                 }
             } catch (err) {
                 updatePrompt("x-circle", "red", "Erro ao ativar notificações.", err.message);
-            }
-        }
-        
-        // NOVO: Função que verifica a permissão ao carregar a página
-        async function checkPermissionOnLoad(saleRef) {
-            if (Notification.permission === 'granted') {
-                ui.enableNotificationsBtn.disabled = true;
-                updatePrompt("loader-2 animate-spin", "amber", "Permissão já concedida. A obter token...");
-                try {
-                    const token = await getFCMToken();
-                    await updateDoc(saleRef, { fcmTokens: arrayUnion(token) });
-                    updatePrompt("check-circle", "green", "Tudo pronto! Você será notificada.");
-                } catch (err) {
-                    updatePrompt("x-circle", "red", "Erro ao obter token.", err.message);
-                }
-            } else if (Notification.permission === 'denied') {
-                ui.enableNotificationsBtn.disabled = true;
-                updatePrompt("ban", "red", "As notificações estão bloqueadas.", "Por favor, ative-as nas definições do seu navegador.");
             }
         }
 
@@ -183,10 +181,6 @@
                 if (user) {
                     const saleRef = doc(db, "businesses", businessId, "sales", saleId);
                     ui.enableNotificationsBtn.onclick = () => requestNotificationPermission(saleRef);
-                    
-                    // NOVO: Chama a verificação assim que o utilizador está autenticado
-                    checkPermissionOnLoad(saleRef);
-
                     onSnapshot(saleRef, (docSnap) => {
                         if (docSnap.exists()) {
                             const data = docSnap.data();
