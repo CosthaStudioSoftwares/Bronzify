@@ -1,8 +1,8 @@
-// Importa os scripts necessários do Firebase.
+// Importa os scripts necessários do Firebase (versão compatível com Service Workers)
 importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js");
 
-// SUA CONFIGURAÇÃO DO FIREBASE (a mesma do config.js)
+// SUA CONFIGURAÇÃO DO FIREBASE
 const firebaseConfig = {
     apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
     authDomain: "bronzify-b2491.firebaseapp.com",
@@ -23,14 +23,14 @@ messaging.onBackgroundMessage((payload) => {
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: "/apple-touch-icon.png",
+    icon: "/apple-touch-icon.png", // Ícone que aparecerá na notificação
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
 
-// --- SUA LÓGICA DE CACHE (MANTIDA EXATAMENTE COMO ESTAVA) ---
+// --- SUA LÓGICA DE CACHE (MANTIDA) ---
 
 const CACHE_NAME = 'bronzify-cache-v2';
 const DATA_CACHE_NAME = 'bronzify-data-cache-v1';
@@ -70,7 +70,7 @@ self.addEventListener('activate', event => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheName !== CACHE_NAME && cacheName !== DATA_CACHE_NAME) {
-            console.log('Limpando cache antigo:', cacheName);
+            console.log('A limpar cache antigo:', cacheName);
             return caches.delete(cacheName);
           }
         })
