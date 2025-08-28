@@ -165,7 +165,16 @@
                     console.log('Permissão de notificação concedida.');
                     // IMPORTANTE: Cole a sua Chave VAPID aqui
                     const vapidKey = "BPD-J34Q7x5-G-4q1v-2y-9z-1x-8c-7v-6b-5a-4n-3m-2l-1k-0j";
-                    const currentToken = await getToken(messaging, { vapidKey: vapidKey });
+                    
+                    // ALTERADO: Regista o seu sw.js e passa-o para o getToken
+                    console.log('A registar o service worker: /sw.js');
+                    const registration = await navigator.serviceWorker.register('/sw.js');
+                    console.log('Service worker registado com sucesso:', registration);
+
+                    const currentToken = await getToken(messaging, { 
+                        vapidKey: vapidKey,
+                        serviceWorkerRegistration: registration 
+                    });
 
                     if (currentToken) {
                         console.log('Token FCM obtido:', currentToken);
