@@ -166,10 +166,10 @@
                     // IMPORTANTE: Cole a sua Chave VAPID aqui
                     const vapidKey = "BPD-J34Q7x5-G-4q1v-2y-9z-1x-8c-7v-6b-5a-4n-3m-2l-1k-0j";
                     
-                    // ALTERADO: Regista o seu sw.js e passa-o para o getToken
-                    console.log('A registar o service worker: /sw.js');
-                    const registration = await navigator.serviceWorker.register('/sw.js');
-                    console.log('Service worker registado com sucesso:', registration);
+                    // CORRIGIDO: Espera o service worker ficar pronto e ativo
+                    console.log('A aguardar pelo service worker ativo...');
+                    const registration = await navigator.serviceWorker.ready;
+                    console.log('Service worker está ativo e pronto:', registration);
 
                     const currentToken = await getToken(messaging, { 
                         vapidKey: vapidKey,
@@ -202,6 +202,16 @@
             const saleId = params.get('id');
             const businessId = params.get('businessId'); 
 
+            // Regista o service worker assim que a página carrega
+            if ('serviceWorker' in navigator) {
+                try {
+                    await navigator.serviceWorker.register('/sw.js');
+                    console.log('Service worker registado no início.');
+                } catch (error) {
+                    console.error('Falha ao registar o service worker no início:', error);
+                }
+            }
+
             if (!saleId || !businessId) {
                 showState('error-state');
                 return;
@@ -229,8 +239,6 @@
                                 } else if (saleData.status === 'called') {
                                     calledPasswordEl.textContent = saleData.password;
                                     showState('called-state');
-                                    // O som agora é acionado pela notificação push,
-                                    // mas mantemos aqui para o caso da aba estar aberta.
                                     playNotificationSound();
                                 } else {
                                     errorState.querySelector('h2').textContent = "Atendimento Finalizado";
@@ -257,7 +265,6 @@
 
         main();
 
-        // Ouve as mensagens recebidas enquanto a página está aberta
         onMessage(messaging, (payload) => {
             console.log('Mensagem recebida em primeiro plano. ', payload);
             playNotificationSound();
