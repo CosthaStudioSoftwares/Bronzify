@@ -11,43 +11,29 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #FFF9F9;
-        }
-        h1, h2, h3, h4 {
-            font-family: 'Playfair Display', serif;
-        }
-        .called-animation {
-            animation: pulse-bg 1.5s infinite;
-        }
+        body { font-family: 'Poppins', sans-serif; background-color: #FFF9F9; }
+        h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
+        .called-animation { animation: pulse-bg 1.5s infinite; }
         @keyframes pulse-bg {
-            0% { background-color: #10B981; } /* emerald-500 */
-            50% { background-color: #34D399; } /* emerald-400 */
-            100% { background-color: #10B981; } /* emerald-500 */
+            0% { background-color: #10B981; }
+            50% { background-color: #34D399; }
+            100% { background-color: #10B981; }
         }
     </style>
 </head>
 <body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
-
-    <!-- Container Principal de Status -->
+    <!-- Conteúdo HTML (inalterado) -->
     <div id="status-container" class="w-full max-w-md text-center">
-
-        <!-- Estado de Carregamento -->
         <div id="loading-state" class="text-center">
             <i data-lucide="loader-2" class="w-16 h-16 text-gray-400 mx-auto animate-spin"></i>
             <p class="mt-4 text-gray-600">A carregar informações...</p>
         </div>
-
-        <!-- Estado de Aguardando -->
         <div id="waiting-state" class="hidden">
             <div class="bg-white p-8 rounded-2xl shadow-lg">
                 <img src="./apple-touch-icon.png" alt="Logo Bronzify" class="w-24 h-24 mx-auto mb-4 rounded-full shadow-md">
                 <h2 class="text-2xl text-gray-800">Olá, <span id="client-name" class="font-bold">Cliente</span>!</h2>
                 <p class="text-gray-600 mt-2">A sua senha para atendimento é:</p>
                 <p id="password-display" class="text-8xl font-bold text-[#B76E79] my-4 tracking-wider"></p>
-                
-                <!-- Seção para ativar notificações -->
                 <div id="notification-prompt" class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg mt-6 text-left">
                     <div class="flex">
                         <div class="py-1"><i data-lucide="bell-plus" class="w-6 h-6 text-amber-500 mr-4"></i></div>
@@ -59,8 +45,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- Estado de Chamado -->
         <div id="called-state" class="hidden">
             <div class="bg-emerald-500 p-8 rounded-2xl shadow-lg text-white called-animation">
                 <i data-lucide="party-popper" class="w-24 h-24 mx-auto animate-bounce"></i>
@@ -69,18 +53,14 @@
                 <p class="mt-8 text-lg bg-white/20 p-3 rounded-lg">Por favor, dirija-se à receção para iniciar o seu atendimento.</p>
             </div>
         </div>
-
-        <!-- Estado de Erro / Finalizado -->
         <div id="error-state" class="hidden">
             <div class="bg-white p-8 rounded-2xl shadow-lg">
                 <i data-lucide="frown" class="w-16 h-16 text-red-400 mx-auto"></i>
                 <h2 class="text-2xl text-gray-800 mt-4">Atendimento não encontrado</h2>
-                <p class="text-gray-600 mt-2">O link pode estar incorreto ou este atendimento já foi finalizado. Por favor, verifique na receção.</p>
+                <p class="text-gray-600 mt-2">O link pode estar incorreto ou este atendimento já foi finalizado.</p>
             </div>
         </div>
     </div>
-    
-    <!-- Overlay para iniciar áudio -->
     <div id="audio-overlay" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 text-white text-center p-4">
         <div>
             <h2 class="text-3xl font-bold">Bem-vinda!</h2>
@@ -89,17 +69,13 @@
         </div>
     </div>
 
-    <script>
-        lucide.createIcons();
-    </script>
-
+    <script>lucide.createIcons();</script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, doc, onSnapshot, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 
-        // Configuração do Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
             authDomain: "bronzify-b2491.firebaseapp.com",
@@ -113,87 +89,41 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         const messaging = getMessaging(app);
-
         let synth = null;
 
-        // Elementos da UI
-        const loadingState = document.getElementById('loading-state');
-        const waitingState = document.getElementById('waiting-state');
-        const calledState = document.getElementById('called-state');
-        const errorState = document.getElementById('error-state');
-        
-        const clientNameEl = document.getElementById('client-name');
-        const passwordDisplayEl = document.getElementById('password-display');
-        const calledPasswordEl = document.getElementById('called-password');
+        const ui = {
+            loading: document.getElementById('loading-state'),
+            waiting: document.getElementById('waiting-state'),
+            called: document.getElementById('called-state'),
+            error: document.getElementById('error-state'),
+            clientName: document.getElementById('client-name'),
+            password: document.getElementById('password-display'),
+            calledPassword: document.getElementById('called-password'),
+            audioOverlay: document.getElementById('audio-overlay'),
+            startAudioBtn: document.getElementById('start-audio-btn'),
+            notificationPrompt: document.getElementById('notification-prompt'),
+            enableNotificationsBtn: document.getElementById('enable-notifications-btn'),
+        };
 
-        const audioOverlay = document.getElementById('audio-overlay');
-        const startAudioBtn = document.getElementById('start-audio-btn');
+        const showState = (state) => Object.keys(ui).forEach(key => ui[key] && ui[key].classList.add('hidden') ) && ui[state].classList.remove('hidden');
+        const playSound = () => synth && synth.triggerAttackRelease("G5", "8n", Tone.now());
 
-        const notificationPrompt = document.getElementById('notification-prompt');
-        const enableNotificationsBtn = document.getElementById('enable-notifications-btn');
+        const updatePrompt = (icon, color, text, subtext = "") => {
+            const subtextHTML = subtext ? `<p class="text-xs text-gray-600">${subtext}</p>` : "";
+            ui.notificationPrompt.innerHTML = `<div class="flex items-center"><i data-lucide="${icon}" class="w-5 h-5 text-${color}-600 mr-2"></i><div><p class="text-sm text-${color}-700 font-semibold">${text}</p>${subtextHTML}</div></div>`;
+            lucide.createIcons();
+        };
 
-        startAudioBtn.addEventListener('click', async () => {
-            if (typeof Tone !== 'undefined') {
-                await Tone.start();
-                synth = new Tone.Synth().toDestination();
-                console.log("Audio context started for client.");
-            }
-            audioOverlay.classList.add('hidden');
-        });
-
-        function playNotificationSound() {
-            if (synth) {
-                const now = Tone.now();
-                synth.triggerAttackRelease("G5", "8n", now);
-                synth.triggerAttackRelease("C6", "8n", now + 0.2);
-            }
-        }
-
-        function showState(state) {
-            loadingState.classList.add('hidden');
-            waitingState.classList.add('hidden');
-            calledState.classList.add('hidden');
-            errorState.classList.add('hidden');
-            document.getElementById(state).classList.remove('hidden');
-        }
-
-        // Função separada para obter o token
         async function getFCMToken() {
-             try {
-                // CHAVE VAPID CORRIGIDA
-                const vapidKey = "BHlm-hpFYrWSyKzBw2R9h6xK0ib6FyqmAM31HHJxwZD8qlOsxh3TMTTXFSYTbCJbj3UaSH-yrJmzPaaUqpek-Jw";
-                
-                console.log('A aguardar pelo service worker ativo...');
-                const registration = await navigator.serviceWorker.ready;
-                console.log('Service worker está ativo e pronto:', registration);
-
-                const currentToken = await getToken(messaging, { 
-                    vapidKey: vapidKey,
-                    serviceWorkerRegistration: registration 
-                });
-
-                if (currentToken) {
-                    return currentToken;
-                } else {
-                    throw new Error("Não foi possível obter o token. Tente recarregar a página.");
-                }
-            } catch (err) {
-                console.error('Ocorreu um erro ao obter o token. ', err);
-                throw err; // Re-lança o erro para ser apanhado pela função que o chamou
-            }
+            const vapidKey = "BHlm-hpFYrWSyKzBw2R9h6xK0ib6FyqmAM31HHJxwZD8qlOsxh3TMTTXFSYTbCJbj3UaSH-yrJmzPaaUqpek-Jw";
+            const registration = await navigator.serviceWorker.ready;
+            const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
+            if (token) return token;
+            throw new Error("Não foi possível obter o token.");
         }
-        
-        // Lógica de permissão melhorada
+
         async function requestNotificationPermission(saleRef) {
-            enableNotificationsBtn.disabled = true;
-            const promptContainer = notificationPrompt.querySelector('div');
-
-            const updatePrompt = (icon, color, text, subtext = "") => {
-                const subtextHTML = subtext ? `<p class="text-xs text-gray-600">${subtext}</p>` : "";
-                promptContainer.innerHTML = `<div class="flex items-center"><i data-lucide="${icon}" class="w-5 h-5 text-${color}-600 mr-2"></i><div><p class="text-sm text-${color}-700 font-semibold">${text}</p>${subtextHTML}</div></div>`;
-                lucide.createIcons();
-            };
-
+            ui.enableNotificationsBtn.disabled = true;
             try {
                 if (Notification.permission === 'granted') {
                     updatePrompt("loader-2 animate-spin", "amber", "Permissão já concedida. A obter token...");
@@ -202,15 +132,12 @@
                     updatePrompt("check-circle", "green", "Tudo pronto! Você será notificada.");
                     return;
                 }
-
                 if (Notification.permission === 'denied') {
                     updatePrompt("ban", "red", "As notificações estão bloqueadas.", "Por favor, ative-as nas definições do seu navegador.");
                     return;
                 }
-
                 updatePrompt("help-circle", "amber", "Por favor, autorize as notificações no seu navegador...");
                 const permission = await Notification.requestPermission();
-
                 if (permission === 'granted') {
                     updatePrompt("loader-2 animate-spin", "amber", "Permissão concedida. A obter token...");
                     const token = await getFCMToken();
@@ -220,93 +147,63 @@
                     updatePrompt("ban", "gray", "Você não ativou as notificações.");
                 }
             } catch (err) {
-                console.error('Ocorreu um erro ao pedir permissão ou obter token. ', err);
                 updatePrompt("x-circle", "red", "Erro ao ativar notificações.", err.message);
             }
         }
 
-
         async function main() {
+            if ('serviceWorker' in navigator) {
+                await navigator.serviceWorker.register('/sw.js');
+            }
             const params = new URLSearchParams(window.location.search);
             const saleId = params.get('id');
-            const businessId = params.get('businessId'); 
+            const businessId = params.get('businessId');
 
-            if ('serviceWorker' in navigator) {
-                try {
-                    await navigator.serviceWorker.register('/sw.js');
-                    console.log('Service worker registado no início.');
-                } catch (error) {
-                    console.error('Falha ao registar o service worker no início:', error);
-                }
-            }
+            if (!saleId || !businessId) return showState('error');
 
-            if (!saleId || !businessId) {
-                showState('error-state');
-                return;
-            }
+            ui.startAudioBtn.onclick = async () => {
+                await Tone.start();
+                synth = new Tone.Synth().toDestination();
+                ui.audioOverlay.classList.add('hidden');
+            };
 
-            enableNotificationsBtn.addEventListener('click', () => {
-                const user = auth.currentUser;
+            await signInAnonymously(auth);
+            onAuthStateChanged(auth, (user) => {
                 if (user) {
                     const saleRef = doc(db, "businesses", businessId, "sales", saleId);
-                    requestNotificationPermission(saleRef);
-                } else {
-                    console.log("A aguardar pela autenticação para ativar as notificações...");
-                    notificationPrompt.querySelector('p').textContent = "A autenticar... por favor, tente novamente em instantes.";
+                    ui.enableNotificationsBtn.onclick = () => requestNotificationPermission(saleRef);
+                    onSnapshot(saleRef, (docSnap) => {
+                        if (docSnap.exists()) {
+                            const data = docSnap.data();
+                            document.title = `${data.password} - ${data.clientName}`;
+                            if (data.status === 'waiting') {
+                                ui.clientName.textContent = data.clientName;
+                                ui.password.textContent = data.password;
+                                showState('waiting');
+                            } else if (data.status === 'called') {
+                                ui.calledPassword.textContent = data.password;
+                                showState('called');
+                                playSound();
+                            } else {
+                                ui.error.querySelector('h2').textContent = "Atendimento Finalizado";
+                                ui.error.querySelector('p').textContent = "Obrigado por utilizar os nossos serviços!";
+                                ui.error.querySelector('i').setAttribute('data-lucide', 'check-circle-2');
+                                lucide.createIcons();
+                                showState('error');
+                            }
+                        } else {
+                            showState('error');
+                        }
+                    });
                 }
             });
-
-            try {
-                await signInAnonymously(auth);
-                
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        const saleRef = doc(db, "businesses", businessId, "sales", saleId);
-
-                        onSnapshot(saleRef, (docSnap) => {
-                            if (docSnap.exists()) {
-                                const saleData = docSnap.data();
-                                
-                                document.title = `${saleData.password} - ${saleData.clientName}`;
-
-                                if (saleData.status === 'waiting') {
-                                    clientNameEl.textContent = saleData.clientName;
-                                    passwordDisplayEl.textContent = saleData.password;
-                                    showState('waiting-state');
-                                } else if (saleData.status === 'called') {
-                                    calledPasswordEl.textContent = saleData.password;
-                                    showState('called-state');
-                                    playNotificationSound();
-                                } else {
-                                    errorState.querySelector('h2').textContent = "Atendimento Finalizado";
-                                    errorState.querySelector('p').textContent = "Obrigado por utilizar os nossos serviços!";
-                                    errorState.querySelector('i').setAttribute('data-lucide', 'check-circle-2');
-                                    lucide.createIcons();
-                                    showState('error-state');
-                                }
-                            } else {
-                                showState('error-state');
-                            }
-                        }, (error) => {
-                            console.error("Erro ao ouvir o documento:", error);
-                            showState('error-state');
-                        });
-                    }
-                });
-
-            } catch (error) {
-                console.error("Erro de autenticação ou ao buscar dados:", error);
-                showState('error-state');
-            }
         }
 
-        main();
-
-        onMessage(messaging, (payload) => {
-            console.log('Mensagem recebida em primeiro plano. ', payload);
-            playNotificationSound();
+        main().catch(err => {
+            console.error("Erro principal:", err);
+            showState('error');
         });
-
+        onMessage(messaging, (payload) => playSound());
     </script>
 </body>
 </html>
