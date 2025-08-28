@@ -159,21 +159,27 @@
 
         // Função separada para obter o token
         async function getFCMToken() {
-            const vapidKey = "BPD-J34Q7x5-G-4q1v-2y-9z-1x-8c-7v-6b-5a-4n-3m-2l-1k-0j";
-            
-            console.log('A aguardar pelo service worker ativo...');
-            const registration = await navigator.serviceWorker.ready;
-            console.log('Service worker está ativo e pronto:', registration);
+             try {
+                // IMPORTANTE: Cole a sua Chave VAPID aqui, depois de a gerar no painel do Firebase.
+                const vapidKey = "BHlm-hpFYrWSyKzBw2R9h6xK0ib6FyqmAM31HHJxwZD8qlOsxh3TMTTXFSYTbCJbj3UaSH-yrJmzPaaUqpek-Jw";
+                
+                console.log('A aguardar pelo service worker ativo...');
+                const registration = await navigator.serviceWorker.ready;
+                console.log('Service worker está ativo e pronto:', registration);
 
-            const currentToken = await getToken(messaging, { 
-                vapidKey: vapidKey,
-                serviceWorkerRegistration: registration 
-            });
+                const currentToken = await getToken(messaging, { 
+                    vapidKey: vapidKey,
+                    serviceWorkerRegistration: registration 
+                });
 
-            if (currentToken) {
-                return currentToken;
-            } else {
-                throw new Error("Não foi possível obter o token. Tente recarregar a página.");
+                if (currentToken) {
+                    return currentToken;
+                } else {
+                    throw new Error("Não foi possível obter o token. Tente recarregar a página.");
+                }
+            } catch (err) {
+                console.error('Ocorreu um erro ao obter o token. ', err);
+                throw err; // Re-lança o erro para ser apanhado pela função que o chamou
             }
         }
         
