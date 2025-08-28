@@ -1,8 +1,40 @@
-// Define um nome e versão para o cache
-const CACHE_NAME = 'bronzify-cache-v2'; // Mudei a versão para forçar a atualização
+// Importa os scripts necessários do Firebase.
+importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
+importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js");
+
+// SUA CONFIGURAÇÃO DO FIREBASE (a mesma do config.js)
+const firebaseConfig = {
+    apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
+    authDomain: "bronzify-b2491.firebaseapp.com",
+    projectId: "bronzify-b2491",
+    storageBucket: "bronzify-b2491.appspot.com",
+    messagingSenderId: "399230151633",
+    appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
+};
+
+// Inicializa o Firebase
+firebase.initializeApp(firebaseConfig);
+const messaging = firebase.messaging();
+
+// LÓGICA DO FIREBASE MESSAGING PARA NOTIFICAÇÕES EM SEGUNDO PLANO
+messaging.onBackgroundMessage((payload) => {
+  console.log("[sw.js] Mensagem recebida em segundo plano: ", payload);
+  
+  const notificationTitle = payload.notification.title;
+  const notificationOptions = {
+    body: payload.notification.body,
+    icon: "/apple-touch-icon.png",
+  };
+
+  self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+
+// --- SUA LÓGICA DE CACHE (MANTIDA EXATAMENTE COMO ESTAVA) ---
+
+const CACHE_NAME = 'bronzify-cache-v2';
 const DATA_CACHE_NAME = 'bronzify-data-cache-v1';
 
-// Lista de arquivos essenciais para o funcionamento offline do app
 const URLS_TO_CACHE = [
   '/',
   '/index.html',
@@ -21,7 +53,6 @@ const URLS_TO_CACHE = [
   'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap'
 ];
 
-// Evento 'install': é disparado quando o Service Worker é instalado.
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -33,8 +64,6 @@ self.addEventListener('install', event => {
   self.skipWaiting();
 });
 
-
-// Evento 'activate': limpa caches antigos
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -51,20 +80,15 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-
-// --- LÓGICA DE FETCH CORRIGIDA E MELHORADA ---
 self.addEventListener('fetch', event => {
-  // Ignora requisições que não são GET
   if (event.request.method !== 'GET') {
     return;
   }
   
-  // Estratégia "Network First" para as páginas HTML
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
         .then(response => {
-          // Se a rede funcionar, clona a resposta, salva no cache e retorna
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then(cache => {
             cache.put(event.request, responseToCache);
@@ -72,46 +96,25 @@ self.addEventListener('fetch', event => {
           return response;
         })
         .catch(() => {
-          // Se a rede falhar, busca no cache
           return caches.match(event.request);
         })
     );
     return;
   }
 
-  // Estratégia "Cache First" para todos os outros recursos (CSS, JS, Imagens, Fontes)
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Se encontrar no cache, retorna
         if (response) {
           return response;
         }
-        // Se não, busca na rede, salva no cache e retorna
         return fetch(event.request).then(networkResponse => {
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then(cache => {
-                cache.put(event.request, responseToCache);
-            });
-            return networkResponse;
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then(cache => {
+              cache.put(event.request, responseToCache);
+          });
+          return networkResponse;
         });
       })
   );
-});
-
-
-// Evento 'push' para lidar com notificações
-self.addEventListener('push', event => {
-    const data = event.data.json();
-    const title = data.title || 'Bronzify';
-    const options = {
-        body: data.body,
-        icon: './apple-touch-icon.png',
-        badge: './apple-touch-icon.png',
-        vibrate: [200, 100, 200],
-    };
-
-    event.waitUntil(
-        self.registration.showNotification(title, options)
-    );
 });
