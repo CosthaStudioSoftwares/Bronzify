@@ -125,7 +125,8 @@
             onAuthStateChanged,
             setPersistence,
             browserLocalPersistence,
-            browserSessionPersistence
+            browserSessionPersistence,
+            signOut
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -203,17 +204,24 @@
             e.preventDefault();
             const email = registerForm['register-email'].value;
             const password = registerForm['register-password'].value;
+            
+            loaderSection.classList.remove('hidden');
+            registerSection.classList.add('hidden');
+
             createUserWithEmailAndPassword(auth, email, password)
                 .then((userCredential) => {
-                    sendEmailVerification(userCredential.user)
-                        .then(() => {
-                            alert('Conta criada! Você ganhou 5 dias de teste grátis. Enviamos um link de verificação para o seu e-mail. Por favor, verifique para ativar sua conta e fazer o login.');
-                            // Volta para a tela de login
-                            loginSection.classList.remove('hidden');
-                            registerSection.classList.add('hidden');
-                        });
+                    sendEmailVerification(userCredential.user);
+                    alert('Conta criada! Você ganhou 5 dias de teste grátis. Um e-mail de verificação foi enviado. Você será redirecionado para o painel em instantes.');
+                    
+                    // CORREÇÃO: Espera 4 segundos para a Cloud Function criar o teste grátis
+                    // e depois redireciona para o dashboard.
+                    setTimeout(() => {
+                        window.location.href = './dashboard.html';
+                    }, 4000);
                 })
                 .catch((error) => {
+                    loaderSection.classList.add('hidden');
+                    registerSection.classList.remove('hidden');
                     if (error.code === 'auth/email-already-in-use') {
                         alert('Este e-mail já está em uso. Por favor, tente fazer login.');
                     } else {
