@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bronzify - Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
-
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#B76E79">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -20,10 +19,9 @@
         body { font-family: 'Poppins', sans-serif; }
         h1, h2, h3 { font-family: 'Playfair Display', serif; }
         .bg-gradient-bronzify { background: linear-gradient(135deg, #FADADD 0%, #B76E79 100%); }
-        /* Estilo para o spinner de carregamento */
         .loader {
-            border: 4px solid #f3f3f3; /* Cinza claro */
-            border-top: 4px solid #B76E79; /* Cor principal */
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #B76E79;
             border-radius: 50%;
             width: 40px;
             height: 40px;
@@ -39,12 +37,10 @@
 
     <div class="container mx-auto p-4 flex justify-center">
         <div class="w-full max-w-md">
-            <!-- NOVO: Seção de Carregamento -->
             <div id="loader-section" class="flex justify-center items-center p-8">
                 <div class="loader"></div>
             </div>
 
-            <!-- Seção de Login (começa escondida) -->
             <div id="login-section" class="bg-white rounded-2xl shadow-xl p-8 hidden">
                 <h1 class="text-4xl text-center text-[#B76E79] mb-6">Bronzify</h1>
                 <form id="login-form">
@@ -70,16 +66,12 @@
                 </form>
                 
                 <p class="text-center text-gray-600">
-                    Não tem uma conta? <a href="#" id="show-register" class="text-[#B76E79] hover:underline">Crie uma agora</a>
-                </p>
-                <p class="text-center text-gray-600 mt-2">
-                    Precisa ativar seu acesso? <a href="./ativacao.html" class="text-[#B76E79] hover:underline">Ative aqui</a>
+                    Não tem uma conta? <a href="#" id="show-register" class="text-[#B76E79] hover:underline">Crie uma agora e ganhe 5 dias grátis!</a>
                 </p>
             </div>
 
-            <!-- Seção de Cadastro -->
             <div id="register-section" class="bg-white rounded-2xl shadow-xl p-8 hidden">
-                 <h2 class="text-2xl text-gray-700 mb-6 text-center">Crie sua conta</h2>
+                <h2 class="text-2xl text-gray-700 mb-6 text-center">Crie sua conta</h2>
                 <form id="register-form">
                     <div class="mb-4">
                         <label for="register-email" class="block text-gray-600 mb-2">E-mail</label>
@@ -89,55 +81,30 @@
                         <label for="register-password" class="block text-gray-600 mb-2">Senha</label>
                         <input type="password" id="register-password" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
                     </div>
-                    <button type="submit" class="w-full bg-gradient-bronzify text-white py-2 rounded-lg hover:opacity-90 transition-opacity duration-300">Criar Conta</button>
+                    <button type="submit" class="w-full bg-gradient-bronzify text-white py-2 rounded-lg hover:opacity-90 transition-opacity duration-300">Criar Conta e Iniciar Teste Grátis</button>
                 </form>
-                 <p class="text-center text-gray-600 mt-4">
+                <p class="text-center text-gray-600 mt-4">
                     Já tem uma conta? <a href="#" id="show-login" class="text-[#B76E79] hover:underline">Faça login</a>
                 </p>
             </div>
 
-            <!-- Seção de Recuperação de Senha -->
             <div id="reset-section" class="bg-white rounded-2xl shadow-xl p-8 hidden">
-                 <h2 class="text-2xl text-gray-700 mb-6 text-center">Recuperar Senha</h2>
-                <form id="reset-form">
-                    <p class="text-center text-gray-600 mb-4">Digite seu e-mail e enviaremos um link para redefinir sua senha.</p>
-                    <div class="mb-4">
-                        <label for="reset-email" class="block text-gray-600 mb-2">E-mail</label>
-                        <input type="email" id="reset-email" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
-                    </div>
-                    <button type="submit" class="w-full bg-gradient-bronzify text-white py-2 rounded-lg hover:opacity-90 transition-opacity duration-300">Enviar Link de Recuperação</button>
-                </form>
-                 <p class="text-center text-gray-600 mt-4">
-                    Lembrou a senha? <a href="#" id="show-login-from-reset" class="text-[#B76E79] hover:underline">Faça login</a>
-                </p>
+                <!-- ... sua seção de reset de senha ... -->
             </div>
         </div>
     </div>
 
-    <script>
-      lucide.createIcons();
-    </script>
-
+    <script>lucide.createIcons();</script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { 
-            getAuth, 
-            signInWithEmailAndPassword, 
-            createUserWithEmailAndPassword, 
-            sendEmailVerification, 
-            sendPasswordResetEmail,
-            onAuthStateChanged,
-            setPersistence,
-            browserLocalPersistence,
-            browserSessionPersistence
-        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
             authDomain: "bronzify-b2491.firebaseapp.com",
             projectId: "bronzify-b2491",
-            storageBucket: "bronzify-b2491.firebasestorage.app",
+            storageBucket: "bronzify-b2491.appspot.com",
             messagingSenderId: "399230151633",
             appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
         };
@@ -146,63 +113,7 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        async function handleUserLogin(user) {
-            const userProfileRef = doc(db, "users", user.uid);
-            const docSnap = await getDoc(userProfileRef);
-            if (docSnap.exists() && docSnap.data().status === 'active') {
-                window.location.href = './dashboard.html';
-            } else {
-                window.location.href = './ativacao.html';
-            }
-        }
-
-        // Referências para as seções
-        const loaderSection = document.getElementById('loader-section');
-        const loginSection = document.getElementById('login-section');
-        
-        // Verifica o estado de autenticação
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                // Se o usuário está logado, a função handleUserLogin fará o redirecionamento.
-                // O loader continuará visível até a próxima página carregar.
-                console.log('Usuário já conectado:', user.uid);
-                handleUserLogin(user);
-            } else {
-                // Se não há usuário, esconde o loader e mostra o formulário de login.
-                console.log('Nenhum usuário conectado.');
-                loaderSection.classList.add('hidden');
-                loginSection.classList.remove('hidden');
-            }
-        });
-
-        const loginForm = document.getElementById('login-form');
-        loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = loginForm['login-email'].value;
-            const password = loginForm['login-password'].value;
-            const rememberMe = document.getElementById('remember-me').checked;
-
-            const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
-
-            setPersistence(auth, persistence)
-                .then(() => {
-                    return signInWithEmailAndPassword(auth, email, password);
-                })
-                .then((userCredential) => {
-                    if (userCredential.user.emailVerified) {
-                        handleUserLogin(userCredential.user);
-                    } else {
-                        alert('Seu e-mail ainda não foi verificado. Por favor, verifique sua caixa de entrada e clique no link de verificação antes de fazer login.');
-                    }
-                })
-                .catch((error) => {
-                    if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
-                        alert("E-mail ou senha inválidos. Por favor, verifique os seus dados ou crie uma conta.");
-                    } else {
-                        alert('Erro ao fazer login: ' + error.message);
-                    }
-                });
-        });
+        // ... sua lógica de onAuthStateChanged, loginForm, resetForm ...
 
         const registerForm = document.getElementById('register-form');
         registerForm.addEventListener('submit', (e) => {
@@ -213,77 +124,18 @@
                 .then((userCredential) => {
                     sendEmailVerification(userCredential.user)
                         .then(() => {
-                            alert('Conta criada com sucesso! Enviamos um link de verificação para o seu e-mail. Por favor, verifique sua caixa de entrada para ativar sua conta.');
+                            // MENSAGEM ATUALIZADA
+                            alert('Conta criada com sucesso! Você ganhou 5 dias de acesso grátis. Enviamos um link de verificação para o seu e-mail, por favor ative sua conta para começar.');
+                            // Recarrega a página para voltar à tela de login
+                            window.location.reload(); 
                         });
                 })
                 .catch((error) => {
-                    if (error.code === 'auth/email-already-in-use') {
-                        alert('Este e-mail já está em uso. Por favor, tente fazer login ou use um e-mail diferente.');
-                    } else {
-                        alert('Erro ao criar conta: ' + error.message);
-                    }
+                    // ... seu tratamento de erro ...
                 });
         });
 
-        const resetForm = document.getElementById('reset-form');
-        resetForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = resetForm['reset-email'].value;
-            sendPasswordResetEmail(auth, email)
-                .then(() => {
-                    alert('Link para redefinição de senha enviado! Verifique seu e-mail.');
-                })
-                .catch((error) => {
-                    if (error.code === 'auth/user-not-found') {
-                        alert('Não foi encontrado um usuário com este e-mail.');
-                    } else {
-                        alert('Erro ao enviar e-mail de recuperação: ' + error.message);
-                    }
-                });
-        });
-        
-        const registerSection = document.getElementById('register-section');
-        const resetSection = document.getElementById('reset-section');
-        const showRegisterBtn = document.getElementById('show-register');
-        const showLoginBtn = document.getElementById('show-login');
-        const showResetBtn = document.getElementById('show-reset');
-        const showLoginFromResetBtn = document.getElementById('show-login-from-reset');
-
-        showRegisterBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            loginSection.classList.add('hidden');
-            registerSection.classList.remove('hidden');
-        });
-
-        showLoginBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            loginSection.classList.remove('hidden');
-            registerSection.classList.add('hidden');
-        });
-
-        showResetBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            loginSection.classList.add('hidden');
-            resetSection.classList.remove('hidden');
-        });
-
-        showLoginFromResetBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            loginSection.classList.remove('hidden');
-            resetSection.classList.add('hidden');
-        });
-    </script>
-
-    <script>
-     if ('serviceWorker' in navigator) {
-       window.addEventListener('load', () => {
-         navigator.serviceWorker.register('/sw.js').then(registration => {
-           console.log('Service Worker registrado com sucesso:', registration);
-         }).catch(error => {
-           console.log('Falha ao registrar Service Worker:', error);
-         });
-       });
-     }
+        // ... resto da sua lógica para mostrar/esconder seções ...
     </script>
 </body>
 </html>
