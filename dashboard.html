@@ -3,621 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Bronzify</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#B76E79">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Bronzify">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <title>Renovar Assinatura - Bronzify</title>
     
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#B76E79">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Bronzify">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Bibliotecas para Gráfico e PDF -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
-    <!-- Biblioteca de Som -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #FFF9F9; }
-        h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
-        .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1.25rem; border-radius: 0.75rem; color: #4A5568; transition: all 0.3s ease; font-weight: 500; }
-        .sidebar-link:hover, .sidebar-link.active { background-color: #FADADD; color: #B76E79; }
-        .sidebar-link svg { margin-right: 0.75rem; }
-        .modal-backdrop { transition: opacity 0.3s ease; }
-        .modal-content { transition: transform 0.3s ease; }
-        /* Estilos para a barra lateral móvel */
-        .sidebar-mobile {
-            transform: translateX(-100%);
-            transition: transform 0.3s ease-in-out;
+        h1, h2, h3 { font-family: 'Playfair Display', serif; }
+        /* Adiciona um estilo para o loader */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #B76E79;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
         }
-        .sidebar-mobile.open {
-            transform: translateX(0);
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
-<body class="bg-gray-50 opacity-0 transition-opacity duration-300">
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
 
-    <div class="flex h-screen">
-        <!-- O MENU SERÁ INSERIDO AQUI PELO layout.js -->
+    <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl p-8 text-center">
+        <h1 class="text-4xl text-[#B76E79]">Renovar Assinatura</h1>
+        <p class="text-gray-600 mt-2">Seu acesso expirou ou está prestes a expirar. Renove agora para continuar usando o sistema.</p>
 
-        <!-- Main Content -->
-        <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
-            <header class="flex justify-between items-center mb-8">
-                 <button id="open-menu-btn" class="lg:hidden p-2 -ml-2">
-                    <i data-lucide="menu" class="w-6 h-6 text-gray-800"></i>
-                </button>
-                <h2 class="text-3xl lg:text-4xl text-gray-800">Dashboard</h2>
-                <div class="flex items-center gap-2 sm:gap-4">
-                    <button id="admin-mode-btn" class="bg-rose-100 text-[#B76E79] px-3 py-2 rounded-lg hover:bg-rose-200 flex items-center gap-2 font-semibold">
-                        <i data-lucide="eye"></i>
-                        <span id="admin-mode-text" class="hidden sm:inline">Ativar Modo ADM</span>
-                    </button>
-                    <img src="https://placehold.co/40x40/FADADD/B76E79?text=B" alt="Avatar" class="rounded-full">
-                </div>
-            </header>
-
-            <!-- Filtros e Ações -->
-            <div class="bg-white p-4 rounded-2xl shadow-md mb-8 flex flex-wrap items-center justify-between gap-4">
-                <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
-                     <h3 class="text-lg font-semibold text-gray-700 w-full sm:w-auto">Filtros:</h3>
-                     <select id="filter-month" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79] w-full sm:w-auto"></select>
-                     <select id="filter-year" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79] w-full sm:w-auto"></select>
-                     <button id="filter-apply" class="bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90 w-full sm:w-auto">Aplicar</button>
-                </div>
-                <div class="flex items-center gap-3 w-full sm:w-auto justify-center">
-                    <button id="share-btn" class="flex items-center gap-2 p-2 border rounded-lg text-gray-600 hover:bg-gray-100"><i data-lucide="share-2"></i> <span class="hidden sm:inline">Compartilhar</span></button>
-                    <button id="download-btn" class="flex items-center gap-2 p-2 border rounded-lg text-gray-600 hover:bg-gray-100"><i data-lucide="download"></i> <span class="hidden sm:inline">Baixar PDF</span></button>
-                </div>
+        <div id="payment-container" class="mt-8">
+            <div id="loading-payment" class="text-center flex flex-col items-center">
+                <div class="loader"></div>
+                <p class="mt-4 text-gray-600 animate-pulse">Gerando seu pagamento, aguarde um instante...</p>
             </div>
-            
-            <!-- Área do Relatório -->
-            <div id="report-content">
-                <!-- Cards de Métricas Principais -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <!-- Card de Assinatura -->
-                    <div class="bg-white p-6 rounded-2xl shadow-md">
-                        <h3 id="subscription-title" class="text-lg font-semibold text-gray-500">Status da Assinatura</h3>
-                        <p id="subscription-days" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">Carregando...</p>
+
+            <div id="payment-content" class="hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <div class="text-center">
+                        <h3 class="text-xl font-bold">1. Pague com PIX</h3>
+                        <p class="text-sm text-gray-500">Escaneie o código abaixo com o app do seu banco.</p>
+                        <img id="pix-qrcode" src="" alt="QR Code PIX" class="mx-auto border-4 border-gray-200 rounded-lg mt-4">
+                        <p class="mt-4 font-semibold text-sm">Ou use o PIX Copia e Cola:</p>
+                        <textarea readonly id="pix-code" class="w-full p-2 mt-1 text-xs border rounded-md bg-gray-100 h-24"></textarea>
+                        <button id="copy-btn" class="mt-2 bg-gray-200 text-gray-800 px-4 py-2 text-sm rounded-lg hover:bg-gray-300">Copiar Código</button>
                     </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-md">
-                        <h3 id="revenue-title" class="text-lg font-semibold text-gray-500">Faturamento Mensal</h3>
-                        <p id="monthly-revenue" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">R$ *******</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-md">
-                        <h3 class="text-lg font-semibold text-gray-500">Faturamento Diário</h3>
-                        <p id="daily-revenue" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">R$ *******</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-md">
-                        <h3 id="appointments-title" class="text-lg font-semibold text-gray-500">Atendimentos no Dia</h3>
-                        <p id="daily-appointments" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">***</p>
+                    <div class="text-center border-t md:border-t-0 md:border-l pt-6 md:pt-0 md:pl-8 border-dashed">
+                        <h3 class="text-xl font-bold">2. Cartão de Crédito</h3>
+                        <p class="text-sm text-gray-500 mt-2">No momento, estamos finalizando a integração com cartão.</p>
+                        <p class="mt-4 text-lg p-4 bg-rose-50 text-rose-700 rounded-lg">Por enquanto, por favor, utilize o **PIX** para renovação imediata.</p>
                     </div>
                 </div>
-
-                <!-- Gráficos e Detalhes -->
-                <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                    <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md">
-                        <h3 id="payment-details-title" class="text-2xl text-gray-800 mb-4">Faturamento Diário por Pagamento</h3>
-                        <div id="payment-methods-details" class="space-y-4"><p class="text-gray-500">Dados ocultos. Ative o modo ADM.</p></div>
-                    </div>
-                    <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-md">
-                        <h3 id="services-chart-title" class="text-2xl text-gray-800 mb-4">Tipos de Bronze e Serviços (Mês)</h3>
-                        <div id="chart-container" class="h-80 flex justify-center items-center"><canvas id="servicesChart"></canvas></div>
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <!-- Modal de Senha ADM -->
-        <div id="admin-password-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 modal-content transform scale-95">
-                <h3 id="admin-modal-title" class="text-2xl text-gray-800 mb-4 text-center">Modo Administrador</h3>
-                <p id="admin-modal-subtitle" class="text-center text-gray-500 mb-6">Insira a senha para ver os dados.</p>
-                <form id="admin-password-form">
-                    <input type="password" id="admin-password-input" class="w-full text-center px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
-                    <button type="submit" class="w-full mt-4 bg-[#B76E79] text-white py-2 rounded-lg hover:opacity-90">Confirmar</button>
-                    <button type="button" id="cancel-admin-password" class="w-full mt-2 text-gray-600 py-2 rounded-lg hover:bg-gray-100">Cancelar</button>
-                    <p class="text-center text-sm mt-4">
-                        <a href="#" id="forgot-admin-password-link" class="text-gray-500 hover:underline">Esqueci minha senha de ADM</a>
-                    </p>
-                </form>
+                <p class="mt-8 text-sm text-gray-500">Após a confirmação do pagamento, seu acesso será liberado automaticamente. Você pode recarregar a página ou <a href="./dashboard.html" class="text-[#B76E79] underline">clicar aqui</a>.</p>
             </div>
         </div>
 
-        <!-- NOTIFICAÇÃO DE AJUDA -->
-        <div id="help-alert-modal" class="fixed bottom-8 right-8 bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-50 transform translate-y-full opacity-0 transition-all duration-300 ease-out">
-            <div class="flex items-start gap-4">
-                <div class="bg-amber-100 p-2 rounded-full">
-                    <i data-lucide="bell-ring" class="w-8 h-8 text-amber-500"></i>
-                </div>
-                <div>
-                    <h3 class="text-xl text-gray-800 font-semibold">Pedido de Ajuda!</h3>
-                    <p id="help-alert-message" class="text-gray-600 mt-1">Um pedido de ajuda foi enviado da página Pátio.</p>
-                </div>
-            </div>
-            <button id="close-help-alert" class="w-full mt-4 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300">OK, Entendido</button>
-        </div>
+        <button id="logout-btn" class="mt-8 text-sm text-gray-500 hover:underline">Sair e tentar mais tarde</button>
     </div>
+
     <script>
-      lucide.createIcons();
-      const { jsPDF } = window.jspdf;
+        // Renderiza os ícones da página
+        lucide.createIcons();
     </script>
     
-    <!-- SCRIPTS CENTRALIZADOS -->
     <script src="./config.js"></script>
-    <script type="module" src="./layout.js"></script>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, query, where, getDocs, Timestamp, doc, getDoc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 
-        // A variável firebaseConfig agora vem do arquivo config.js
         const app = initializeApp(firebaseConfig);
-        
         const auth = getAuth(app);
-        const db = getFirestore(app);
-        
-        let isAdminModeActive = false;
-        let dashboardDataCache = null;
-        let isAudioContextStarted = false;
-        let synth = null;
+        const functions = getFunctions(app, 'southamerica-east1'); // Confirme se sua região é esta
 
-        // A lógica do menu e do logout foi movida para layout.js
+        const loadingDiv = document.getElementById('loading-payment');
+        const contentDiv = document.getElementById('payment-content');
+        const qrCodeImg = document.getElementById('pix-qrcode');
+        const pixCodeText = document.getElementById('pix-code');
+        const copyBtn = document.getElementById('copy-btn');
 
-        // Inicia o contexto de áudio com uma interação do usuário
-        document.body.addEventListener('click', async () => {
-            if (!isAudioContextStarted && typeof Tone !== 'undefined') {
-                await Tone.start();
-                synth = new Tone.Synth().toDestination();
-                isAudioContextStarted = true;
-                console.log("Audio context started.");
-            }
-        }, { once: true });
-
-        onAuthStateChanged(auth, async (user) => {
+        onAuthStateChanged(auth, (user) => {
             if (user) {
-                document.body.classList.remove('opacity-0');
-                await checkUserPlan(user); 
-                await checkAdminPasswordSetup(user);
-                await fetchDashboardData();
-                listenForHelpRequests(user);
-            } else { window.location.href = 'index.html'; }
-        });
+                // Se o usuário está logado, chama a Cloud Function para criar o pedido
+                const createOrder = httpsCallable(functions, 'createPagBankOrder');
+                createOrder()
+                    .then((result) => {
+                        const { qrCodeText, qrCodeImage } = result.data;
+                        
+                        // Preenche os dados do PIX na tela
+                        qrCodeImg.src = qrCodeImage;
+                        pixCodeText.value = qrCodeText;
+                        
+                        // Esconde o loading e mostra o conteúdo do pagamento
+                        loadingDiv.classList.add('hidden');
+                        contentDiv.classList.remove('hidden');
 
-        // --- LÓGICA DO STATUS DA ASSINATURA (COM CORREÇÃO DE ACESSO) ---
-        async function checkUserPlan(user) {
-            const userProfileRef = doc(db, "users", user.uid);
-            try {
-                const docSnap = await getDoc(userProfileRef);
-                const statusEl = document.getElementById('subscription-days');
-                const titleEl = document.getElementById('subscription-title');
-
-                if (docSnap.exists() && docSnap.data().plan && docSnap.data().plan.expiresAt) {
-                    const userData = docSnap.data();
-                    const expiresAtDate = userData.plan.expiresAt.toDate();
-                    const now = new Date();
-                    now.setHours(0, 0, 0, 0);
-                    expiresAtDate.setHours(0, 0, 0, 0);
-
-                    const diffTime = expiresAtDate.getTime() - now.getTime();
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                    if (diffDays <= 0) {
-                        alert("Sua assinatura expirou. Por favor, renove seu acesso para continuar.");
-                        window.location.href = './ativacao.html';
-                        return;
-                    }
-
-                    statusEl.textContent = `${diffDays} dia${diffDays > 1 ? 's' : ''}`;
-                    titleEl.textContent = 'Sua assinatura expira em';
-                    if (diffDays <= 7) {
-                       statusEl.classList.remove('text-[#B76E79]');
-                       statusEl.classList.add('text-amber-600');
-                    }
-                } else {
-                    alert("Você não possui uma assinatura ativa. Por favor, ative seu acesso.");
-                    window.location.href = './ativacao.html';
-                }
-            } catch (error) {
-                console.error("Erro ao buscar plano do usuário:", error);
-                const statusEl = document.getElementById('subscription-days');
-                statusEl.textContent = 'Erro';
-            }
-        }
-
-        // --- LÓGICA DO ALERTA DE AJUDA ---
-        const helpAlertModal = document.getElementById('help-alert-modal');
-        const helpAlertMessage = document.getElementById('help-alert-message');
-        const closeHelpAlertBtn = document.getElementById('close-help-alert');
-        let currentHelpRequestId = null;
-
-        function listenForHelpRequests(user) {
-            const helpRequestsRef = collection(db, "businesses", user.uid, "help_requests");
-            onSnapshot(helpRequestsRef, (snapshot) => {
-                snapshot.docChanges().forEach((change) => {
-                    if (change.type === "added") {
-                        const helpRequest = change.doc.data();
-                        currentHelpRequestId = change.doc.id;
-
-                        if (isAudioContextStarted && synth) {
-                            synth.triggerAttackRelease("C5", "8n");
-                        } else {
-                            console.warn("Audio context not started. User must click the page first.");
-                        }
-
-                        helpAlertMessage.textContent = `Um pedido de ajuda foi enviado da página ${helpRequest.page}.`;
-                        helpAlertModal.classList.remove('opacity-0', 'translate-y-full');
-                        lucide.createIcons();
-                    }
-                });
-            });
-        }
-
-        closeHelpAlertBtn.addEventListener('click', async () => {
-            if (currentHelpRequestId && auth.currentUser) {
-                try {
-                    const helpRequestRef = doc(db, "businesses", auth.currentUser.uid, "help_requests", currentHelpRequestId);
-                    await deleteDoc(helpRequestRef);
-                    helpAlertModal.classList.add('opacity-0', 'translate-y-full');
-                    currentHelpRequestId = null;
-                } catch (error) {
-                    console.error("Erro ao remover pedido de ajuda:", error);
-                }
-            }
-        });
-
-        // --- LÓGICA DO MODO ADM E DASHBOARD ---
-        const adminModeBtn = document.getElementById('admin-mode-btn');
-        const adminPasswordModal = document.getElementById('admin-password-modal');
-        const adminPasswordForm = document.getElementById('admin-password-form');
-        const adminPasswordInput = document.getElementById('admin-password-input');
-        const adminModalTitle = document.getElementById('admin-modal-title');
-        const adminModalSubtitle = document.getElementById('admin-modal-subtitle');
-        const forgotAdminPasswordLink = document.getElementById('forgot-admin-password-link');
-        
-        async function checkAdminPasswordSetup(user) {
-            const configRef = doc(db, "admin_passwords", user.uid);
-            try {
-                const configSnap = await getDoc(configRef);
-                if (!configSnap.exists()) {
-                    adminModalTitle.textContent = 'Bem-vindo(a)!';
-                    adminModalSubtitle.textContent = 'Este parece ser seu primeiro acesso ou sua senha foi redefinida. Por favor, crie uma nova senha de administrador.';
-                    document.getElementById('cancel-admin-password').classList.add('hidden');
-                    forgotAdminPasswordLink.classList.add('hidden');
-                    adminPasswordModal.classList.remove('hidden');
-                }
-            } catch (error) {
-                console.error("Erro ao verificar configuração de senha ADM:", error);
-            }
-        }
-
-        function updateUIVisibility() {
-            const monthlyRevenueEl = document.getElementById('monthly-revenue');
-            const dailyRevenueEl = document.getElementById('daily-revenue');
-            const paymentDetailsContainer = document.getElementById('payment-methods-details');
-            const chartContainer = document.getElementById('chart-container');
-            const adminModeText = document.getElementById('admin-mode-text');
-            const adminModeIcon = adminModeBtn.querySelector('i');
-            
-            const appointmentsTitle = document.getElementById('appointments-title');
-            const appointmentsValue = document.getElementById('daily-appointments');
-            const paymentDetailsTitle = document.getElementById('payment-details-title');
-
-            if (isAdminModeActive && dashboardDataCache) {
-                monthlyRevenueEl.textContent = dashboardDataCache.monthlyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                dailyRevenueEl.textContent = dashboardDataCache.dailyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                
-                if (dashboardDataCache.isFilteredPeriod) {
-                    appointmentsTitle.textContent = 'Atendimentos no Período';
-                    appointmentsValue.textContent = dashboardDataCache.periodAppointments;
-                    paymentDetailsTitle.textContent = 'Faturamento por Pagamento no Período';
-                    
-                    paymentDetailsContainer.innerHTML = '';
-                    if (Object.keys(dashboardDataCache.periodPaymentMethodTotals).length > 0) {
-                        for (const method in dashboardDataCache.periodPaymentMethodTotals) {
-                            paymentDetailsContainer.innerHTML += `<div class="flex justify-between items-center"><span class="text-gray-600">${method}</span><span class="font-bold text-gray-800">${dashboardDataCache.periodPaymentMethodTotals[method].toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>`;
-                        }
-                    } else { paymentDetailsContainer.innerHTML = '<p class="text-gray-500">Nenhuma venda no período.</p>'; }
-
-                } else {
-                    appointmentsTitle.textContent = 'Atendimentos no Dia';
-                    appointmentsValue.textContent = dashboardDataCache.dailyAppointments;
-                    paymentDetailsTitle.textContent = 'Faturamento Diário por Pagamento';
-
-                    paymentDetailsContainer.innerHTML = '';
-                    if (Object.keys(dashboardDataCache.dailyPaymentMethodTotals).length > 0) {
-                        for (const method in dashboardDataCache.dailyPaymentMethodTotals) {
-                            paymentDetailsContainer.innerHTML += `<div class="flex justify-between items-center"><span class="text-gray-600">${method}</span><span class="font-bold text-gray-800">${dashboardDataCache.dailyPaymentMethodTotals[method].toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>`;
-                        }
-                    } else { paymentDetailsContainer.innerHTML = '<p class="text-gray-500">Nenhuma venda hoje.</p>'; }
-                }
-                
-                chartContainer.style.opacity = 1;
-                adminModeIcon.setAttribute('data-lucide', 'eye-off');
-                adminModeText.textContent = 'Desativar Modo ADM';
+                        // Adiciona a funcionalidade ao botão de copiar
+                        copyBtn.addEventListener('click', () => {
+                            navigator.clipboard.writeText(qrCodeText);
+                            copyBtn.textContent = 'Copiado!';
+                            setTimeout(() => { copyBtn.textContent = 'Copiar Código' }, 2000);
+                        });
+                    })
+                    .catch((error) => {
+                        console.error("Erro ao criar pedido de pagamento:", error);
+                        loadingDiv.innerHTML = '<p class="text-red-500 font-semibold">Ocorreu um erro ao gerar seu pagamento. Por favor, recarregue a página e tente novamente.</p>';
+                    });
             } else {
-                monthlyRevenueEl.textContent = 'R$ *******';
-                dailyRevenueEl.textContent = 'R$ *******';
-                appointmentsValue.textContent = '***';
-                paymentDetailsContainer.innerHTML = '<p class="text-gray-500">Dados ocultos. Ative o modo ADM.</p>';
-                chartContainer.style.opacity = 0;
-                adminModeIcon.setAttribute('data-lucide', 'eye');
-                adminModeText.textContent = 'Ativar Modo ADM';
-                appointmentsTitle.textContent = 'Atendimentos no Dia';
-                paymentDetailsTitle.textContent = 'Faturamento Diário por Pagamento';
-            }
-            lucide.createIcons();
-        }
-
-        adminModeBtn.addEventListener('click', async () => {
-            if (isAdminModeActive) {
-                isAdminModeActive = false;
-                updateUIVisibility();
-            } else {
-                adminModalTitle.textContent = 'Modo Administrador';
-                adminModalSubtitle.textContent = 'Insira a sua senha de administrador.';
-                document.getElementById('cancel-admin-password').classList.remove('hidden');
-                forgotAdminPasswordLink.classList.remove('hidden');
-                adminPasswordModal.classList.remove('hidden');
+                // Se não há usuário logado, volta para a tela de login
+                window.location.href = './index.html';
             }
         });
 
-        forgotAdminPasswordLink.addEventListener('click', async (e) => {
-            e.preventDefault();
-            const user = auth.currentUser;
-            if (!user) return;
-
-            if (!confirm("Isso enviará um link para o seu e-mail para redefinir sua senha de LOGIN PRINCIPAL. Após redefinir e entrar novamente, sua senha de ADM será apagada e você poderá criar uma nova. Deseja continuar?")) {
-                return;
-            }
-
-            try {
-                await sendPasswordResetEmail(auth, user.email);
-                const configRef = doc(db, "admin_passwords", user.uid);
-                await setDoc(configRef, { reset_pending: true }, { merge: true });
-                alert("Enviamos um link para o seu e-mail. Siga as instruções para redefinir sua senha de login. Após entrar novamente, você será solicitado(a) a criar uma nova senha de ADM.");
-                adminPasswordModal.classList.add('hidden');
-            } catch (error) {
-                console.error("Erro ao enviar e-mail de redefinição:", error);
-                alert("Ocorreu um erro ao tentar enviar o e-mail. Tente novamente.");
-            }
-        });
-
-        document.getElementById('cancel-admin-password').addEventListener('click', () => adminPasswordModal.classList.add('hidden'));
-
-        adminPasswordForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const user = auth.currentUser;
-            if (!user) return;
-
-            const password = adminPasswordInput.value;
-            const configRef = doc(db, "admin_passwords", user.uid);
-            
-            try {
-                let passwordCorrect = false;
-                const configSnap = await getDoc(configRef);
-                if (!configSnap.exists()) {
-                    await setDoc(configRef, { value: password });
-                    alert("Sua senha de administrador individual foi definida com sucesso!");
-                    passwordCorrect = true;
-                } else {
-                    if (configSnap.data().value === password) {
-                        passwordCorrect = true;
-                    } else {
-                        alert("Senha incorreta!");
-                    }
-                }
-                
-                if (passwordCorrect) {
-                    isAdminModeActive = true;
-                    adminPasswordForm.reset();
-                    adminPasswordModal.classList.add('hidden');
-                    await fetchDashboardData(false); 
-                }
-            } catch (error) {
-                console.error("Erro ao verificar/definir senha de ADM:", error);
-                alert("Ocorreu um erro. Tente novamente.");
-            }
-        });
-
-        const monthSelect = document.getElementById('filter-month');
-        const yearSelect = document.getElementById('filter-year');
-        const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-        const currentYear = new Date().getFullYear();
-        
-        months.forEach((month, index) => monthSelect.add(new Option(month, index)));
-        monthSelect.add(new Option("Ano Inteiro", 12));
-        
-        for (let i = currentYear; i >= 2020; i--) yearSelect.add(new Option(i, i));
-        monthSelect.value = new Date().getMonth();
-        yearSelect.value = currentYear;
-
-        const ctx = document.getElementById('servicesChart').getContext('2d');
-        const servicesChart = new Chart(ctx, { type: 'pie', data: { labels: [], datasets: [{ label: 'Vendas', data: [], backgroundColor: ['#B76E79', '#D49A9A', '#FADADD', '#A9606C', '#C98B8B', '#E3BDBD'], borderColor: '#FFF9F9', borderWidth: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } });
-
-        async function fetchDashboardData(isFilterAction = false) {
-            const user = auth.currentUser;
-            if (!user) return;
-
-            const selectedMonth = parseInt(monthSelect.value);
-            const selectedYear = parseInt(yearSelect.value);
-            
-            let periodStartDate, periodEndDate;
-            const revenueTitleEl = document.getElementById('revenue-title');
-            const servicesChartTitleEl = document.getElementById('services-chart-title');
-
-            if (selectedMonth === 12) {
-                periodStartDate = new Date(selectedYear, 0, 1);
-                periodEndDate = new Date(selectedYear, 11, 31, 23, 59, 59);
-                revenueTitleEl.textContent = 'Faturamento Anual';
-                servicesChartTitleEl.textContent = 'Tipos de Bronze e Serviços (Ano)';
-            } else {
-                periodStartDate = new Date(selectedYear, selectedMonth, 1);
-                periodEndDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
-                revenueTitleEl.textContent = 'Faturamento Mensal';
-                servicesChartTitleEl.textContent = 'Tipos de Bronze e Serviços (Mês)';
-            }
-
-            const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-            const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
-
-            const salesRef = collection(db, "businesses", user.uid, "sales");
-            const periodQuery = query(salesRef, where("createdAt", ">=", Timestamp.fromDate(periodStartDate)), where("createdAt", "<=", Timestamp.fromDate(periodEndDate)));
-            const dailyQuery = query(salesRef, where("createdAt", ">=", Timestamp.fromDate(todayStart)), where("createdAt", "<=", Timestamp.fromDate(todayEnd)));
-
-            try {
-                const [periodSnapshot, dailySnapshot] = await Promise.all([getDocs(periodQuery), getDocs(dailyQuery)]);
-                let periodRevenue = 0, dailyRevenue = 0;
-                const serviceCounts = {}, periodPaymentMethodTotals = {}, dailyPaymentMethodTotals = {};
-                let periodAppointments = 0;
-
-                periodSnapshot.forEach(doc => {
-                    const sale = doc.data();
-                    periodRevenue += sale.total || 0;
-                    if (sale.items) sale.items.forEach(item => serviceCounts[item.name] = (serviceCounts[item.name] || 0) + 1);
-                    const method = sale.paymentMethod || 'N/A';
-                    periodPaymentMethodTotals[method] = (periodPaymentMethodTotals[method] || 0) + sale.total;
-                });
-                periodAppointments = periodSnapshot.size;
-
-                dailySnapshot.forEach(doc => {
-                    const sale = doc.data();
-                    dailyRevenue += sale.total || 0;
-                    const method = sale.paymentMethod || 'N/A';
-                    dailyPaymentMethodTotals[method] = (dailyPaymentMethodTotals[method] || 0) + sale.total;
-                });
-                
-                dashboardDataCache = { 
-                    monthlyRevenue: periodRevenue, 
-                    dailyRevenue, 
-                    dailyPaymentMethodTotals, 
-                    dailyAppointments: dailySnapshot.size,
-                    serviceCounts,
-                    periodAppointments,
-                    periodPaymentMethodTotals,
-                    isFilteredPeriod: isFilterAction
-                };
-                
-                servicesChart.data.labels = Object.keys(serviceCounts);
-                servicesChart.data.datasets[0].data = Object.values(serviceCounts);
-                servicesChart.update();
-                
-                updateUIVisibility();
-
-            } catch (error) { console.error("Erro ao buscar dados do dashboard: ", error); }
-        }
-
-        document.getElementById('filter-apply').addEventListener('click', () => {
-            if (!isAdminModeActive) {
-                alert("Por favor, ative o Modo ADM para poder usar os filtros.");
-                return;
-            }
-            fetchDashboardData(true);
-        });
-
-        document.getElementById('download-btn').addEventListener('click', () => {
-            if (!isAdminModeActive || !dashboardDataCache) {
-                alert("Ative o Modo ADM para baixar o relatório.");
-                return;
-            }
-            const pdf = new jsPDF();
-            const periodText = monthSelect.options[monthSelect.selectedIndex].text + " de " + yearSelect.value;
-
-            pdf.setFontSize(18);
-            pdf.text("Relatório de Faturamento - Bronzify", 14, 22);
-            pdf.setFontSize(11);
-            pdf.setTextColor(100);
-            pdf.text(`Período do Relatório: ${periodText}`, 14, 30);
-
-            const summaryData = [
-                ["Faturamento do Período", dashboardDataCache.monthlyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })],
-                ["Faturamento de Hoje", dashboardDataCache.dailyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })],
-                [dashboardDataCache.isFilteredPeriod ? "Atendimentos no Período" : "Atendimentos Hoje", dashboardDataCache.isFilteredPeriod ? dashboardDataCache.periodAppointments : dashboardDataCache.dailyAppointments]
-            ];
-            pdf.autoTable({
-                head: [['Resumo Financeiro', 'Valor']],
-                body: summaryData,
-                startY: 40,
-                headStyles: { fillColor: [183, 110, 121] },
-            });
-
-            const paymentData = dashboardDataCache.isFilteredPeriod ? dashboardDataCache.periodPaymentMethodTotals : dashboardDataCache.dailyPaymentMethodTotals;
-            const paymentTitle = dashboardDataCache.isFilteredPeriod ? "Faturamento por Pagamento no Período" : "Faturamento Diário por Pagamento";
-            const paymentBody = Object.entries(paymentData).map(([method, total]) => {
-                return [method, total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })];
-            });
-            if (paymentBody.length > 0) {
-                pdf.autoTable({
-                    head: [[paymentTitle, 'Total']],
-                    body: paymentBody,
-                    startY: pdf.autoTable.previous.finalY + 10,
-                    headStyles: { fillColor: [183, 110, 121] },
-                });
-            }
-
-            const servicesBody = Object.entries(dashboardDataCache.serviceCounts).map(([service, count]) => {
-                return [service, count];
-            });
-             if (servicesBody.length > 0) {
-                pdf.autoTable({
-                    head: [['Serviços Realizados no Período', 'Quantidade']],
-                    body: servicesBody,
-                    startY: pdf.autoTable.previous.finalY + 10,
-                    headStyles: { fillColor: [183, 110, 121] },
-                });
-            }
-
-            pdf.save(`relatorio_vendas_bronzify_${yearSelect.value}_${monthSelect.options[monthSelect.selectedIndex].text}.pdf`);
-        });
-        
-        document.getElementById('share-btn').addEventListener('click', async () => {
-            if (!isAdminModeActive || !dashboardDataCache) {
-                alert("Ative o Modo ADM para compartilhar o relatório.");
-                return;
-            }
-            const periodText = monthSelect.options[monthSelect.selectedIndex].text + " de " + yearSelect.value;
-            
-            let shareText = `*Relatório Bronzify - ${periodText}*\n\n`;
-            shareText += `*Faturamento:* ${dashboardDataCache.monthlyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n`;
-            
-            if(dashboardDataCache.isFilteredPeriod) {
-                shareText += `*Atendimentos no Período:* ${dashboardDataCache.periodAppointments}\n\n`;
-            } else {
-                shareText += `*Atendimentos (hoje):* ${dashboardDataCache.dailyAppointments}\n\n`;
-            }
-
-            shareText += `*Serviços mais realizados:*\n`;
-            for (const service in dashboardDataCache.serviceCounts) {
-                shareText += `- ${service}: ${dashboardDataCache.serviceCounts[service]}\n`;
-            }
-
-            if (navigator.share) {
-                try {
-                    await navigator.share({ title: `Relatório Bronzify - ${periodText}`, text: shareText });
-                } catch (err) { console.error("Erro ao compartilhar:", err); }
-            } else {
-                alert("Função de compartilhamento não suportada neste navegador.");
-            }
+        // Lógica do botão de logout
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            signOut(auth).then(() => window.location.href = 'index.html');
         });
     </script>
-
-    <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').then(registration => {
-        console.log('Service Worker registrado com sucesso:', registration);
-      }).catch(error => {
-        console.log('Falha ao registrar Service Worker:', error);
-      });
-    });
-  }
-</script>
 </body>
 </html>
-
