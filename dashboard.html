@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Renovar Assinatura - Bronzify</title>
-    
+    <title>Dashboard - Bronzify</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#B76E79">
@@ -16,118 +15,252 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #FFF9F9; }
-        h1, h2, h3 { font-family: 'Playfair Display', serif; }
-        /* Adiciona um estilo para o loader */
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #B76E79;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
+        .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1.25rem; border-radius: 0.75rem; color: #4A5568; transition: all 0.3s ease; font-weight: 500; }
+        .sidebar-link:hover, .sidebar-link.active { background-color: #FADADD; color: #B76E79; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #B76E79; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .sidebar-mobile { transform: translateX(-100%); transition: transform 0.3s ease-in-out; }
+        .sidebar-mobile.open { transform: translateX(0); }
     </style>
 </head>
-<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+<body class="bg-gray-50 opacity-0 transition-opacity duration-300">
 
-    <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl p-8 text-center">
-        <h1 class="text-4xl text-[#B76E79]">Renovar Assinatura</h1>
-        <p class="text-gray-600 mt-2">Seu acesso expirou ou está prestes a expirar. Renove agora para continuar usando o sistema.</p>
+    <div class="flex h-screen">
+        <!-- O MENU SERÁ INSERIDO AQUI PELO layout.js -->
 
-        <div id="payment-container" class="mt-8">
-            <div id="loading-payment" class="text-center flex flex-col items-center">
-                <div class="loader"></div>
-                <p class="mt-4 text-gray-600 animate-pulse">Gerando seu pagamento, aguarde um instante...</p>
+        <!-- Main Content -->
+        <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
+            <header class="flex justify-between items-center mb-8">
+               <button id="open-menu-btn" class="lg:hidden p-2 -ml-2">
+                   <i data-lucide="menu" class="w-6 h-6 text-gray-800"></i>
+               </button>
+               <h2 class="text-3xl lg:text-4xl text-gray-800">Dashboard</h2>
+               <div class="flex items-center gap-2 sm:gap-4">
+                   <button id="admin-mode-btn" class="bg-rose-100 text-[#B76E79] px-3 py-2 rounded-lg hover:bg-rose-200 flex items-center gap-2 font-semibold">
+                       <i data-lucide="eye"></i>
+                       <span id="admin-mode-text" class="hidden sm:inline">Ativar Modo ADM</span>
+                   </button>
+                   <img src="https://placehold.co/40x40/FADADD/B76E79?text=B" alt="Avatar" class="rounded-full">
+               </div>
+            </header>
+
+            <div class="bg-white p-4 rounded-2xl shadow-md mb-8 flex flex-wrap items-center justify-between gap-4">
+               <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+                   <h3 class="text-lg font-semibold text-gray-700 w-full sm:w-auto">Filtros:</h3>
+                   <select id="filter-month" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79] w-full sm:w-auto"></select>
+                   <select id="filter-year" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79] w-full sm:w-auto"></select>
+                   <button id="filter-apply" class="bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90 w-full sm:w-auto">Aplicar</button>
+               </div>
+               <div class="flex items-center gap-3 w-full sm:w-auto justify-center">
+                   <button id="share-btn" class="flex items-center gap-2 p-2 border rounded-lg text-gray-600 hover:bg-gray-100"><i data-lucide="share-2"></i> <span class="hidden sm:inline">Compartilhar</span></button>
+                   <button id="download-btn" class="flex items-center gap-2 p-2 border rounded-lg text-gray-600 hover:bg-gray-100"><i data-lucide="download"></i> <span class="hidden sm:inline">Baixar PDF</span></button>
+               </div>
             </div>
-
-            <div id="payment-content" class="hidden">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                    <div class="text-center">
-                        <h3 class="text-xl font-bold">1. Pague com PIX</h3>
-                        <p class="text-sm text-gray-500">Escaneie o código abaixo com o app do seu banco.</p>
-                        <img id="pix-qrcode" src="" alt="QR Code PIX" class="mx-auto border-4 border-gray-200 rounded-lg mt-4">
-                        <p class="mt-4 font-semibold text-sm">Ou use o PIX Copia e Cola:</p>
-                        <textarea readonly id="pix-code" class="w-full p-2 mt-1 text-xs border rounded-md bg-gray-100 h-24"></textarea>
-                        <button id="copy-btn" class="mt-2 bg-gray-200 text-gray-800 px-4 py-2 text-sm rounded-lg hover:bg-gray-300">Copiar Código</button>
+            
+            <div id="report-content">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    
+                    <!-- NOVO CARD DE ASSINATURA -->
+                    <div class="bg-white p-6 rounded-2xl shadow-md flex flex-col justify-between">
+                        <div>
+                            <h3 id="subscription-card-title" class="text-lg font-semibold text-gray-500">Status da Assinatura</h3>
+                            <p id="subscription-days" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">Carregando...</p>
+                            <p id="subscription-status-text" class="text-sm text-gray-500 mt-1 h-5"></p>
+                        </div>
+                        <button id="renew-btn" class="w-full mt-4 bg-emerald-500 text-white font-semibold py-2 rounded-lg hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2">
+                            <i data-lucide="party-popper"></i>
+                            <span>Renovar Assinatura</span>
+                        </button>
                     </div>
-                    <div class="text-center border-t md:border-t-0 md:border-l pt-6 md:pt-0 md:pl-8 border-dashed">
-                        <h3 class="text-xl font-bold">2. Cartão de Crédito</h3>
-                        <p class="text-sm text-gray-500 mt-2">No momento, estamos finalizando a integração com cartão.</p>
-                        <p class="mt-4 text-lg p-4 bg-rose-50 text-rose-700 rounded-lg">Por enquanto, por favor, utilize o **PIX** para renovação imediata.</p>
+
+                    <div class="bg-white p-6 rounded-2xl shadow-md">
+                        <h3 id="revenue-title" class="text-lg font-semibold text-gray-500">Faturamento Mensal</h3>
+                        <p id="monthly-revenue" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">R$ *******</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-md">
+                        <h3 class="text-lg font-semibold text-gray-500">Faturamento Diário</h3>
+                        <p id="daily-revenue" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">R$ *******</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-md">
+                        <h3 id="appointments-title" class="text-lg font-semibold text-gray-500">Atendimentos no Dia</h3>
+                        <p id="daily-appointments" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">***</p>
                     </div>
                 </div>
-                <p class="mt-8 text-sm text-gray-500">Após a confirmação do pagamento, seu acesso será liberado automaticamente. Você pode recarregar a página ou <a href="./dashboard.html" class="text-[#B76E79] underline">clicar aqui</a>.</p>
+
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md">
+                        <h3 id="payment-details-title" class="text-2xl text-gray-800 mb-4">Faturamento Diário por Pagamento</h3>
+                        <div id="payment-methods-details" class="space-y-4"><p class="text-gray-500">Dados ocultos. Ative o modo ADM.</p></div>
+                    </div>
+                    <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-md">
+                        <h3 id="services-chart-title" class="text-2xl text-gray-800 mb-4">Tipos de Bronze e Serviços (Mês)</h3>
+                        <div id="chart-container" class="h-80 flex justify-center items-center"><canvas id="servicesChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- MODAL DE PAGAMENTO -->
+        <div id="payment-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
+            <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl p-6 relative">
+                <button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+                <div id="modal-content-area" class="p-4">
+                    <!-- Conteúdo do pagamento será inserido aqui dinamicamente -->
+                </div>
             </div>
         </div>
 
-        <button id="logout-btn" class="mt-8 text-sm text-gray-500 hover:underline">Sair e tentar mais tarde</button>
+        <!-- Outros Modais (ADM, Ajuda) -->
+        <!-- ... seu HTML para os outros modais continua aqui ... -->
     </div>
 
     <script>
-        // Renderiza os ícones da página
-        lucide.createIcons();
+      lucide.createIcons();
+      const { jsPDF } = window.jspdf;
     </script>
     
     <script src="./config.js"></script>
+    <script type="module" src="./layout.js"></script>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, onSnapshot, setDoc, deleteDoc, query, where, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const functions = getFunctions(app, 'southamerica-east1'); // Confirme se sua região é esta
+        const db = getFirestore(app);
+        const functions = getFunctions(app, 'southamerica-east1');
 
-        const loadingDiv = document.getElementById('loading-payment');
-        const contentDiv = document.getElementById('payment-content');
-        const qrCodeImg = document.getElementById('pix-qrcode');
-        const pixCodeText = document.getElementById('pix-code');
-        const copyBtn = document.getElementById('copy-btn');
+        // --- Elementos da UI ---
+        const renewBtn = document.getElementById('renew-btn');
+        const paymentModal = document.getElementById('payment-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const modalContentArea = document.getElementById('modal-content-area');
 
-        onAuthStateChanged(auth, (user) => {
+        // --- Estado da Aplicação ---
+        let currentUser = null;
+
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // Se o usuário está logado, chama a Cloud Function para criar o pedido
-                const createOrder = httpsCallable(functions, 'createPagBankOrder');
-                createOrder()
-                    .then((result) => {
-                        const { qrCodeText, qrCodeImage } = result.data;
-                        
-                        // Preenche os dados do PIX na tela
-                        qrCodeImg.src = qrCodeImage;
-                        pixCodeText.value = qrCodeText;
-                        
-                        // Esconde o loading e mostra o conteúdo do pagamento
-                        loadingDiv.classList.add('hidden');
-                        contentDiv.classList.remove('hidden');
-
-                        // Adiciona a funcionalidade ao botão de copiar
-                        copyBtn.addEventListener('click', () => {
-                            navigator.clipboard.writeText(qrCodeText);
-                            copyBtn.textContent = 'Copiado!';
-                            setTimeout(() => { copyBtn.textContent = 'Copiar Código' }, 2000);
-                        });
-                    })
-                    .catch((error) => {
-                        console.error("Erro ao criar pedido de pagamento:", error);
-                        loadingDiv.innerHTML = '<p class="text-red-500 font-semibold">Ocorreu um erro ao gerar seu pagamento. Por favor, recarregue a página e tente novamente.</p>';
-                    });
+                currentUser = user;
+                document.body.classList.remove('opacity-0');
+                await checkUserPlan(user);
+                // O resto da sua lógica do dashboard (que já existe) continua aqui
+                // await checkAdminPasswordSetup(user);
+                // await fetchDashboardData();
+                // listenForHelpRequests(user);
             } else {
-                // Se não há usuário logado, volta para a tela de login
-                window.location.href = './index.html';
+                window.location.href = 'index.html';
             }
         });
 
-        // Lógica do botão de logout
-        document.getElementById('logout-btn').addEventListener('click', () => {
-            signOut(auth).then(() => window.location.href = 'index.html');
-        });
+        async function checkUserPlan(user) {
+            const userProfileRef = doc(db, "users", user.uid);
+            try {
+                const docSnap = await getDoc(userProfileRef);
+                const cardTitle = document.getElementById('subscription-card-title');
+                const daysEl = document.getElementById('subscription-days');
+                const statusText = document.getElementById('subscription-status-text');
+
+                if (docSnap.exists() && docSnap.data().plan && docSnap.data().plan.expiresAt) {
+                    const userData = docSnap.data();
+                    const expiresAtDate = userData.plan.expiresAt.toDate();
+                    const now = new Date();
+                    const diffTime = expiresAtDate.getTime() - now.getTime();
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    if (diffDays <= 0) {
+                        window.location.href = './assinatura.html';
+                        return;
+                    }
+
+                    daysEl.textContent = `${diffDays} dia${diffDays > 1 ? 's' : ''}`;
+                    if (userData.plan.type === 'trial') {
+                        cardTitle.textContent = "Período de Teste";
+                        statusText.textContent = `Seu teste gratuito termina em ${expiresAtDate.toLocaleDateString('pt-BR')}.`;
+                        renewBtn.querySelector('span').textContent = "Assinar Agora";
+                    } else {
+                        cardTitle.textContent = "Assinatura Ativa";
+                        statusText.textContent = `Sua assinatura expira em ${expiresAtDate.toLocaleDateString('pt-BR')}.`;
+                        renewBtn.querySelector('span').textContent = "Renovar Assinatura";
+                    }
+
+                    if (diffDays <= 7) {
+                        daysEl.classList.remove('text-[#B76E79]');
+                        daysEl.classList.add('text-amber-600');
+                    }
+                } else {
+                    // Se não tem plano, a função `grantTrialPeriod` pode ainda não ter rodado.
+                    // Damos um tempo e depois redirecionamos.
+                    setTimeout(() => {
+                        window.location.href = './assinatura.html';
+                    }, 3000);
+                }
+            } catch (error) {
+                console.error("Erro ao buscar plano do usuário:", error);
+                // Em caso de erro, redirecionar para segurança
+                window.location.href = './index.html';
+            }
+        }
+        
+        async function handleSubscriptionRenewal() {
+            paymentModal.classList.remove('hidden');
+            modalContentArea.innerHTML = `
+                <div class="text-center flex flex-col items-center p-8">
+                    <div class="loader"></div>
+                    <p class="mt-4 text-gray-600">Gerando seu pagamento, aguarde...</p>
+                </div>`;
+            lucide.createIcons();
+
+            const createOrder = httpsCallable(functions, 'createPagBankOrder');
+            try {
+                const result = await createOrder();
+                const { qrCodeText, qrCodeImage } = result.data;
+                
+                modalContentArea.innerHTML = `
+                    <h2 class="text-2xl text-gray-800 text-center mb-4">Pague com PIX para Renovar</h2>
+                    <div class="text-center">
+                        <img src="${qrCodeImage}" alt="QR Code PIX" class="mx-auto border-4 border-gray-200 rounded-lg">
+                        <p class="mt-4 font-semibold text-sm">Ou use o PIX Copia e Cola:</p>
+                        <textarea readonly class="w-full p-2 mt-1 text-xs border rounded-md bg-gray-100 h-20">${qrCodeText}</textarea>
+                        <button id="modal-copy-btn" class="mt-2 bg-gray-200 text-gray-800 px-4 py-2 text-sm rounded-lg hover:bg-gray-300">Copiar Código</button>
+                        <p class="mt-4 text-xs text-gray-500">Após o pagamento, seu acesso é liberado automaticamente. Basta recarregar a página.</p>
+                    </div>
+                `;
+                
+                document.getElementById('modal-copy-btn').addEventListener('click', (e) => {
+                    navigator.clipboard.writeText(qrCodeText);
+                    e.target.textContent = 'Copiado!';
+                });
+                lucide.createIcons();
+
+            } catch (error) {
+                console.error("Erro ao criar pedido:", error);
+                modalContentArea.innerHTML = '<p class="text-red-500 p-8 text-center">Ocorreu um erro ao gerar seu PIX. Por favor, feche e tente novamente.</p>';
+            }
+        }
+
+        renewBtn.addEventListener('click', handleSubscriptionRenewal);
+        closeModalBtn.addEventListener('click', () => paymentModal.classList.add('hidden'));
+
+        // --- AQUI COMEÇA O RESTO DA SUA LÓGICA DO DASHBOARD ---
+        // (Copie e cole o resto do seu script <script type="module"> daqui para baixo)
+        // Por exemplo:
+        // const adminModeBtn = document.getElementById('admin-mode-btn');
+        // async function checkAdminPasswordSetup(user) { ... }
+        // ...etc
     </script>
 </body>
 </html>
+
