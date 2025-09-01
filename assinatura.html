@@ -10,6 +10,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Biblioteca da Stripe.js -->
+    <script src="https://js.stripe.com/v3/"></script>
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #FFF9F9; }
         h1, h2, h3 { font-family: 'Playfair Display', serif; }
@@ -19,25 +21,20 @@
 </head>
 <body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
 
-    <div id="main-container" class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center hidden">
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center">
         <h1 class="text-4xl text-[#B76E79]">Renovar Assinatura</h1>
-        <p class="text-gray-600 mt-2">Seu acesso expirou ou precisa ser ativado. Renove agora para continuar.</p>
-        <p class="mt-6 text-2xl font-bold text-gray-800">Plano Mensal: R$ 59,90</p>
-        
-        <button id="pay-btn" class="w-full mt-8 bg-emerald-500 text-white font-semibold py-3 rounded-lg hover:bg-emerald-600 transition-colors text-lg">
-            Ir para o Pagamento Seguro
-        </button>
-        
-        <p id="error-message" class="text-red-500 text-sm h-5 mt-2"></p>
-
-        <button id="logout-btn" class="mt-8 text-sm text-gray-500 hover:underline mx-auto block">Sair</button>
+        <p class="text-gray-600 mt-2">O seu acesso expirou ou precisa de ser ativado. Renove agora para continuar a usar a plataforma.</p>
+        <div class="mt-8">
+             <p class="font-semibold text-2xl text-gray-800">Assinatura Mensal</p>
+             <p class="text-4xl font-bold text-[#B76E79] my-4">R$ 59,90</p>
+             <button id="pay-btn" class="w-full mt-4 bg-emerald-500 text-white font-semibold py-3 rounded-lg hover:bg-emerald-600 transition-colors text-lg">
+                 Pagar com Segurança
+             </button>
+             <div id="error-message" class="text-red-500 mt-2 h-4"></div>
+        </div>
+        <button id="logout-btn" class="mt-8 text-sm text-gray-500 hover:underline mx-auto block">Sair e tentar mais tarde</button>
     </div>
-
-    <div id="loading-container" class="text-center flex flex-col items-center">
-        <div class="loader"></div>
-        <p class="mt-4 text-gray-600 animate-pulse">Carregando...</p>
-    </div>
-
+    
     <script src="./config.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -47,47 +44,51 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const functions = getFunctions(app, 'southamerica-east1');
-
-        const loadingContainer = document.getElementById('loading-container');
-        const mainContainer = document.getElementById('main-container');
+        
+        // A sua Chave Publicável da Stripe vai aqui
+        const stripe = Stripe("pk_live_51S2dxdJ7Xnz1tiU6vfjvwAIMXzN0eIXNtqaagxpKoHQ1y9MWGC3Ha3fCVArqHFFTorAcamaPPRt2ZIiud6iqzz0A00fxUp7WGR");
+        
         const payBtn = document.getElementById('pay-btn');
         const errorMsg = document.getElementById('error-message');
 
         onAuthStateChanged(auth, (user) => {
-            if (user) {
-                loadingContainer.classList.add('hidden');
-                mainContainer.classList.remove('hidden');
-            } else {
+            if (!user) {
                 window.location.href = './index.html';
             }
         });
 
         payBtn.addEventListener('click', async () => {
             payBtn.disabled = true;
-            payBtn.textContent = 'Aguarde...';
+            payBtn.textContent = 'A processar...';
             errorMsg.textContent = '';
-
+            
             try {
-                const createLink = httpsCallable(functions, 'createInfinitePayLink');
-                const result = await createLink();
+                const createStripeCheckoutSession = httpsCallable(functions, 'createStripeCheckoutSession');
+                const result = await createStripeCheckoutSession();
                 
                 if (result.data.success) {
-                    // Redireciona o usuário para a página de pagamento
-                    window.location.href = result.data.paymentUrl;
+                    const sessionId = result.data.sessionId;
+                    // Redireciona o cliente para a página de pagamento segura da Stripe
+                    const { error } = await stripe.redirectToCheckout({ sessionId });
+                    if(error) {
+                        throw new Error(error.message);
+                    }
                 } else {
-                    throw new Error("Não foi possível gerar o link de pagamento.");
+                    throw new Error("Não foi possível gerar a sessão de pagamento.");
                 }
+
             } catch (error) {
-                console.error("Erro ao gerar link:", error);
+                console.error("Erro no processo de pagamento:", error);
                 errorMsg.textContent = "Ocorreu um erro. Tente novamente.";
                 payBtn.disabled = false;
-                payBtn.textContent = 'Ir para o Pagamento Seguro';
+                payBtn.textContent = 'Pagar com Segurança';
             }
         });
-
+        
         document.getElementById('logout-btn').addEventListener('click', () => {
             signOut(auth).then(() => window.location.href = 'index.html');
         });
     </script>
 </body>
 </html>
+
