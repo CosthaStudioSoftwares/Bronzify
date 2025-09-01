@@ -7,49 +7,37 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#B76E79">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Bronzify">
-    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- SDK de Criptografia do PagBank -->
-    <script src="https://assets.pagseguro.com.br/checkout-sdk-js/rc/dist/browser/pagseguro.min.js"></script>
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #FFF9F9; }
         h1, h2, h3 { font-family: 'Playfair Display', serif; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #B76E79; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .tab-btn.active { border-color: #B76E79; color: #B76E79; background-color: #FFF9F9;}
     </style>
 </head>
 <body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
 
-    <div class="w-full max-w-2xl bg-white rounded-2xl shadow-xl p-8">
-        <h1 class="text-4xl text-[#B76E79] text-center">Renovar Assinatura</h1>
-        <p class="text-gray-600 mt-2 text-center">Seu acesso expirou ou precisa ser ativado. Renove agora para começar.</p>
+    <div id="main-container" class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center hidden">
+        <h1 class="text-4xl text-[#B76E79]">Renovar Assinatura</h1>
+        <p class="text-gray-600 mt-2">Seu acesso expirou ou precisa ser ativado. Renove agora para continuar.</p>
+        <p class="mt-6 text-2xl font-bold text-gray-800">Plano Mensal: R$ 59,90</p>
+        
+        <button id="pay-btn" class="w-full mt-8 bg-emerald-500 text-white font-semibold py-3 rounded-lg hover:bg-emerald-600 transition-colors text-lg">
+            Ir para o Pagamento Seguro
+        </button>
+        
+        <p id="error-message" class="text-red-500 text-sm h-5 mt-2"></p>
 
-        <div id="payment-container" class="mt-8">
-            <div id="loading-payment" class="text-center flex flex-col items-center">
-                <div class="loader"></div><p class="mt-4 text-gray-600 animate-pulse">Carregando...</p>
-            </div>
-            <div id="payment-content" class="hidden">
-                 <div class="border-b border-gray-200">
-                    <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-                        <button id="pix-tab" class="tab-btn active whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">Pagar com PIX</button>
-                        <button id="card-tab" class="tab-btn text-gray-500 hover:text-gray-700 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">Pagar com Cartão</button>
-                    </nav>
-                </div>
-                <div id="pix-content" class="py-4"></div>
-                <div id="card-content" class="py-4 hidden"></div>
-            </div>
-        </div>
-        <button id="logout-btn" class="mt-8 text-sm text-gray-500 hover:underline mx-auto block">Sair e tentar mais tarde</button>
+        <button id="logout-btn" class="mt-8 text-sm text-gray-500 hover:underline mx-auto block">Sair</button>
     </div>
-    
-    <script> lucide.createIcons(); </script>
+
+    <div id="loading-container" class="text-center flex flex-col items-center">
+        <div class="loader"></div>
+        <p class="mt-4 text-gray-600 animate-pulse">Carregando...</p>
+    </div>
+
     <script src="./config.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -60,80 +48,46 @@
         const auth = getAuth(app);
         const functions = getFunctions(app, 'southamerica-east1');
 
-        const loadingDiv = document.getElementById('loading-payment');
-        const contentDiv = document.getElementById('payment-content');
+        const loadingContainer = document.getElementById('loading-container');
+        const mainContainer = document.getElementById('main-container');
+        const payBtn = document.getElementById('pay-btn');
+        const errorMsg = document.getElementById('error-message');
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                loadingDiv.classList.add('hidden');
-                contentDiv.classList.remove('hidden');
-                showPaymentOptions();
-            } else { window.location.href = './index.html'; }
+                loadingContainer.classList.add('hidden');
+                mainContainer.classList.remove('hidden');
+            } else {
+                window.location.href = './index.html';
+            }
         });
-        
-        function showPaymentOptions() {
-            const pixTab = document.getElementById('pix-tab'), cardTab = document.getElementById('card-tab');
-            const pixContent = document.getElementById('pix-content'), cardContent = document.getElementById('card-content');
-            
-            pixTab.addEventListener('click', () => { pixTab.classList.add('active'); cardTab.classList.remove('active'); pixContent.classList.remove('hidden'); cardContent.classList.add('hidden'); });
-            cardTab.addEventListener('click', () => { cardTab.classList.add('active'); pixTab.classList.remove('active'); cardContent.classList.remove('hidden'); pixContent.classList.add('hidden'); });
-            
-            loadPixContent(pixContent);
-            loadCardContent(cardContent);
-        }
 
-        async function loadPixContent(container) {
-             container.innerHTML = `<div class="text-center"><div class="loader mx-auto"></div><p>Gerando PIX...</p></div>`;
-            const createOrder = httpsCallable(functions, 'createPagBankOrder');
+        payBtn.addEventListener('click', async () => {
+            payBtn.disabled = true;
+            payBtn.textContent = 'Aguarde...';
+            errorMsg.textContent = '';
+
             try {
-                const result = await createOrder();
-                if (!result.data.success) throw new Error(result.data.message);
-                const { qrCodeText, qrCodeImage } = result.data;
-                container.innerHTML = `<p class="text-sm text-center mb-4">Escaneie o código ou use o Copia e Cola.</p><img src="${qrCodeImage}" alt="QR Code PIX" class="mx-auto border-4 rounded-lg"><textarea readonly class="w-full p-2 mt-4 text-xs border rounded bg-gray-100 h-20">${qrCodeText}</textarea><button id="modal-copy-btn" class="mt-2 bg-gray-200 px-4 py-2 rounded-lg">Copiar Código</button><p class="mt-4 text-xs text-gray-500">Após o pagamento ser confirmado, seu acesso é liberado. Você será redirecionado.</p>`;
-                container.querySelector('#modal-copy-btn').addEventListener('click', e => { navigator.clipboard.writeText(qrCodeText); e.target.textContent = 'Copiado!'; });
-            } catch (error) { container.innerHTML = `<p class="text-red-500 text-center p-4"><b>Erro ao gerar PIX:</b><br>${error.message}</p>`; }
-        }
-
-        function loadCardContent(container) {
-            container.innerHTML = `<form id="card-payment-form" class="space-y-4"><div><label class="block text-sm">Nome no Cartão</label><input type="text" id="card-holder-name" required class="mt-1 block w-full border rounded-md p-2"></div><div><label class="block text-sm">Número do Cartão</label><input type="text" id="card-number" required placeholder="0000 0000 0000 0000" class="mt-1 block w-full border rounded-md p-2"></div><div class="flex space-x-4"><div class="flex-1"><label class="block text-sm">Validade (MM/AA)</label><input type="text" id="card-expiry" required placeholder="MM/AA" class="mt-1 block w-full border rounded-md p-2"></div><div class="flex-1"><label class="block text-sm">CVV</label><input type="text" id="card-cvv" required placeholder="123" class="mt-1 block w-full border rounded-md p-2"></div></div><button type="submit" id="submit-card-btn" class="w-full mt-6 bg-green-600 text-white font-semibold py-2 rounded-lg hover:bg-green-700">Pagar R$ 59,90</button><div id="card-error-message" class="text-red-500 text-sm text-center h-4"></div></form>`;
-            container.querySelector('#card-payment-form').addEventListener('submit', handleCardPayment);
-        }
-
-        async function handleCardPayment(event) {
-            event.preventDefault();
-            const submitBtn = document.getElementById('submit-card-btn'), errorMsg = document.getElementById('card-error-message');
-            submitBtn.disabled = true; submitBtn.textContent = 'Processando...'; errorMsg.textContent = '';
-            
-            const expParts = document.getElementById('card-expiry').value.split('/');
-            try {
-                 // A biblioteca PagSeguro é carregada globalmente e não precisa da chave pública aqui
-                 const { encryptedCard } = PagSeguro.encryptCard({
-                    holder: document.getElementById('card-holder-name').value,
-                    number: document.getElementById('card-number').value.replace(/\s/g, ''),
-                    expMonth: expParts[0],
-                    expYear: '20' + expParts[1],
-                    securityCode: document.getElementById('card-cvv').value,
-                });
-                if(!encryptedCard) throw new Error("Dados do cartão inválidos. Verifique todos os campos.");
+                const createLink = httpsCallable(functions, 'createInfinitePayLink');
+                const result = await createLink();
                 
-                const createOrder = httpsCallable(functions, 'createPagBankOrder');
-                const result = await createOrder({ encryptedCard });
-
                 if (result.data.success) {
-                    contentDiv.innerHTML = `<div class="text-center p-8"><i data-lucide="check-circle-2" class="w-16 h-16 text-green-500 mx-auto"></i><h2 class="text-2xl mt-4">Pagamento Aprovado!</h2><p>Sua assinatura foi renovada. Redirecionando...</p></div>`;
-                    lucide.createIcons();
-                    setTimeout(() => window.location.href = './dashboard.html', 3000);
+                    // Redireciona o usuário para a página de pagamento
+                    window.location.href = result.data.paymentUrl;
+                } else {
+                    throw new Error("Não foi possível gerar o link de pagamento.");
                 }
             } catch (error) {
-                errorMsg.textContent = error.message;
-                submitBtn.disabled = false; submitBtn.textContent = 'Pagar R$ 59,90';
+                console.error("Erro ao gerar link:", error);
+                errorMsg.textContent = "Ocorreu um erro. Tente novamente.";
+                payBtn.disabled = false;
+                payBtn.textContent = 'Ir para o Pagamento Seguro';
             }
-        }
-        
+        });
+
         document.getElementById('logout-btn').addEventListener('click', () => {
             signOut(auth).then(() => window.location.href = 'index.html');
         });
     </script>
 </body>
 </html>
-
