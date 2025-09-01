@@ -7,10 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#B76E79">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Bronzify">
-    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
@@ -19,8 +15,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
-    <!-- Biblioteca da Stripe.js -->
-    <script src="https://js.stripe.com/v3/"></script>
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #FFF9F9; }
         h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
@@ -134,9 +128,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         const functions = getFunctions(app, 'southamerica-east1');
-        
-        // A sua Chave Publicável da Stripe vai aqui
-        const stripe = Stripe("pk_live_51S2dxdJ7Xnz1tiU6vfjvwAIMXzN0eIXNtqaagxpKoHQ1y9MWGC3Ha3fCVArqHFFTorAcamaPPRt2ZIiud6iqzz0A00fxUp7WGR");
 
         // --- Variáveis de Estado Globais ---
         let isAdminModeActive = false;
@@ -147,78 +138,6 @@
 
         // --- Elementos da UI ---
         const renewBtn = document.getElementById('renew-btn');
-        // ... (resto dos seus elementos originais)
-
-        // --- Lógica de Inicialização ---
-        document.body.addEventListener('click', async () => { if (!isAudioContextStarted && typeof Tone !== 'undefined') { await Tone.start(); synth = new Tone.Synth().toDestination(); isAudioContextStarted = true; }}, { once: true });
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUser = user;
-                await checkUserPlan(user);
-            } else {
-                window.location.href = 'index.html';
-            }
-        });
-
-        async function checkUserPlan(user) {
-            const userProfileRef = doc(db, "users", user.uid);
-            try {
-                const docSnap = await getDoc(userProfileRef);
-                if (docSnap.exists() && docSnap.data().plan?.expiresAt) {
-                    const expiresAtDate = docSnap.data().plan.expiresAt.toDate();
-                    const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-
-                    if (diffDays <= 0) {
-                        window.location.href = './assinatura.html';
-                        return;
-                    }
-
-                    document.body.classList.remove('opacity-0');
-                    // Se o plano for válido, o resto da sua lógica do dashboard original é executada aqui
-                    await initializeDashboard(user);
-
-                } else {
-                    window.location.href = './assinatura.html';
-                }
-            } catch (error) {
-                console.error("Erro ao verificar plano do usuário:", error);
-                window.location.href = 'index.html';
-            }
-        }
-        
-        // --- LÓGICA DE PAGAMENTO STRIPE ---
-        renewBtn.addEventListener('click', async () => {
-            const originalText = renewBtn.querySelector('span').textContent;
-            renewBtn.disabled = true;
-            renewBtn.querySelector('span').textContent = 'Aguarde...';
-
-            try {
-                const createStripeCheckoutSession = httpsCallable(functions, 'createStripeCheckoutSession');
-                const result = await createStripeCheckoutSession();
-                
-                if (result.data.success) {
-                    const sessionId = result.data.sessionId;
-                    // Redireciona o cliente para a página de pagamento segura da Stripe
-                    const { error } = await stripe.redirectToCheckout({ sessionId });
-                    if(error) {
-                        throw new Error(error.message);
-                    }
-                } else {
-                    throw new Error("Não foi possível gerar a sessão de pagamento.");
-                }
-            } catch (error) {
-                console.error("Erro ao renovar assinatura:", error);
-                alert("Ocorreu um erro ao iniciar o pagamento. Tente novamente.");
-                renewBtn.disabled = false;
-                renewBtn.querySelector('span').textContent = originalText;
-            }
-        });
-
-        // --- Todo o resto do seu código JavaScript original do dashboard vai aqui ---
-        // (initializeDashboard, listenForHelpRequests, checkAdminPasswordSetup, updateUIVisibility, etc.)
-        // Colei-o abaixo para garantir que nada se perde.
-
         const helpAlertModal = document.getElementById('help-alert-modal');
         const helpAlertMessage = document.getElementById('help-alert-message');
         const closeHelpAlertBtn = document.getElementById('close-help-alert');
@@ -234,16 +153,63 @@
         const ctx = document.getElementById('servicesChart').getContext('2d');
         const servicesChart = new Chart(ctx, { type: 'pie', data: { labels: [], datasets: [{ label: 'Vendas', data: [], backgroundColor: ['#B76E79', '#D49A9A', '#FADADD', '#A9606C', '#C98B8B', '#E3BDBD'], borderColor: '#FFF9F9', borderWidth: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } });
 
+        // --- Lógica de Inicialização ---
+        document.body.addEventListener('click', async () => { if (!isAudioContextStarted && typeof Tone !== 'undefined') { await Tone.start(); synth = new Tone.Synth().toDestination(); isAudioContextStarted = true; }}, { once: true });
 
-        async function initializeDashboard(user) {
-            await checkAdminPasswordSetup(user);
-            await fetchDashboardData();
-            listenForHelpRequests(user);
-            
-            // Lógica para preencher o card de assinatura que estava dentro de checkUserPlan
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                await checkUserPlan(user); 
+            } else { 
+                window.location.href = 'index.html'; 
+            }
+        });
+
+        // --- Funções de Assinatura ---
+        async function checkUserPlan(user) {
             const userProfileRef = doc(db, "users", user.uid);
-            const docSnap = await getDoc(userProfileRef);
-            const userData = docSnap.data();
+            try {
+                const docSnap = await getDoc(userProfileRef);
+                if (docSnap.exists() && docSnap.data().plan?.expiresAt) {
+                    const expiresAtDate = docSnap.data().plan.expiresAt.toDate();
+                    const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+
+                    if (diffDays <= 0) { window.location.href = './assinatura.html'; return; }
+
+                    document.body.classList.remove('opacity-0');
+                    await initializeDashboard(user, docSnap.data());
+                } else {
+                    window.location.href = './assinatura.html';
+                }
+            } catch (error) { console.error("Erro ao verificar plano:", error); window.location.href = './index.html'; }
+        }
+        
+        // --- LÓGICA DE PAGAMENTO MERCADO PAGO ---
+        renewBtn.addEventListener('click', async () => {
+            const originalText = renewBtn.querySelector('span').textContent;
+            renewBtn.disabled = true;
+            renewBtn.querySelector('span').textContent = 'Aguarde...';
+
+            try {
+                const createMercadoPagoPreference = httpsCallable(functions, 'createMercadoPagoPreference');
+                const result = await createMercadoPagoPreference();
+                
+                if (result.data.success) {
+                    window.location.href = result.data.init_point;
+                } else {
+                    throw new Error("Não foi possível gerar link de pagamento.");
+                }
+            } catch (error) {
+                console.error("Erro ao renovar:", error);
+                alert("Ocorreu um erro ao iniciar o pagamento. Tente novamente.");
+                renewBtn.disabled = false;
+                renewBtn.querySelector('span').textContent = originalText;
+            }
+        });
+
+        // --- Funções Originais do Dashboard (Restauradas) ---
+        async function initializeDashboard(user, userData) {
+            // Lógica para preencher o card de assinatura
             const expiresAtDate = userData.plan.expiresAt.toDate();
             const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
             const cardTitle = document.getElementById('subscription-card-title');
@@ -259,6 +225,11 @@
                 renewBtn.querySelector('span').textContent = "Renovar Assinatura";
             }
             if (diffDays <= 7) { daysEl.classList.add('text-amber-600'); }
+
+            // Resto da inicialização
+            await checkAdminPasswordSetup(user);
+            await fetchDashboardData();
+            listenForHelpRequests(user);
         }
 
         let currentHelpRequestId=null;
