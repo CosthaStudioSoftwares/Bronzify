@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #FFF9F9; }
         h1, h2, h3 { font-family: 'Playfair Display', serif; }
@@ -17,19 +18,32 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+<body class="bg-gray-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div id="payment-box" class="w-full max-w-lg bg-white rounded-2xl shadow-xl p-8 text-center hidden">
+            <i data-lucide="gem" class="w-16 h-16 text-[#B76E79] mx-auto"></i>
+            <h1 class="text-4xl text-[#B76E79] mt-4">Ative sua Assinatura</h1>
+            <p class="text-gray-600 mt-2">Seu acesso expirou ou precisa ser ativado. Renove agora para continuar a usar todas as funcionalidades.</p>
+            
+            <!-- FORMULÁRIO PARA INSERIR O CPF/CNPJ -->
+            <form id="cpf-form" class="mt-8">
+                <label for="cpf-input" class="block text-gray-700 text-sm font-bold mb-2">CPF ou CNPJ</label>
+                <input type="text" id="cpf-input" class="w-full text-center px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" placeholder="Digite seu documento (apenas números)" required>
+                <p id="cpf-error" class="text-red-500 text-xs h-4 mt-1"></p>
+                <button type="submit" id="cpf-submit-btn" class="w-full mt-4 bg-[#B76E79] text-white font-semibold py-3 rounded-lg hover:opacity-90 transition-opacity">
+                    Pagar R$ 59,90
+                </button>
+            </form>
 
-    <div id="payment-box" class="w-full max-w-lg bg-white rounded-2xl shadow-xl p-8 text-center">
-        <h1 class="text-4xl text-[#B76E79]">Renovar Assinatura</h1>
-        <p class="text-gray-600 mt-2">Seu acesso expirou ou precisa ser ativado. Renove agora para continuar.</p>
-
-        <div id="payment-area" class="mt-8">
-            <!-- O botão ou loader será inserido aqui pelo JavaScript -->
+            <button id="logout-btn" class="mt-8 text-sm text-gray-500 hover:underline mx-auto block">Sair e tentar mais tarde</button>
         </div>
-
-        <button id="logout-btn" class="mt-8 text-sm text-gray-500 hover:underline mx-auto block">Sair e tentar mais tarde</button>
+        <div id="loading" class="text-center">
+            <div class="loader mx-auto"></div>
+            <p class="mt-4 text-gray-600 animate-pulse">A verificar sua conta...</p>
+        </div>
     </div>
     
+    <script> lucide.createIcons(); </script>
     <script src="./config.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -39,45 +53,55 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const functions = getFunctions(app, 'southamerica-east1');
-        
-        const paymentArea = document.getElementById('payment-area');
+
+        const paymentBox = document.getElementById('payment-box');
+        const loadingDiv = document.getElementById('loading');
+        const cpfForm = document.getElementById('cpf-form');
+        const cpfInput = document.getElementById('cpf-input');
+        const cpfError = document.getElementById('cpf-error');
+        const cpfSubmitBtn = document.getElementById('cpf-submit-btn');
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                showPaymentButton();
+                loadingDiv.classList.add('hidden');
+                paymentBox.classList.remove('hidden');
             } else {
                 window.location.href = './index.html';
             }
         });
 
-        function showPaymentButton() {
-            paymentArea.innerHTML = `<button id="pay-btn" class="w-full bg-emerald-500 text-white font-semibold py-3 rounded-lg text-lg hover:bg-emerald-600 transition-colors">Pagar R$ 1,00 e Ativar</button>`;
-            const payBtn = document.getElementById('pay-btn');
-            payBtn.addEventListener('click', handlePayment);
-        }
+        cpfForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            cpfError.textContent = '';
+            let cpfCnpj = cpfInput.value.replace(/\D/g, ''); // Remove tudo que não for dígito
 
-        function showLoader() {
-            paymentArea.innerHTML = `<div class="flex flex-col items-center"><div class="loader"></div><p class="mt-4 text-gray-600 animate-pulse">A gerar link de pagamento...</p></div>`;
-        }
+            if (cpfCnpj.length !== 11 && cpfCnpj.length !== 14) {
+                cpfError.textContent = 'CPF (11 dígitos) ou CNPJ (14 dígitos) inválido.';
+                return;
+            }
 
-        async function handlePayment() {
-            showLoader();
+            const originalText = cpfSubmitBtn.textContent;
+            cpfSubmitBtn.disabled = true;
+            cpfSubmitBtn.innerHTML = '<div class="loader mx-auto h-6 w-6"></div>';
+
             try {
                 const createAsaasPaymentLink = httpsCallable(functions, 'createAsaasPaymentLink');
-                const result = await createAsaasPaymentLink();
+                // Envia o CPF/CNPJ para a função do backend
+                const result = await createAsaasPaymentLink({ cpfCnpj: cpfCnpj });
                 
                 if (result.data.success) {
-                    window.location.href = result.data.paymentUrl; // Redireciona para o checkout do Asaas
+                    window.location.href = result.data.paymentUrl;
                 } else {
-                    throw new Error("Não foi possível gerar o link de pagamento.");
+                    throw new Error(result.data.message || "Não foi possível gerar o link de pagamento.");
                 }
             } catch (error) {
                 console.error("Erro ao iniciar pagamento:", error);
-                alert("Ocorreu um erro ao iniciar o pagamento. Por favor, tente novamente.");
-                showPaymentButton(); // Mostra o botão novamente em caso de erro
+                alert(`Ocorreu um erro ao iniciar o pagamento: ${error.message}`);
+                cpfSubmitBtn.disabled = false;
+                cpfSubmitBtn.textContent = originalText;
             }
-        }
-        
+        });
+
         document.getElementById('logout-btn').addEventListener('click', () => {
             signOut(auth).then(() => window.location.href = 'index.html');
         });
