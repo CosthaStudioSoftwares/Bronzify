@@ -32,8 +32,26 @@
             <!-- Conteúdo do Dashboard -->
             <header class="flex justify-between items-center mb-8">
                <h2 class="text-3xl lg:text-4xl text-gray-800">Dashboard</h2>
+               <div class="flex items-center gap-2 sm:gap-4">
+                   <button id="admin-mode-btn" class="bg-rose-100 text-[#B76E79] px-3 py-2 rounded-lg hover:bg-rose-200 flex items-center gap-2 font-semibold">
+                       <i data-lucide="eye"></i><span id="admin-mode-text" class="hidden sm:inline">Ativar Modo ADM</span>
+                   </button>
+                   <img src="https://placehold.co/40x40/FADADD/B76E79?text=B" alt="Avatar" class="rounded-full">
+               </div>
             </header>
-             <div id="report-content">
+            <div class="bg-white p-4 rounded-2xl shadow-md mb-8 flex flex-wrap items-center justify-between gap-4">
+               <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+                   <h3 class="text-lg font-semibold text-gray-700 w-full sm:w-auto">Filtros:</h3>
+                   <select id="filter-month" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79] w-full sm:w-auto"></select>
+                   <select id="filter-year" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79] w-full sm:w-auto"></select>
+                   <button id="filter-apply" class="bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90 w-full sm:w-auto">Aplicar</button>
+               </div>
+               <div class="flex items-center gap-3 w-full sm:w-auto justify-center">
+                   <button id="share-btn" class="flex items-center gap-2 p-2 border rounded-lg text-gray-600 hover:bg-gray-100"><i data-lucide="share-2"></i> <span class="hidden sm:inline">Compartilhar</span></button>
+                   <button id="download-btn" class="flex items-center gap-2 p-2 border rounded-lg text-gray-600 hover:bg-gray-100"><i data-lucide="download"></i> <span class="hidden sm:inline">Baixar PDF</span></button>
+               </div>
+            </div>
+            <div id="report-content">
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <div class="bg-white p-6 rounded-2xl shadow-md flex flex-col justify-between">
                         <div>
@@ -44,6 +62,28 @@
                         <button id="renew-btn" class="w-full mt-4 bg-emerald-500 text-white font-semibold py-2 rounded-lg hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2">
                             <i data-lucide="party-popper"></i><span>Renovar Assinatura</span>
                         </button>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-md">
+                        <h3 id="revenue-title" class="text-lg font-semibold text-gray-500">Faturamento Mensal</h3>
+                        <p id="monthly-revenue" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">R$ *******</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-md">
+                        <h3 class="text-lg font-semibold text-gray-500">Faturamento Diário</h3>
+                        <p id="daily-revenue" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">R$ *******</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-md">
+                        <h3 id="appointments-title" class="text-lg font-semibold text-gray-500">Atendimentos no Dia</h3>
+                        <p id="daily-appointments" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">***</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md">
+                        <h3 id="payment-details-title" class="text-2xl text-gray-800 mb-4">Faturamento Diário por Pagamento</h3>
+                        <div id="payment-methods-details" class="space-y-4"><p class="text-gray-500">Dados ocultos. Ative o modo ADM.</p></div>
+                    </div>
+                    <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-md">
+                        <h3 id="services-chart-title" class="text-2xl text-gray-800 mb-4">Tipos de Bronze e Serviços (Mês)</h3>
+                        <div id="chart-container" class="h-80 flex justify-center items-center"><canvas id="servicesChart"></canvas></div>
                     </div>
                 </div>
             </div>
@@ -73,15 +113,23 @@
                 </form>
             </div>
         </div>
+        
+        <!-- Outros modais existentes -->
+        <div id="admin-password-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+            <!-- Conteúdo do modal de senha de admin aqui... -->
+        </div>
+        <div id="help-alert-modal" class="fixed bottom-8 right-8 bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-50 hidden">
+            <!-- Conteúdo do modal de ajuda aqui... -->
+        </div>
     </div>
 
-    <script> lucide.createIcons(); </script>
+    <script> lucide.createIcons(); const { jsPDF } = window.jspdf; </script>
     <script src="./config.js"></script>
     <script type="module" src="./layout.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, onSnapshot, setDoc, deleteDoc, query, where, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 
         const app = initializeApp(firebaseConfig);
@@ -187,6 +235,9 @@
             const statusText = document.getElementById('subscription-status-text');
             daysEl.textContent = `${diffDays} dia${diffDays > 1 ? 's' : ''}`;
             statusText.textContent = `Expira em ${expiresAtDate.toLocaleDateString('pt-BR')}.`;
+            
+            // Aqui pode adicionar o resto da sua lógica de dashboard original
+            // Ex: fetchDashboardData(), listenForHelpRequests(), etc.
         }
 
     </script>
