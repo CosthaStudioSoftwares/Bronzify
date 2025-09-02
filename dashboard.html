@@ -7,10 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#B76E79">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Bronzify">
-    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
@@ -26,8 +22,6 @@
         .sidebar-link:hover, .sidebar-link.active { background-color: #FADADD; color: #B76E79; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #B76E79; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .sidebar-mobile { transform: translateX(-100%); transition: transform 0.3s ease-in-out; }
-        .sidebar-mobile.open { transform: translateX(0); }
     </style>
 </head>
 <body class="bg-gray-50 opacity-0 transition-opacity duration-300">
@@ -35,30 +29,11 @@
     <div class="flex h-screen">
         <!-- O MENU SERÁ INSERIDO AQUI PELO layout.js -->
         <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
-            <!-- Conteúdo do Dashboard (sem alterações) -->
+            <!-- Conteúdo do Dashboard -->
             <header class="flex justify-between items-center mb-8">
-               <button id="open-menu-btn" class="lg:hidden p-2 -ml-2"><i data-lucide="menu" class="w-6 h-6 text-gray-800"></i></button>
                <h2 class="text-3xl lg:text-4xl text-gray-800">Dashboard</h2>
-               <div class="flex items-center gap-2 sm:gap-4">
-                   <button id="admin-mode-btn" class="bg-rose-100 text-[#B76E79] px-3 py-2 rounded-lg hover:bg-rose-200 flex items-center gap-2 font-semibold">
-                       <i data-lucide="eye"></i><span id="admin-mode-text" class="hidden sm:inline">Ativar Modo ADM</span>
-                   </button>
-                   <img src="https://placehold.co/40x40/FADADD/B76E79?text=B" alt="Avatar" class="rounded-full">
-               </div>
             </header>
-            <div class="bg-white p-4 rounded-2xl shadow-md mb-8 flex flex-wrap items-center justify-between gap-4">
-               <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
-                   <h3 class="text-lg font-semibold text-gray-700 w-full sm:w-auto">Filtros:</h3>
-                   <select id="filter-month" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79] w-full sm:w-auto"></select>
-                   <select id="filter-year" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79] w-full sm:w-auto"></select>
-                   <button id="filter-apply" class="bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90 w-full sm:w-auto">Aplicar</button>
-               </div>
-               <div class="flex items-center gap-3 w-full sm:w-auto justify-center">
-                   <button id="share-btn" class="flex items-center gap-2 p-2 border rounded-lg text-gray-600 hover:bg-gray-100"><i data-lucide="share-2"></i> <span class="hidden sm:inline">Compartilhar</span></button>
-                   <button id="download-btn" class="flex items-center gap-2 p-2 border rounded-lg text-gray-600 hover:bg-gray-100"><i data-lucide="download"></i> <span class="hidden sm:inline">Baixar PDF</span></button>
-               </div>
-            </div>
-            <div id="report-content">
+             <div id="report-content">
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <div class="bg-white p-6 rounded-2xl shadow-md flex flex-col justify-between">
                         <div>
@@ -70,78 +45,43 @@
                             <i data-lucide="party-popper"></i><span>Renovar Assinatura</span>
                         </button>
                     </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-md">
-                        <h3 id="revenue-title" class="text-lg font-semibold text-gray-500">Faturamento Mensal</h3>
-                        <p id="monthly-revenue" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">R$ *******</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-md">
-                        <h3 class="text-lg font-semibold text-gray-500">Faturamento Diário</h3>
-                        <p id="daily-revenue" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">R$ *******</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-md">
-                        <h3 id="appointments-title" class="text-lg font-semibold text-gray-500">Atendimentos no Dia</h3>
-                        <p id="daily-appointments" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">***</p>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                    <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md">
-                        <h3 id="payment-details-title" class="text-2xl text-gray-800 mb-4">Faturamento Diário por Pagamento</h3>
-                        <div id="payment-methods-details" class="space-y-4"><p class="text-gray-500">Dados ocultos. Ative o modo ADM.</p></div>
-                    </div>
-                    <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-md">
-                        <h3 id="services-chart-title" class="text-2xl text-gray-800 mb-4">Tipos de Bronze e Serviços (Mês)</h3>
-                        <div id="chart-container" class="h-80 flex justify-center items-center"><canvas id="servicesChart"></canvas></div>
-                    </div>
                 </div>
             </div>
         </main>
         
-        <!-- MODAL PARA INSERIR O CPF/CNPJ -->
-        <div id="cpf-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <!-- MODAL PARA INSERIR DADOS DE PAGAMENTO -->
+        <div id="payment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
             <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8">
-                <h3 class="text-2xl text-gray-800 mb-2 text-center">Confirme seu Documento</h3>
-                <p class="text-center text-gray-500 mb-6">Por favor, insira seu CPF ou CNPJ para continuar com o pagamento.</p>
-                <form id="cpf-form">
-                    <input type="text" id="cpf-input" class="w-full text-center px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" placeholder="CPF ou CNPJ (apenas números)" required>
-                    <p id="cpf-error" class="text-red-500 text-xs text-center h-4 mt-1"></p>
-                    <button type="submit" id="cpf-submit-btn" class="w-full mt-2 bg-[#B76E79] text-white py-2 rounded-lg hover:opacity-90">Continuar para Pagamento</button>
-                    <button type="button" id="cancel-cpf-btn" class="w-full mt-2 text-gray-600 py-2 rounded-lg hover:bg-gray-100">Cancelar</button>
+                <h3 class="text-2xl text-gray-800 mb-2 text-center">Finalizar Pagamento</h3>
+                <p class="text-center text-gray-500 mb-6">Por favor, confirme seus dados para continuar.</p>
+                <form id="payment-form" class="space-y-4">
+                    <div>
+                        <label for="name-input" class="block text-sm font-medium text-gray-700">Nome Completo</label>
+                        <input type="text" id="name-input" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#B76E79] focus:border-[#B76E79]" placeholder="Seu nome completo" required>
+                    </div>
+                    <div>
+                        <label for="cpf-input" class="block text-sm font-medium text-gray-700">CPF ou CNPJ</label>
+                        <input type="text" id="cpf-input" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#B76E79] focus:border-[#B76E79]" placeholder="Apenas números" required>
+                    </div>
+                     <div>
+                        <label for="phone-input" class="block text-sm font-medium text-gray-700">Telefone com DDD</label>
+                        <input type="tel" id="phone-input" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#B76E79] focus:border-[#B76E79]" placeholder="Apenas números" required>
+                    </div>
+                    <p id="payment-error" class="text-red-500 text-xs text-center h-4"></p>
+                    <button type="submit" id="payment-submit-btn" class="w-full mt-2 bg-[#B76E79] text-white py-2 rounded-lg hover:opacity-90">Continuar para Pagamento</button>
+                    <button type="button" id="cancel-payment-btn" class="w-full mt-2 text-gray-600 py-2 rounded-lg hover:bg-gray-100">Cancelar</button>
                 </form>
             </div>
-        </div>
-
-        <!-- Outros modais existentes -->
-        <div id="admin-password-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
-             <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8">
-                <h3 id="admin-modal-title" class="text-2xl text-gray-800 mb-4 text-center">Modo Administrador</h3>
-                <p id="admin-modal-subtitle" class="text-center text-gray-500 mb-6">Insira a senha para ver os dados.</p>
-                <form id="admin-password-form">
-                    <input type="password" id="admin-password-input" class="w-full text-center px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
-                    <button type="submit" class="w-full mt-4 bg-[#B76E79] text-white py-2 rounded-lg hover:opacity-90">Confirmar</button>
-                    <button type="button" id="cancel-admin-password" class="w-full mt-2 text-gray-600 py-2 rounded-lg hover:bg-gray-100">Cancelar</button>
-                    <p class="text-center text-sm mt-4"><a href="#" id="forgot-admin-password-link" class="text-gray-500 hover:underline">Esqueci minha senha de ADM</a></p>
-                </form>
-            </div>
-        </div>
-        <div id="help-alert-modal" class="fixed bottom-8 right-8 bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-50 transform translate-y-full opacity-0 transition-all duration-300 ease-out">
-            <div class="flex items-start gap-4">
-                <div class="bg-amber-100 p-2 rounded-full"><i data-lucide="bell-ring" class="w-8 h-8 text-amber-500"></i></div>
-                <div>
-                    <h3 class="text-xl text-gray-800 font-semibold">Pedido de Ajuda!</h3>
-                    <p id="help-alert-message" class="text-gray-600 mt-1"></p>
-                </div>
-            </div>
-            <button id="close-help-alert" class="w-full mt-4 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300">OK, Entendido</button>
         </div>
     </div>
 
-    <script> lucide.createIcons(); const { jsPDF } = window.jspdf; </script>
+    <script> lucide.createIcons(); </script>
     <script src="./config.js"></script>
     <script type="module" src="./layout.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, onSnapshot, setDoc, deleteDoc, query, where, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 
         const app = initializeApp(firebaseConfig);
@@ -149,44 +89,47 @@
         const db = getFirestore(app);
         const functions = getFunctions(app, 'southamerica-east1');
 
-        // --- Elementos do Modal de CPF ---
-        const cpfModal = document.getElementById('cpf-modal');
-        const cpfForm = document.getElementById('cpf-form');
+        // --- Elementos do Modal de Pagamento ---
+        const paymentModal = document.getElementById('payment-modal');
+        const paymentForm = document.getElementById('payment-form');
+        const nameInput = document.getElementById('name-input');
         const cpfInput = document.getElementById('cpf-input');
-        const cpfError = document.getElementById('cpf-error');
-        const cpfSubmitBtn = document.getElementById('cpf-submit-btn');
-        const cancelCpfBtn = document.getElementById('cancel-cpf-btn');
+        const phoneInput = document.getElementById('phone-input');
+        const paymentError = document.getElementById('payment-error');
+        const paymentSubmitBtn = document.getElementById('payment-submit-btn');
+        const cancelPaymentBtn = document.getElementById('cancel-payment-btn');
         const renewBtn = document.getElementById('renew-btn');
 
-        // --- Lógica de Pagamento Atualizada ---
+        // --- Lógica de Pagamento ---
         renewBtn.addEventListener('click', () => {
-            cpfModal.classList.remove('hidden');
+            paymentModal.classList.remove('hidden');
         });
 
-        cancelCpfBtn.addEventListener('click', () => {
-            cpfModal.classList.add('hidden');
-            cpfForm.reset();
-            cpfError.textContent = '';
+        cancelPaymentBtn.addEventListener('click', () => {
+            paymentModal.classList.add('hidden');
+            paymentForm.reset();
+            paymentError.textContent = '';
         });
 
-        cpfForm.addEventListener('submit', async (e) => {
+        paymentForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            cpfError.textContent = '';
-            let cpfCnpj = cpfInput.value.replace(/\D/g, ''); // Remove tudo que não for dígito
+            paymentError.textContent = '';
+            let userName = nameInput.value.trim();
+            let cpfCnpj = cpfInput.value.replace(/\D/g, '');
+            let phone = phoneInput.value.replace(/\D/g, '');
 
-            if (cpfCnpj.length !== 11 && cpfCnpj.length !== 14) {
-                cpfError.textContent = 'CPF (11 dígitos) ou CNPJ (14 dígitos) inválido.';
+            if (userName.length < 3 || (cpfCnpj.length !== 11 && cpfCnpj.length !== 14) || phone.length < 10) {
+                paymentError.textContent = 'Dados inválidos. Verifique todos os campos.';
                 return;
             }
 
-            const originalText = cpfSubmitBtn.textContent;
-            cpfSubmitBtn.disabled = true;
-            cpfSubmitBtn.innerHTML = '<div class="loader mx-auto h-6 w-6"></div>';
+            const originalText = paymentSubmitBtn.textContent;
+            paymentSubmitBtn.disabled = true;
+            paymentSubmitBtn.innerHTML = '<div class="loader mx-auto h-6 w-6"></div>';
 
             try {
                 const createAsaasPaymentLink = httpsCallable(functions, 'createAsaasPaymentLink');
-                // Envia o CPF/CNPJ para a função do backend
-                const result = await createAsaasPaymentLink({ cpfCnpj: cpfCnpj });
+                const result = await createAsaasPaymentLink({ userName, cpfCnpj, phone });
                 
                 if (result.data.success) {
                     window.location.href = result.data.paymentUrl;
@@ -196,19 +139,11 @@
             } catch (error) {
                 console.error("Erro ao iniciar pagamento:", error);
                 alert(`Ocorreu um erro ao iniciar o pagamento: ${error.message}`);
-                cpfSubmitBtn.disabled = false;
-                cpfSubmitBtn.textContent = originalText;
+                paymentSubmitBtn.disabled = false;
+                paymentSubmitBtn.textContent = originalText;
             }
         });
         
-        // --- Todo o resto do seu código JavaScript original do dashboard vai aqui ---
-        let isAdminModeActive = false;
-        let dashboardDataCache = null;
-        let isAudioContextStarted = false;
-        let synth = null;
-
-        document.body.addEventListener('click', async () => { if (!isAudioContextStarted && typeof Tone !== 'undefined') { await Tone.start(); synth = new Tone.Synth().toDestination(); isAudioContextStarted = true; }}, { once: true });
-
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 await checkUserPlan(user);
@@ -229,7 +164,7 @@
                         return;
                     }
                     document.body.classList.remove('opacity-0');
-                    initializeDashboard(user);
+                    initializeDashboard(user, docSnap.data());
                 } else {
                      window.location.href = './assinatura.html';
                 }
@@ -239,29 +174,12 @@
             }
         }
         
-        const helpAlertModal = document.getElementById('help-alert-modal');
-        const helpAlertMessage = document.getElementById('help-alert-message');
-        const closeHelpAlertBtn = document.getElementById('close-help-alert');
-        const adminModeBtn = document.getElementById('admin-mode-btn');
-        const adminPasswordModal = document.getElementById('admin-password-modal');
-        const adminPasswordForm = document.getElementById('admin-password-form');
-        const adminPasswordInput = document.getElementById('admin-password-input');
-        const adminModalTitle = document.getElementById('admin-modal-title');
-        const adminModalSubtitle = document.getElementById('admin-modal-subtitle');
-        const forgotAdminPasswordLink = document.getElementById('forgot-admin-password-link');
-        const monthSelect = document.getElementById('filter-month');
-        const yearSelect = document.getElementById('filter-year');
-        const ctx = document.getElementById('servicesChart').getContext('2d');
-        const servicesChart = new Chart(ctx, { type: 'pie', data: { labels: [], datasets: [{ label: 'Vendas', data: [], backgroundColor: ['#B76E79', '#D49A9A', '#FADADD', '#A9606C', '#C98B8B', '#E3BDBD'], borderColor: '#FFF9F9', borderWidth: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } });
+        function initializeDashboard(user, userData) {
+            // Preenche o nome do cliente no formulário de pagamento
+            if (user.displayName) {
+                nameInput.value = user.displayName;
+            }
 
-        async function initializeDashboard(user) {
-            await checkAdminPasswordSetup(user);
-            await fetchDashboardData();
-            listenForHelpRequests(user);
-            
-            const userProfileRef = doc(db, "users", user.uid);
-            const docSnap = await getDoc(userProfileRef);
-            const userData = docSnap.data();
             const expiresAtDate = userData.plan.expiresAt.toDate();
             const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
             const cardTitle = document.getElementById('subscription-card-title');
@@ -269,29 +187,7 @@
             const statusText = document.getElementById('subscription-status-text');
             daysEl.textContent = `${diffDays} dia${diffDays > 1 ? 's' : ''}`;
             statusText.textContent = `Expira em ${expiresAtDate.toLocaleDateString('pt-BR')}.`;
-            if (userData.plan.type === 'trial') {
-                cardTitle.textContent = "Período de Teste";
-                renewBtn.querySelector('span').textContent = "Assinar Agora";
-            } else {
-                cardTitle.textContent = "Assinatura Ativa";
-                renewBtn.querySelector('span').textContent = "Renovar Assinatura";
-            }
-            if (diffDays <= 7) { daysEl.classList.add('text-amber-600'); }
         }
-
-        let currentHelpRequestId=null;
-        function listenForHelpRequests(e){const t=collection(db,"businesses",e.uid,"help_requests");onSnapshot(t,e=>{e.docChanges().forEach(e=>{if("added"===e.type){const t=e.doc.data();currentHelpRequestId=e.doc.id,isAudioContextStarted&&synth&&synth.triggerAttackRelease("C5","8n"),helpAlertMessage.textContent=`Um pedido de ajuda foi enviado da página ${t.page}.`,helpAlertModal.classList.remove("opacity-0","translate-y-full"),lucide.createIcons()}})})};
-        closeHelpAlertBtn.addEventListener("click",async()=>{if(currentHelpRequestId&&auth.currentUser)try{const e=doc(db,"businesses",auth.currentUser.uid,"help_requests",currentHelpRequestId);await deleteDoc(e),helpAlertModal.classList.add("opacity-0","translate-y-full"),currentHelpRequestId=null}catch(e){console.error("Erro ao remover pedido de ajuda:",e)}});
-        async function checkAdminPasswordSetup(e){const t=doc(db,"admin_passwords",e.uid);try{const e=await getDoc(t);e.exists()||(adminModalTitle.textContent="Bem-vindo(a)!",adminModalSubtitle.textContent="Este parece ser seu primeiro acesso ou sua senha foi redefinida. Por favor, crie uma nova senha de administrador.",document.getElementById("cancel-admin-password").classList.add("hidden"),forgotAdminPasswordLink.classList.add("hidden"),adminPasswordModal.classList.remove("hidden"))}catch(e){console.error("Erro ao verificar configuração de senha ADM:",e)}}
-        function updateUIVisibility(){const e=document.getElementById("monthly-revenue"),t=document.getElementById("daily-revenue"),n=document.getElementById("payment-methods-details"),o=document.getElementById("chart-container"),a=document.getElementById("admin-mode-text"),d=adminModeBtn.querySelector("i"),s=document.getElementById("appointments-title"),i=document.getElementById("daily-appointments"),r=document.getElementById("payment-details-title");if(isAdminModeActive&&dashboardDataCache){e.textContent=dashboardDataCache.monthlyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"}),t.textContent=dashboardDataCache.dailyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"}),dashboardDataCache.isFilteredPeriod?(s.textContent="Atendimentos no Período",i.textContent=dashboardDataCache.periodAppointments,r.textContent="Faturamento por Pagamento no Período",n.innerHTML="",Object.keys(dashboardDataCache.periodPaymentMethodTotals).length>0?Object.keys(dashboardDataCache.periodPaymentMethodTotals).forEach(e=>{n.innerHTML+=`<div class="flex justify-between items-center"><span class="text-gray-600">${e}</span><span class="font-bold text-gray-800">${dashboardDataCache.periodPaymentMethodTotals[e].toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</span></div>`}):n.innerHTML='<p class="text-gray-500">Nenhuma venda no período.</p>'):(s.textContent="Atendimentos no Dia",i.textContent=dashboardDataCache.dailyAppointments,r.textContent="Faturamento Diário por Pagamento",n.innerHTML="",Object.keys(dashboardDataCache.dailyPaymentMethodTotals).length>0?Object.keys(dashboardDataCache.dailyPaymentMethodTotals).forEach(e=>{n.innerHTML+=`<div class="flex justify-between items-center"><span class="text-gray-600">${e}</span><span class="font-bold text-gray-800">${dashboardDataCache.dailyPaymentMethodTotals[e].toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</span></div>`}):n.innerHTML='<p class="text-gray-500">Nenhuma venda hoje.</p>'),o.style.opacity=1,d.setAttribute("data-lucide","eye-off"),a.textContent="Desativar Modo ADM"}else e.textContent="R$ *******",t.textContent="R$ *******",i.textContent="***",n.innerHTML='<p class="text-gray-500">Dados ocultos. Ative o modo ADM.</p>',o.style.opacity=0,d.setAttribute("data-lucide","eye"),a.textContent="Ativar Modo ADM",s.textContent="Atendimentos no Dia",r.textContent="Faturamento Diário por Pagamento";lucide.createIcons()}
-        adminModeBtn.addEventListener("click",async()=>{isAdminModeActive?(isAdminModeActive=!1,updateUIVisibility()):(adminModalTitle.textContent="Modo Administrador",adminModalSubtitle.textContent="Insira a sua senha de administrador.",document.getElementById("cancel-admin-password").classList.remove("hidden"),forgotAdminPasswordLink.classList.remove("hidden"),adminPasswordModal.classList.remove("hidden"))});
-        document.getElementById("cancel-admin-password").addEventListener("click",()=>adminPasswordModal.classList.add("hidden"));
-        adminPasswordForm.addEventListener("submit",async e=>{e.preventDefault();const t=auth.currentUser;if(t){const e=adminPasswordInput.value,n=doc(db,"admin_passwords",t.uid);try{let o=!1;const a=await getDoc(n);a.exists()?a.data().value===e?o=!0:alert("Senha incorreta!"):(await setDoc(n,{value:e}),alert("Sua senha de administrador individual foi definida com sucesso!"),o=!0),o&&(isAdminModeActive=!0,adminPasswordForm.reset(),adminPasswordModal.classList.add("hidden"),await fetchDashboardData(!1))}catch(e){console.error("Erro ao verificar/definir senha de ADM:",e),alert("Ocorreu um erro. Tente novamente.")}}});
-        const months=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"],currentYear=(new Date).getFullYear();months.forEach((e,t)=>monthSelect.add(new Option(e,t))),monthSelect.add(new Option("Ano Inteiro",12));for(let e=currentYear;e>=2020;e--)yearSelect.add(new Option(e,e));monthSelect.value=(new Date).getMonth(),yearSelect.value=currentYear;
-        async function fetchDashboardData(e=!1){const t=auth.currentUser;if(t){const n=parseInt(monthSelect.value),o=parseInt(yearSelect.value);let a,d;const s=document.getElementById("revenue-title"),i=document.getElementById("services-chart-title");12===n?(a=new Date(o,0,1),d=new Date(o,11,31,23,59,59),s.textContent="Faturamento Anual",i.textContent="Tipos de Bronze e Serviços (Ano)"):(a=new Date(o,n,1),d=new Date(o,n+1,0,23,59,59),s.textContent="Faturamento Mensal",i.textContent="Tipos de Bronze e Serviços (Mês)");const r=new Date;r.setHours(0,0,0,0);const l=new Date;l.setHours(23,59,59,999);const c=collection(db,"businesses",t.uid,"sales"),u=query(c,where("createdAt",">=",Timestamp.fromDate(a)),where("createdAt","<=",Timestamp.fromDate(d))),m=query(c,where("createdAt",">=",Timestamp.fromDate(r)),where("createdAt","<=",Timestamp.fromDate(l)));try{const[t,n]=await Promise.all([getDocs(u),getDocs(m)]);let o=0,a=0;const s={},r={},l={};let c=0;t.forEach(e=>{const t=e.data();o+=t.total||0,t.items&&t.items.forEach(e=>{s[e.name]=(s[e.name]||0)+1});const n=t.paymentMethod||"N/A";r[n]=(r[n]||0)+t.total}),c=t.size,n.forEach(e=>{const t=e.data();a+=t.total||0;const n=t.paymentMethod||"N/A";l[n]=(l[n]||0)+t.total}),dashboardDataCache={monthlyRevenue:o,dailyRevenue:a,dailyPaymentMethodTotals:l,dailyAppointments:n.size,serviceCounts:s,periodAppointments:c,periodPaymentMethodTotals:r,isFilteredPeriod:e},servicesChart.data.labels=Object.keys(s),servicesChart.data.datasets[0].data=Object.values(s),servicesChart.update(),updateUIVisibility()}catch(e){console.error("Erro ao buscar dados do dashboard: ",e)}}}
-        document.getElementById("filter-apply").addEventListener("click",()=>{isAdminModeActive?fetchDashboardData(!0):alert("Por favor, ative o Modo ADM para poder usar os filtros.")});
-        document.getElementById("download-btn").addEventListener("click",()=>{if(!isAdminModeActive||!dashboardDataCache)return void alert("Ative o Modo ADM para baixar o relatório.");const e=new jsPDF,t=monthSelect.options[monthSelect.selectedIndex].text+" de "+yearSelect.value;e.setFontSize(18),e.text("Relatório de Faturamento - Bronzify",14,22),e.setFontSize(11),e.setTextColor(100),e.text(`Período do Relatório: ${t}`,14,30);const n=[["Faturamento do Período",dashboardDataCache.monthlyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})],["Faturamento de Hoje",dashboardDataCache.dailyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})],[dashboardDataCache.isFilteredPeriod?"Atendimentos no Período":"Atendimentos Hoje",dashboardDataCache.isFilteredPeriod?dashboardDataCache.periodAppointments:dashboardDataCache.dailyAppointments]];e.autoTable({head:[["Resumo Financeiro","Valor"]],body:n,startY:40,headStyles:{fillColor:[183,110,121]}});const o=dashboardDataCache.isFilteredPeriod?dashboardDataCache.periodPaymentMethodTotals:dashboardDataCache.dailyPaymentMethodTotals,a=dashboardDataCache.isFilteredPeriod?"Faturamento por Pagamento no Período":"Faturamento Diário por Pagamento",d=Object.entries(o).map(([e,t])=>[e,t.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})]);d.length>0&&e.autoTable({head:[[a,"Total"]],body:d,startY:e.autoTable.previous.finalY+10,headStyles:{fillColor:[183,110,121]}});const s=Object.entries(dashboardDataCache.serviceCounts).map(([e,t])=>[e,t]);s.length>0&&e.autoTable({head:[["Serviços Realizados no Período","Quantidade"]],body:s,startY:e.autoTable.previous.finalY+10,headStyles:{fillColor:[183,110,121]}}),e.save(`relatorio_vendas_bronzify_${yearSelect.value}_${monthSelect.options[monthSelect.selectedIndex].text}.pdf`)});
-        document.getElementById("share-btn").addEventListener("click",async()=>{if(!isAdminModeActive||!dashboardDataCache)return void alert("Ative o Modo ADM para compartilhar o relatório.");const e=monthSelect.options[monthSelect.selectedIndex].text+" de "+yearSelect.value;let t=`*Relatório Bronzify - ${e}*\n\n`;t+=`*Faturamento:* ${dashboardDataCache.monthlyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}\n`,t+=dashboardDataCache.isFilteredPeriod?`*Atendimentos no Período:* ${dashboardDataCache.periodAppointments}\n\n`:`*Atendimentos (hoje):* ${dashboardDataCache.dailyAppointments}\n\n`,t+="*Serviços mais realizados:*\n";for(const e in dashboardDataCache.serviceCounts)t+=`- ${e}: ${dashboardDataCache.serviceCounts[e]}\n`;if(navigator.share)try{await navigator.share({title:`Relatório Bronzify - ${e}`,text:t})}catch(e){console.error("Erro ao compartilhar:",e)}else alert("Função de compartilhamento não suportada neste navegador.")});
 
     </script>
 </body>
