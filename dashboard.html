@@ -7,6 +7,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#B76E79">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Bronzify">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
@@ -22,6 +26,8 @@
         .sidebar-link:hover, .sidebar-link.active { background-color: #FADADD; color: #B76E79; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #B76E79; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .sidebar-mobile { transform: translateX(-100%); transition: transform 0.3s ease-in-out; }
+        .sidebar-mobile.open { transform: translateX(0); }
     </style>
 </head>
 <body class="bg-gray-50 opacity-0 transition-opacity duration-300">
@@ -29,8 +35,8 @@
     <div class="flex h-screen">
         <!-- O MENU SERÁ INSERIDO AQUI PELO layout.js -->
         <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
-            <!-- Conteúdo do Dashboard -->
             <header class="flex justify-between items-center mb-8">
+               <button id="open-menu-btn" class="lg:hidden p-2 -ml-2"><i data-lucide="menu" class="w-6 h-6 text-gray-800"></i></button>
                <h2 class="text-3xl lg:text-4xl text-gray-800">Dashboard</h2>
                <div class="flex items-center gap-2 sm:gap-4">
                    <button id="admin-mode-btn" class="bg-rose-100 text-[#B76E79] px-3 py-2 rounded-lg hover:bg-rose-200 flex items-center gap-2 font-semibold">
@@ -113,13 +119,29 @@
                 </form>
             </div>
         </div>
-        
-        <!-- Outros modais existentes -->
+
+        <!-- OUTROS MODAIS -->
         <div id="admin-password-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
-            <!-- Conteúdo do modal de senha de admin aqui... -->
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8">
+                <h3 id="admin-modal-title" class="text-2xl text-gray-800 mb-4 text-center">Modo Administrador</h3>
+                <p id="admin-modal-subtitle" class="text-center text-gray-500 mb-6">Insira a senha para ver os dados.</p>
+                <form id="admin-password-form">
+                    <input type="password" id="admin-password-input" class="w-full text-center px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required>
+                    <button type="submit" class="w-full mt-4 bg-[#B76E79] text-white py-2 rounded-lg hover:opacity-90">Confirmar</button>
+                    <button type="button" id="cancel-admin-password" class="w-full mt-2 text-gray-600 py-2 rounded-lg hover:bg-gray-100">Cancelar</button>
+                    <p class="text-center text-sm mt-4"><a href="#" id="forgot-admin-password-link" class="text-gray-500 hover:underline">Esqueci minha senha de ADM</a></p>
+                </form>
+            </div>
         </div>
-        <div id="help-alert-modal" class="fixed bottom-8 right-8 bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-50 hidden">
-            <!-- Conteúdo do modal de ajuda aqui... -->
+        <div id="help-alert-modal" class="fixed bottom-8 right-8 bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-50 transform translate-y-full opacity-0 transition-all duration-300 ease-out">
+            <div class="flex items-start gap-4">
+                <div class="bg-amber-100 p-2 rounded-full"><i data-lucide="bell-ring" class="w-8 h-8 text-amber-500"></i></div>
+                <div>
+                    <h3 class="text-xl text-gray-800 font-semibold">Pedido de Ajuda!</h3>
+                    <p id="help-alert-message" class="text-gray-600 mt-1"></p>
+                </div>
+            </div>
+            <button id="close-help-alert" class="w-full mt-4 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300">OK, Entendido</button>
         </div>
     </div>
 
@@ -128,7 +150,7 @@
     <script type="module" src="./layout.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, doc, getDoc, collection, onSnapshot, setDoc, deleteDoc, query, where, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 
@@ -136,6 +158,20 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         const functions = getFunctions(app, 'southamerica-east1');
+
+        // --- Variáveis Globais ---
+        let isAdminModeActive = false;
+        let dashboardDataCache = null;
+        let isAudioContextStarted = false;
+        let synth = null;
+        let currentUser = null;
+
+        // --- Elementos da UI ---
+        const renewBtn = document.getElementById('renew-btn');
+        const monthSelect = document.getElementById('filter-month');
+        const yearSelect = document.getElementById('filter-year');
+        const ctx = document.getElementById('servicesChart').getContext('2d');
+        const servicesChart = new Chart(ctx, { type: 'pie', data: { labels: [], datasets: [{ label: 'Vendas', data: [], backgroundColor: ['#B76E79', '#D49A9A', '#FADADD', '#A9606C', '#C98B8B', '#E3BDBD'], borderColor: '#FFF9F9', borderWidth: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } });
 
         // --- Elementos do Modal de Pagamento ---
         const paymentModal = document.getElementById('payment-modal');
@@ -146,10 +182,43 @@
         const paymentError = document.getElementById('payment-error');
         const paymentSubmitBtn = document.getElementById('payment-submit-btn');
         const cancelPaymentBtn = document.getElementById('cancel-payment-btn');
-        const renewBtn = document.getElementById('renew-btn');
 
-        // --- Lógica de Pagamento ---
+        // --- Lógica de Inicialização ---
+        document.body.addEventListener('click', async () => { if (!isAudioContextStarted && typeof Tone !== 'undefined') { await Tone.start(); synth = new Tone.Synth().toDestination(); isAudioContextStarted = true; }}, { once: true });
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                await checkUserPlan(user); 
+            } else { 
+                window.location.href = 'index.html'; 
+            }
+        });
+
+        async function checkUserPlan(user) {
+            const userProfileRef = doc(db, "users", user.uid);
+            try {
+                const docSnap = await getDoc(userProfileRef);
+                if (docSnap.exists() && docSnap.data().plan?.expiresAt) {
+                    const expiresAtDate = docSnap.data().plan.expiresAt.toDate();
+                    const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                    if (diffDays <= 0) {
+                        window.location.href = './assinatura.html';
+                        return;
+                    }
+                    document.body.classList.remove('opacity-0');
+                    await initializeDashboard(user);
+                } else {
+                     window.location.href = './assinatura.html';
+                }
+            } catch (error) { console.error("Erro:", error); window.location.href = './index.html'; }
+        }
+        
+        // --- Lógica de Pagamento Asaas ---
         renewBtn.addEventListener('click', () => {
+            if (currentUser && currentUser.displayName) {
+                nameInput.value = currentUser.displayName;
+            }
             paymentModal.classList.remove('hidden');
         });
 
@@ -182,7 +251,7 @@
                 if (result.data.success) {
                     window.location.href = result.data.paymentUrl;
                 } else {
-                    throw new Error(result.data.message || "Não foi possível gerar o link de pagamento.");
+                    throw new Error(result.data.message || "Não foi possível gerar o link.");
                 }
             } catch (error) {
                 console.error("Erro ao iniciar pagamento:", error);
@@ -191,43 +260,20 @@
                 paymentSubmitBtn.textContent = originalText;
             }
         });
-        
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                await checkUserPlan(user);
-            } else {
-                window.location.href = 'index.html';
-            }
-        });
 
-        async function checkUserPlan(user) {
-            const userProfileRef = doc(db, "users", user.uid);
-            try {
-                const docSnap = await getDoc(userProfileRef);
-                if (docSnap.exists() && docSnap.data().plan?.expiresAt) {
-                    const expiresAtDate = docSnap.data().plan.expiresAt.toDate();
-                    const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                    if (diffDays <= 0) {
-                        window.location.href = './assinatura.html';
-                        return;
-                    }
-                    document.body.classList.remove('opacity-0');
-                    initializeDashboard(user, docSnap.data());
-                } else {
-                     window.location.href = './assinatura.html';
-                }
-            } catch (error) {
-                 console.error("Erro ao verificar plano:", error);
-                 window.location.href = 'index.html';
-            }
+        // --- Funções Originais do Dashboard (Restauradas) ---
+        async function initializeDashboard(user) {
+            await updateSubscriptionCard(user);
+            await checkAdminPasswordSetup(user);
+            await fetchDashboardData();
+            listenForHelpRequests(user);
+            populateFilters();
         }
         
-        function initializeDashboard(user, userData) {
-            // Preenche o nome do cliente no formulário de pagamento
-            if (user.displayName) {
-                nameInput.value = user.displayName;
-            }
-
+        async function updateSubscriptionCard(user) {
+            const userProfileRef = doc(db, "users", user.uid);
+            const docSnap = await getDoc(userProfileRef);
+            const userData = docSnap.data();
             const expiresAtDate = userData.plan.expiresAt.toDate();
             const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
             const cardTitle = document.getElementById('subscription-card-title');
@@ -235,10 +281,44 @@
             const statusText = document.getElementById('subscription-status-text');
             daysEl.textContent = `${diffDays} dia${diffDays > 1 ? 's' : ''}`;
             statusText.textContent = `Expira em ${expiresAtDate.toLocaleDateString('pt-BR')}.`;
-            
-            // Aqui pode adicionar o resto da sua lógica de dashboard original
-            // Ex: fetchDashboardData(), listenForHelpRequests(), etc.
+            if (userData.plan.type === 'trial') {
+                cardTitle.textContent = "Período de Teste";
+                renewBtn.querySelector('span').textContent = "Assinar Agora";
+            } else {
+                cardTitle.textContent = "Assinatura Ativa";
+                renewBtn.querySelector('span').textContent = "Renovar Assinatura";
+            }
+            if (diffDays <= 7) { daysEl.classList.add('text-amber-600'); }
         }
+
+        const helpAlertModal = document.getElementById('help-alert-modal');
+        const helpAlertMessage = document.getElementById('help-alert-message');
+        const closeHelpAlertBtn = document.getElementById('close-help-alert');
+        let currentHelpRequestId=null;
+        function listenForHelpRequests(e){const t=collection(db,"businesses",e.uid,"help_requests");onSnapshot(t,e=>{e.docChanges().forEach(e=>{if("added"===e.type){const t=e.doc.data();currentHelpRequestId=e.doc.id,isAudioContextStarted&&synth&&synth.triggerAttackRelease("C5","8n"),helpAlertMessage.textContent=`Um pedido de ajuda foi enviado da página ${t.page}.`,helpAlertModal.classList.remove("opacity-0","translate-y-full"),lucide.createIcons()}})})};
+        closeHelpAlertBtn.addEventListener("click",async()=>{if(currentHelpRequestId&&auth.currentUser)try{const e=doc(db,"businesses",auth.currentUser.uid,"help_requests",currentHelpRequestId);await deleteDoc(e),helpAlertModal.classList.add("opacity-0","translate-y-full"),currentHelpRequestId=null}catch(e){console.error("Erro ao remover pedido de ajuda:",e)}});
+        
+        const adminModeBtn = document.getElementById('admin-mode-btn');
+        const adminPasswordModal = document.getElementById('admin-password-modal');
+        const adminPasswordForm = document.getElementById('admin-password-form');
+        const adminPasswordInput = document.getElementById('admin-password-input');
+        const adminModalTitle = document.getElementById('admin-modal-title');
+        const adminModalSubtitle = document.getElementById('admin-modal-subtitle');
+        const forgotAdminPasswordLink = document.getElementById('forgot-admin-password-link');
+        async function checkAdminPasswordSetup(e){const t=doc(db,"admin_passwords",e.uid);try{const e=await getDoc(t);e.exists()||(adminModalTitle.textContent="Bem-vindo(a)!",adminModalSubtitle.textContent="Este parece ser seu primeiro acesso ou sua senha foi redefinida. Por favor, crie uma nova senha de administrador.",document.getElementById("cancel-admin-password").classList.add("hidden"),forgotAdminPasswordLink.classList.add("hidden"),adminPasswordModal.classList.remove("hidden"))}catch(e){console.error("Erro ao verificar configuração de senha ADM:",e)}}
+        function updateUIVisibility(){const e=document.getElementById("monthly-revenue"),t=document.getElementById("daily-revenue"),n=document.getElementById("payment-methods-details"),o=document.getElementById("chart-container"),a=document.getElementById("admin-mode-text"),d=adminModeBtn.querySelector("i"),s=document.getElementById("appointments-title"),i=document.getElementById("daily-appointments"),r=document.getElementById("payment-details-title");if(isAdminModeActive&&dashboardDataCache){e.textContent=dashboardDataCache.monthlyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"}),t.textContent=dashboardDataCache.dailyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"}),dashboardDataCache.isFilteredPeriod?(s.textContent="Atendimentos no Período",i.textContent=dashboardDataCache.periodAppointments,r.textContent="Faturamento por Pagamento no Período",n.innerHTML="",Object.keys(dashboardDataCache.periodPaymentMethodTotals).length>0?Object.keys(dashboardDataCache.periodPaymentMethodTotals).forEach(e=>{n.innerHTML+=`<div class="flex justify-between items-center"><span class="text-gray-600">${e}</span><span class="font-bold text-gray-800">${dashboardDataCache.periodPaymentMethodTotals[e].toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</span></div>`}):n.innerHTML='<p class="text-gray-500">Nenhuma venda no período.</p>'):(s.textContent="Atendimentos no Dia",i.textContent=dashboardDataCache.dailyAppointments,r.textContent="Faturamento Diário por Pagamento",n.innerHTML="",Object.keys(dashboardDataCache.dailyPaymentMethodTotals).length>0?Object.keys(dashboardDataCache.dailyPaymentMethodTotals).forEach(e=>{n.innerHTML+=`<div class="flex justify-between items-center"><span class="text-gray-600">${e}</span><span class="font-bold text-gray-800">${dashboardDataCache.dailyPaymentMethodTotals[e].toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</span></div>`}):n.innerHTML='<p class="text-gray-500">Nenhuma venda hoje.</p>'),o.style.opacity=1,d.setAttribute("data-lucide","eye-off"),a.textContent="Desativar Modo ADM"}else e.textContent="R$ *******",t.textContent="R$ *******",i.textContent="***",n.innerHTML='<p class="text-gray-500">Dados ocultos. Ative o modo ADM.</p>',o.style.opacity=0,d.setAttribute("data-lucide","eye"),a.textContent="Ativar Modo ADM",s.textContent="Atendimentos no Dia",r.textContent="Faturamento Diário por Pagamento";lucide.createIcons()}
+        adminModeBtn.addEventListener("click",async()=>{isAdminModeActive?(isAdminModeActive=!1,updateUIVisibility()):(adminModalTitle.textContent="Modo Administrador",adminModalSubtitle.textContent="Insira a sua senha de administrador.",document.getElementById("cancel-admin-password").classList.remove("hidden"),forgotAdminPasswordLink.classList.remove("hidden"),adminPasswordModal.classList.remove("hidden"))});
+        forgotAdminPasswordLink.addEventListener("click",async e=>{e.preventDefault();const t=auth.currentUser;if(t&&confirm("Isso enviará um link para o seu e-mail para redefinir sua senha de LOGIN PRINCIPAL. Após redefinir e entrar novamente, sua senha de ADM será apagada e você poderá criar uma nova. Deseja continuar?"))try{await sendPasswordResetEmail(auth,t.email);const e=doc(db,"admin_passwords",t.uid);await setDoc(e,{reset_pending:!0},{merge:!0}),alert("Enviamos um link para o seu e-mail. Siga as instruções para redefinir sua senha de login. Após entrar novamente, você será solicitado(a) a criar uma nova senha de ADM."),adminPasswordModal.classList.add("hidden")}catch(e){console.error("Erro ao enviar e-mail de redefinição:",e),alert("Ocorreu um erro ao tentar enviar o e-mail. Tente novamente.")}});
+        document.getElementById("cancel-admin-password").addEventListener("click",()=>adminPasswordModal.classList.add("hidden"));
+        adminPasswordForm.addEventListener("submit",async e=>{e.preventDefault();const t=auth.currentUser;if(t){const e=adminPasswordInput.value,n=doc(db,"admin_passwords",t.uid);try{let o=!1;const a=await getDoc(n);a.exists()?a.data().value===e?o=!0:alert("Senha incorreta!"):(await setDoc(n,{value:e}),alert("Sua senha de administrador individual foi definida com sucesso!"),o=!0),o&&(isAdminModeActive=!0,adminPasswordForm.reset(),adminPasswordModal.classList.add("hidden"),await fetchDashboardData(!1))}catch(e){console.error("Erro ao verificar/definir senha de ADM:",e),alert("Ocorreu um erro. Tente novamente.")}}});
+        
+        function populateFilters(){ const months=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"],currentYear=(new Date).getFullYear();monthSelect.innerHTML = ''; yearSelect.innerHTML = ''; months.forEach((e,t)=>monthSelect.add(new Option(e,t))),monthSelect.add(new Option("Ano Inteiro",12));for(let e=currentYear;e>=2020;e--)yearSelect.add(new Option(e,e));monthSelect.value=(new Date).getMonth(),yearSelect.value=currentYear; }
+        
+        async function fetchDashboardData(e=!1){const t=auth.currentUser;if(t){const n=parseInt(monthSelect.value),o=parseInt(yearSelect.value);let a,d;const s=document.getElementById("revenue-title"),i=document.getElementById("services-chart-title");12===n?(a=new Date(o,0,1),d=new Date(o,11,31,23,59,59),s.textContent="Faturamento Anual",i.textContent="Tipos de Bronze e Serviços (Ano)"):(a=new Date(o,n,1),d=new Date(o,n+1,0,23,59,59),s.textContent="Faturamento Mensal",i.textContent="Tipos de Bronze e Serviços (Mês)");const r=new Date;r.setHours(0,0,0,0);const l=new Date;l.setHours(23,59,59,999);const c=collection(db,"businesses",t.uid,"sales"),u=query(c,where("createdAt",">=",Timestamp.fromDate(a)),where("createdAt","<=",Timestamp.fromDate(d))),m=query(c,where("createdAt",">=",Timestamp.fromDate(r)),where("createdAt","<=",Timestamp.fromDate(l)));try{const[t,n]=await Promise.all([getDocs(u),getDocs(m)]);let o=0,a=0;const s={},r={},l={};let c=0;t.forEach(e=>{const t=e.data();o+=t.total||0,t.items&&t.items.forEach(e=>{s[e.name]=(s[e.name]||0)+1});const n=t.paymentMethod||"N/A";r[n]=(r[n]||0)+t.total}),c=t.size,n.forEach(e=>{const t=e.data();a+=t.total||0;const n=t.paymentMethod||"N/A";l[n]=(l[n]||0)+t.total}),dashboardDataCache={monthlyRevenue:o,dailyRevenue:a,dailyPaymentMethodTotals:l,dailyAppointments:n.size,serviceCounts:s,periodAppointments:c,periodPaymentMethodTotals:r,isFilteredPeriod:e},servicesChart.data.labels=Object.keys(s),servicesChart.data.datasets[0].data=Object.values(s),servicesChart.update(),updateUIVisibility()}catch(e){console.error("Erro ao buscar dados do dashboard: ",e)}}}
+        
+        document.getElementById("filter-apply").addEventListener("click",()=>{isAdminModeActive?fetchDashboardData(!0):alert("Por favor, ative o Modo ADM para poder usar os filtros.")});
+        document.getElementById("download-btn").addEventListener("click",()=>{if(!isAdminModeActive||!dashboardDataCache)return void alert("Ative o Modo ADM para baixar o relatório.");const e=new jsPDF,t=monthSelect.options[monthSelect.selectedIndex].text+" de "+yearSelect.value;e.setFontSize(18),e.text("Relatório de Faturamento - Bronzify",14,22),e.setFontSize(11),e.setTextColor(100),e.text(`Período do Relatório: ${t}`,14,30);const n=[["Faturamento do Período",dashboardDataCache.monthlyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})],["Faturamento de Hoje",dashboardDataCache.dailyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})],[dashboardDataCache.isFilteredPeriod?"Atendimentos no Período":"Atendimentos Hoje",dashboardDataCache.isFilteredPeriod?dashboardDataCache.periodAppointments:dashboardDataCache.dailyAppointments]];e.autoTable({head:[["Resumo Financeiro","Valor"]],body:n,startY:40,headStyles:{fillColor:[183,110,121]}});const o=dashboardDataCache.isFilteredPeriod?dashboardDataCache.periodPaymentMethodTotals:dashboardDataCache.dailyPaymentMethodTotals,a=dashboardDataCache.isFilteredPeriod?"Faturamento por Pagamento no Período":"Faturamento Diário por Pagamento",d=Object.entries(o).map(([e,t])=>[e,t.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})]);d.length>0&&e.autoTable({head:[[a,"Total"]],body:d,startY:e.autoTable.previous.finalY+10,headStyles:{fillColor:[183,110,121]}});const s=Object.entries(dashboardDataCache.serviceCounts).map(([e,t])=>[e,t]);s.length>0&&e.autoTable({head:[["Serviços Realizados no Período","Quantidade"]],body:s,startY:e.autoTable.previous.finalY+10,headStyles:{fillColor:[183,110,121]}}),e.save(`relatorio_vendas_bronzify_${yearSelect.value}_${monthSelect.options[monthSelect.selectedIndex].text}.pdf`)});
+        document.getElementById("share-btn").addEventListener("click",async()=>{if(!isAdminModeActive||!dashboardDataCache)return void alert("Ative o Modo ADM para compartilhar o relatório.");const e=monthSelect.options[monthSelect.selectedIndex].text+" de "+yearSelect.value;let t=`*Relatório Bronzify - ${e}*\n\n`;t+=`*Faturamento:* ${dashboardDataCache.monthlyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}\n`,t+=dashboardDataCache.isFilteredPeriod?`*Atendimentos no Período:* ${dashboardDataCache.periodAppointments}\n\n`:`*Atendimentos (hoje):* ${dashboardDataCache.dailyAppointments}\n\n`,t+="*Serviços mais realizados:*\n";for(const e in dashboardDataCache.serviceCounts)t+=`- ${e}: ${dashboardDataCache.serviceCounts[e]}\n`;if(navigator.share)try{await navigator.share({title:`Relatório Bronzify - ${e}`,text:t})}catch(e){console.error("Erro ao compartilhar:",e)}else alert("Função de compartilhamento não suportada neste navegador.")});
 
     </script>
 </body>
