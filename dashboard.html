@@ -186,33 +186,36 @@
         // --- Lógica de Inicialização ---
         document.body.addEventListener('click', async () => { if (!isAudioContextStarted && typeof Tone !== 'undefined') { await Tone.start(); synth = new Tone.Synth().toDestination(); isAudioContextStarted = true; }}, { once: true });
 
+        // CORREÇÃO: Lógica de autenticação e verificação do plano foi otimizada para evitar loops.
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
-                await checkUserPlan(user); 
+                const userProfileRef = doc(db, "users", user.uid);
+                try {
+                    const docSnap = await getDoc(userProfileRef);
+                    if (docSnap.exists() && docSnap.data().plan?.expiresAt) {
+                        const expiresAtDate = docSnap.data().plan.expiresAt.toDate();
+                        const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+
+                        if (diffDays <= 0) {
+                            window.location.href = './assinatura.html';
+                            return;
+                        }
+                        // Se o plano é válido, inicializa o dashboard.
+                        await initializeDashboard(user, docSnap.data());
+                        document.body.classList.remove('opacity-0');
+
+                    } else {
+                         window.location.href = './assinatura.html';
+                    }
+                } catch (error) { 
+                    console.error("Erro ao verificar plano:", error);
+                    window.location.href = 'index.html';
+                }
             } else { 
                 window.location.href = 'index.html'; 
             }
         });
-
-        async function checkUserPlan(user) {
-            const userProfileRef = doc(db, "users", user.uid);
-            try {
-                const docSnap = await getDoc(userProfileRef);
-                if (docSnap.exists() && docSnap.data().plan?.expiresAt) {
-                    const expiresAtDate = docSnap.data().plan.expiresAt.toDate();
-                    const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                    if (diffDays <= 0) {
-                        window.location.href = './assinatura.html';
-                        return;
-                    }
-                    document.body.classList.remove('opacity-0');
-                    await initializeDashboard(user);
-                } else {
-                     window.location.href = './assinatura.html';
-                }
-            } catch (error) { console.error("Erro:", error); window.location.href = './index.html'; }
-        }
         
         // --- Lógica de Pagamento Asaas ---
         renewBtn.addEventListener('click', () => {
@@ -261,19 +264,18 @@
             }
         });
 
-        // --- Funções Originais do Dashboard (Restauradas) ---
-        async function initializeDashboard(user) {
-            await updateSubscriptionCard(user);
+        // --- Funções Originais do Dashboard (Restauradas e Otimizadas) ---
+        // CORREÇÃO: A função agora recebe os dados do utilizador para evitar leituras repetidas.
+        async function initializeDashboard(user, userData) {
+            updateSubscriptionCard(userData);
             await checkAdminPasswordSetup(user);
             await fetchDashboardData();
             listenForHelpRequests(user);
             populateFilters();
         }
         
-        async function updateSubscriptionCard(user) {
-            const userProfileRef = doc(db, "users", user.uid);
-            const docSnap = await getDoc(userProfileRef);
-            const userData = docSnap.data();
+        // CORREÇÃO: A função agora recebe os dados do utilizador diretamente.
+        function updateSubscriptionCard(userData) {
             const expiresAtDate = userData.plan.expiresAt.toDate();
             const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
             const cardTitle = document.getElementById('subscription-card-title');
