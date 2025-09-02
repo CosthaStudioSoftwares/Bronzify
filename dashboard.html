@@ -7,6 +7,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#B76E79">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Bronzify">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
@@ -31,6 +35,7 @@
     <div class="flex h-screen">
         <!-- O MENU SERÁ INSERIDO AQUI PELO layout.js -->
         <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
+            <!-- Conteúdo do Dashboard (sem alterações) -->
             <header class="flex justify-between items-center mb-8">
                <button id="open-menu-btn" class="lg:hidden p-2 -ml-2"><i data-lucide="menu" class="w-6 h-6 text-gray-800"></i></button>
                <h2 class="text-3xl lg:text-4xl text-gray-800">Dashboard</h2>
@@ -91,8 +96,23 @@
             </div>
         </main>
         
-        <div id="admin-password-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <!-- MODAL PARA INSERIR O CPF/CNPJ -->
+        <div id="cpf-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
             <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8">
+                <h3 class="text-2xl text-gray-800 mb-2 text-center">Confirme seu Documento</h3>
+                <p class="text-center text-gray-500 mb-6">Por favor, insira seu CPF ou CNPJ para continuar com o pagamento.</p>
+                <form id="cpf-form">
+                    <input type="text" id="cpf-input" class="w-full text-center px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" placeholder="CPF ou CNPJ (apenas números)" required>
+                    <p id="cpf-error" class="text-red-500 text-xs text-center h-4 mt-1"></p>
+                    <button type="submit" id="cpf-submit-btn" class="w-full mt-2 bg-[#B76E79] text-white py-2 rounded-lg hover:opacity-90">Continuar para Pagamento</button>
+                    <button type="button" id="cancel-cpf-btn" class="w-full mt-2 text-gray-600 py-2 rounded-lg hover:bg-gray-100">Cancelar</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Outros modais existentes -->
+        <div id="admin-password-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+             <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8">
                 <h3 id="admin-modal-title" class="text-2xl text-gray-800 mb-4 text-center">Modo Administrador</h3>
                 <p id="admin-modal-subtitle" class="text-center text-gray-500 mb-6">Insira a senha para ver os dados.</p>
                 <form id="admin-password-form">
@@ -129,25 +149,71 @@
         const db = getFirestore(app);
         const functions = getFunctions(app, 'southamerica-east1');
 
-        // --- Variáveis de Estado Globais ---
+        // --- Elementos do Modal de CPF ---
+        const cpfModal = document.getElementById('cpf-modal');
+        const cpfForm = document.getElementById('cpf-form');
+        const cpfInput = document.getElementById('cpf-input');
+        const cpfError = document.getElementById('cpf-error');
+        const cpfSubmitBtn = document.getElementById('cpf-submit-btn');
+        const cancelCpfBtn = document.getElementById('cancel-cpf-btn');
+        const renewBtn = document.getElementById('renew-btn');
+
+        // --- Lógica de Pagamento Atualizada ---
+        renewBtn.addEventListener('click', () => {
+            cpfModal.classList.remove('hidden');
+        });
+
+        cancelCpfBtn.addEventListener('click', () => {
+            cpfModal.classList.add('hidden');
+            cpfForm.reset();
+            cpfError.textContent = '';
+        });
+
+        cpfForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            cpfError.textContent = '';
+            let cpfCnpj = cpfInput.value.replace(/\D/g, ''); // Remove tudo que não for dígito
+
+            if (cpfCnpj.length !== 11 && cpfCnpj.length !== 14) {
+                cpfError.textContent = 'CPF (11 dígitos) ou CNPJ (14 dígitos) inválido.';
+                return;
+            }
+
+            const originalText = cpfSubmitBtn.textContent;
+            cpfSubmitBtn.disabled = true;
+            cpfSubmitBtn.innerHTML = '<div class="loader mx-auto h-6 w-6"></div>';
+
+            try {
+                const createAsaasPaymentLink = httpsCallable(functions, 'createAsaasPaymentLink');
+                // Envia o CPF/CNPJ para a função do backend
+                const result = await createAsaasPaymentLink({ cpfCnpj: cpfCnpj });
+                
+                if (result.data.success) {
+                    window.location.href = result.data.paymentUrl;
+                } else {
+                    throw new Error(result.data.message || "Não foi possível gerar o link de pagamento.");
+                }
+            } catch (error) {
+                console.error("Erro ao iniciar pagamento:", error);
+                alert(`Ocorreu um erro ao iniciar o pagamento: ${error.message}`);
+                cpfSubmitBtn.disabled = false;
+                cpfSubmitBtn.textContent = originalText;
+            }
+        });
+        
+        // --- Todo o resto do seu código JavaScript original do dashboard vai aqui ---
         let isAdminModeActive = false;
         let dashboardDataCache = null;
         let isAudioContextStarted = false;
         let synth = null;
-        let currentUser = null;
 
-        // --- Elementos da UI ---
-        const renewBtn = document.getElementById('renew-btn');
-        
-        // --- Lógica de Inicialização ---
         document.body.addEventListener('click', async () => { if (!isAudioContextStarted && typeof Tone !== 'undefined') { await Tone.start(); synth = new Tone.Synth().toDestination(); isAudioContextStarted = true; }}, { once: true });
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                currentUser = user;
-                await checkUserPlan(user); 
-            } else { 
-                window.location.href = 'index.html'; 
+                await checkUserPlan(user);
+            } else {
+                window.location.href = 'index.html';
             }
         });
 
@@ -158,61 +224,21 @@
                 if (docSnap.exists() && docSnap.data().plan?.expiresAt) {
                     const expiresAtDate = docSnap.data().plan.expiresAt.toDate();
                     const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                    if (diffDays <= 0) { window.location.href = './assinatura.html'; return; }
+                    if (diffDays <= 0) {
+                        window.location.href = './assinatura.html';
+                        return;
+                    }
                     document.body.classList.remove('opacity-0');
-                    await initializeDashboard(user, docSnap.data());
+                    initializeDashboard(user);
                 } else {
-                    window.location.href = './assinatura.html';
-                }
-            } catch (error) { console.error("Erro ao verificar plano:", error); window.location.href = './index.html'; }
-        }
-        
-        // --- LÓGICA DE PAGAMENTO ASAAS ---
-        renewBtn.addEventListener('click', async () => {
-            const originalText = renewBtn.querySelector('span').textContent;
-            renewBtn.disabled = true;
-            renewBtn.querySelector('span').textContent = 'Aguarde...';
-
-            try {
-                const createAsaasPaymentLink = httpsCallable(functions, 'createAsaasPaymentLink');
-                const result = await createAsaasPaymentLink();
-                
-                if (result.data.success) {
-                    window.location.href = result.data.paymentUrl;
-                } else {
-                    throw new Error("Não foi possível gerar o link de pagamento.");
+                     window.location.href = './assinatura.html';
                 }
             } catch (error) {
-                console.error("Erro ao renovar assinatura:", error);
-                alert("Ocorreu um erro ao iniciar o pagamento. Tente novamente.");
-                renewBtn.disabled = false;
-                renewBtn.querySelector('span').textContent = originalText;
+                 console.error("Erro ao verificar plano:", error);
+                 window.location.href = 'index.html';
             }
-        });
-
-        // --- Funções Originais do Dashboard (Restauradas) ---
-        async function initializeDashboard(user, userData) {
-            const expiresAtDate = userData.plan.expiresAt.toDate();
-            const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-            const cardTitle = document.getElementById('subscription-card-title');
-            const daysEl = document.getElementById('subscription-days');
-            const statusText = document.getElementById('subscription-status-text');
-            daysEl.textContent = `${diffDays} dia${diffDays > 1 ? 's' : ''}`;
-            statusText.textContent = `Expira em ${expiresAtDate.toLocaleDateString('pt-BR')}.`;
-            if (userData.plan.type === 'trial') {
-                cardTitle.textContent = "Período de Teste";
-                renewBtn.querySelector('span').textContent = "Assinar Agora";
-            } else {
-                cardTitle.textContent = "Assinatura Ativa";
-                renewBtn.querySelector('span').textContent = "Renovar Assinatura";
-            }
-            if (diffDays <= 7) { daysEl.classList.add('text-amber-600'); }
-
-            await checkAdminPasswordSetup(user);
-            await fetchDashboardData();
-            listenForHelpRequests(user);
         }
-
+        
         const helpAlertModal = document.getElementById('help-alert-modal');
         const helpAlertMessage = document.getElementById('help-alert-message');
         const closeHelpAlertBtn = document.getElementById('close-help-alert');
@@ -228,13 +254,37 @@
         const ctx = document.getElementById('servicesChart').getContext('2d');
         const servicesChart = new Chart(ctx, { type: 'pie', data: { labels: [], datasets: [{ label: 'Vendas', data: [], backgroundColor: ['#B76E79', '#D49A9A', '#FADADD', '#A9606C', '#C98B8B', '#E3BDBD'], borderColor: '#FFF9F9', borderWidth: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } });
 
+        async function initializeDashboard(user) {
+            await checkAdminPasswordSetup(user);
+            await fetchDashboardData();
+            listenForHelpRequests(user);
+            
+            const userProfileRef = doc(db, "users", user.uid);
+            const docSnap = await getDoc(userProfileRef);
+            const userData = docSnap.data();
+            const expiresAtDate = userData.plan.expiresAt.toDate();
+            const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+            const cardTitle = document.getElementById('subscription-card-title');
+            const daysEl = document.getElementById('subscription-days');
+            const statusText = document.getElementById('subscription-status-text');
+            daysEl.textContent = `${diffDays} dia${diffDays > 1 ? 's' : ''}`;
+            statusText.textContent = `Expira em ${expiresAtDate.toLocaleDateString('pt-BR')}.`;
+            if (userData.plan.type === 'trial') {
+                cardTitle.textContent = "Período de Teste";
+                renewBtn.querySelector('span').textContent = "Assinar Agora";
+            } else {
+                cardTitle.textContent = "Assinatura Ativa";
+                renewBtn.querySelector('span').textContent = "Renovar Assinatura";
+            }
+            if (diffDays <= 7) { daysEl.classList.add('text-amber-600'); }
+        }
+
         let currentHelpRequestId=null;
         function listenForHelpRequests(e){const t=collection(db,"businesses",e.uid,"help_requests");onSnapshot(t,e=>{e.docChanges().forEach(e=>{if("added"===e.type){const t=e.doc.data();currentHelpRequestId=e.doc.id,isAudioContextStarted&&synth&&synth.triggerAttackRelease("C5","8n"),helpAlertMessage.textContent=`Um pedido de ajuda foi enviado da página ${t.page}.`,helpAlertModal.classList.remove("opacity-0","translate-y-full"),lucide.createIcons()}})})};
         closeHelpAlertBtn.addEventListener("click",async()=>{if(currentHelpRequestId&&auth.currentUser)try{const e=doc(db,"businesses",auth.currentUser.uid,"help_requests",currentHelpRequestId);await deleteDoc(e),helpAlertModal.classList.add("opacity-0","translate-y-full"),currentHelpRequestId=null}catch(e){console.error("Erro ao remover pedido de ajuda:",e)}});
         async function checkAdminPasswordSetup(e){const t=doc(db,"admin_passwords",e.uid);try{const e=await getDoc(t);e.exists()||(adminModalTitle.textContent="Bem-vindo(a)!",adminModalSubtitle.textContent="Este parece ser seu primeiro acesso ou sua senha foi redefinida. Por favor, crie uma nova senha de administrador.",document.getElementById("cancel-admin-password").classList.add("hidden"),forgotAdminPasswordLink.classList.add("hidden"),adminPasswordModal.classList.remove("hidden"))}catch(e){console.error("Erro ao verificar configuração de senha ADM:",e)}}
         function updateUIVisibility(){const e=document.getElementById("monthly-revenue"),t=document.getElementById("daily-revenue"),n=document.getElementById("payment-methods-details"),o=document.getElementById("chart-container"),a=document.getElementById("admin-mode-text"),d=adminModeBtn.querySelector("i"),s=document.getElementById("appointments-title"),i=document.getElementById("daily-appointments"),r=document.getElementById("payment-details-title");if(isAdminModeActive&&dashboardDataCache){e.textContent=dashboardDataCache.monthlyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"}),t.textContent=dashboardDataCache.dailyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"}),dashboardDataCache.isFilteredPeriod?(s.textContent="Atendimentos no Período",i.textContent=dashboardDataCache.periodAppointments,r.textContent="Faturamento por Pagamento no Período",n.innerHTML="",Object.keys(dashboardDataCache.periodPaymentMethodTotals).length>0?Object.keys(dashboardDataCache.periodPaymentMethodTotals).forEach(e=>{n.innerHTML+=`<div class="flex justify-between items-center"><span class="text-gray-600">${e}</span><span class="font-bold text-gray-800">${dashboardDataCache.periodPaymentMethodTotals[e].toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</span></div>`}):n.innerHTML='<p class="text-gray-500">Nenhuma venda no período.</p>'):(s.textContent="Atendimentos no Dia",i.textContent=dashboardDataCache.dailyAppointments,r.textContent="Faturamento Diário por Pagamento",n.innerHTML="",Object.keys(dashboardDataCache.dailyPaymentMethodTotals).length>0?Object.keys(dashboardDataCache.dailyPaymentMethodTotals).forEach(e=>{n.innerHTML+=`<div class="flex justify-between items-center"><span class="text-gray-600">${e}</span><span class="font-bold text-gray-800">${dashboardDataCache.dailyPaymentMethodTotals[e].toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</span></div>`}):n.innerHTML='<p class="text-gray-500">Nenhuma venda hoje.</p>'),o.style.opacity=1,d.setAttribute("data-lucide","eye-off"),a.textContent="Desativar Modo ADM"}else e.textContent="R$ *******",t.textContent="R$ *******",i.textContent="***",n.innerHTML='<p class="text-gray-500">Dados ocultos. Ative o modo ADM.</p>',o.style.opacity=0,d.setAttribute("data-lucide","eye"),a.textContent="Ativar Modo ADM",s.textContent="Atendimentos no Dia",r.textContent="Faturamento Diário por Pagamento";lucide.createIcons()}
         adminModeBtn.addEventListener("click",async()=>{isAdminModeActive?(isAdminModeActive=!1,updateUIVisibility()):(adminModalTitle.textContent="Modo Administrador",adminModalSubtitle.textContent="Insira a sua senha de administrador.",document.getElementById("cancel-admin-password").classList.remove("hidden"),forgotAdminPasswordLink.classList.remove("hidden"),adminPasswordModal.classList.remove("hidden"))});
-        forgotAdminPasswordLink.addEventListener("click",async e=>{e.preventDefault();const t=auth.currentUser;if(t&&confirm("Isso enviará um link para o seu e-mail para redefinir sua senha de LOGIN PRINCIPAL. Após redefinir e entrar novamente, sua senha de ADM será apagada e você poderá criar uma nova. Deseja continuar?"))try{await sendPasswordResetEmail(auth,t.email);const e=doc(db,"admin_passwords",t.uid);await setDoc(e,{reset_pending:!0},{merge:!0}),alert("Enviamos um link para o seu e-mail. Siga as instruções para redefinir sua senha de login. Após entrar novamente, você será solicitado(a) a criar uma nova senha de ADM."),adminPasswordModal.classList.add("hidden")}catch(e){console.error("Erro ao enviar e-mail de redefinição:",e),alert("Ocorreu um erro ao tentar enviar o e-mail. Tente novamente.")}});
         document.getElementById("cancel-admin-password").addEventListener("click",()=>adminPasswordModal.classList.add("hidden"));
         adminPasswordForm.addEventListener("submit",async e=>{e.preventDefault();const t=auth.currentUser;if(t){const e=adminPasswordInput.value,n=doc(db,"admin_passwords",t.uid);try{let o=!1;const a=await getDoc(n);a.exists()?a.data().value===e?o=!0:alert("Senha incorreta!"):(await setDoc(n,{value:e}),alert("Sua senha de administrador individual foi definida com sucesso!"),o=!0),o&&(isAdminModeActive=!0,adminPasswordForm.reset(),adminPasswordModal.classList.add("hidden"),await fetchDashboardData(!1))}catch(e){console.error("Erro ao verificar/definir senha de ADM:",e),alert("Ocorreu um erro. Tente novamente.")}}});
         const months=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"],currentYear=(new Date).getFullYear();months.forEach((e,t)=>monthSelect.add(new Option(e,t))),monthSelect.add(new Option("Ano Inteiro",12));for(let e=currentYear;e>=2020;e--)yearSelect.add(new Option(e,e));monthSelect.value=(new Date).getMonth(),yearSelect.value=currentYear;
