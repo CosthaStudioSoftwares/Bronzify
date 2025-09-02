@@ -138,21 +138,7 @@
 
         // --- Elementos da UI ---
         const renewBtn = document.getElementById('renew-btn');
-        const helpAlertModal = document.getElementById('help-alert-modal');
-        const helpAlertMessage = document.getElementById('help-alert-message');
-        const closeHelpAlertBtn = document.getElementById('close-help-alert');
-        const adminModeBtn = document.getElementById('admin-mode-btn');
-        const adminPasswordModal = document.getElementById('admin-password-modal');
-        const adminPasswordForm = document.getElementById('admin-password-form');
-        const adminPasswordInput = document.getElementById('admin-password-input');
-        const adminModalTitle = document.getElementById('admin-modal-title');
-        const adminModalSubtitle = document.getElementById('admin-modal-subtitle');
-        const forgotAdminPasswordLink = document.getElementById('forgot-admin-password-link');
-        const monthSelect = document.getElementById('filter-month');
-        const yearSelect = document.getElementById('filter-year');
-        const ctx = document.getElementById('servicesChart').getContext('2d');
-        const servicesChart = new Chart(ctx, { type: 'pie', data: { labels: [], datasets: [{ label: 'Vendas', data: [], backgroundColor: ['#B76E79', '#D49A9A', '#FADADD', '#A9606C', '#C98B8B', '#E3BDBD'], borderColor: '#FFF9F9', borderWidth: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } });
-
+        
         // --- Lógica de Inicialização ---
         document.body.addEventListener('click', async () => { if (!isAudioContextStarted && typeof Tone !== 'undefined') { await Tone.start(); synth = new Tone.Synth().toDestination(); isAudioContextStarted = true; }}, { once: true });
 
@@ -165,7 +151,6 @@
             }
         });
 
-        // --- Funções de Assinatura ---
         async function checkUserPlan(user) {
             const userProfileRef = doc(db, "users", user.uid);
             try {
@@ -173,9 +158,7 @@
                 if (docSnap.exists() && docSnap.data().plan?.expiresAt) {
                     const expiresAtDate = docSnap.data().plan.expiresAt.toDate();
                     const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-
                     if (diffDays <= 0) { window.location.href = './assinatura.html'; return; }
-
                     document.body.classList.remove('opacity-0');
                     await initializeDashboard(user, docSnap.data());
                 } else {
@@ -184,23 +167,23 @@
             } catch (error) { console.error("Erro ao verificar plano:", error); window.location.href = './index.html'; }
         }
         
-        // --- LÓGICA DE PAGAMENTO MERCADO PAGO ---
+        // --- LÓGICA DE PAGAMENTO ASAAS ---
         renewBtn.addEventListener('click', async () => {
             const originalText = renewBtn.querySelector('span').textContent;
             renewBtn.disabled = true;
             renewBtn.querySelector('span').textContent = 'Aguarde...';
 
             try {
-                const createMercadoPagoPreference = httpsCallable(functions, 'createMercadoPagoPreference');
-                const result = await createMercadoPagoPreference();
+                const createAsaasPaymentLink = httpsCallable(functions, 'createAsaasPaymentLink');
+                const result = await createAsaasPaymentLink();
                 
                 if (result.data.success) {
-                    window.location.href = result.data.init_point;
+                    window.location.href = result.data.paymentUrl;
                 } else {
-                    throw new Error("Não foi possível gerar link de pagamento.");
+                    throw new Error("Não foi possível gerar o link de pagamento.");
                 }
             } catch (error) {
-                console.error("Erro ao renovar:", error);
+                console.error("Erro ao renovar assinatura:", error);
                 alert("Ocorreu um erro ao iniciar o pagamento. Tente novamente.");
                 renewBtn.disabled = false;
                 renewBtn.querySelector('span').textContent = originalText;
@@ -209,7 +192,6 @@
 
         // --- Funções Originais do Dashboard (Restauradas) ---
         async function initializeDashboard(user, userData) {
-            // Lógica para preencher o card de assinatura
             const expiresAtDate = userData.plan.expiresAt.toDate();
             const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
             const cardTitle = document.getElementById('subscription-card-title');
@@ -226,11 +208,25 @@
             }
             if (diffDays <= 7) { daysEl.classList.add('text-amber-600'); }
 
-            // Resto da inicialização
             await checkAdminPasswordSetup(user);
             await fetchDashboardData();
             listenForHelpRequests(user);
         }
+
+        const helpAlertModal = document.getElementById('help-alert-modal');
+        const helpAlertMessage = document.getElementById('help-alert-message');
+        const closeHelpAlertBtn = document.getElementById('close-help-alert');
+        const adminModeBtn = document.getElementById('admin-mode-btn');
+        const adminPasswordModal = document.getElementById('admin-password-modal');
+        const adminPasswordForm = document.getElementById('admin-password-form');
+        const adminPasswordInput = document.getElementById('admin-password-input');
+        const adminModalTitle = document.getElementById('admin-modal-title');
+        const adminModalSubtitle = document.getElementById('admin-modal-subtitle');
+        const forgotAdminPasswordLink = document.getElementById('forgot-admin-password-link');
+        const monthSelect = document.getElementById('filter-month');
+        const yearSelect = document.getElementById('filter-year');
+        const ctx = document.getElementById('servicesChart').getContext('2d');
+        const servicesChart = new Chart(ctx, { type: 'pie', data: { labels: [], datasets: [{ label: 'Vendas', data: [], backgroundColor: ['#B76E79', '#D49A9A', '#FADADD', '#A9606C', '#C98B8B', '#E3BDBD'], borderColor: '#FFF9F9', borderWidth: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } });
 
         let currentHelpRequestId=null;
         function listenForHelpRequests(e){const t=collection(db,"businesses",e.uid,"help_requests");onSnapshot(t,e=>{e.docChanges().forEach(e=>{if("added"===e.type){const t=e.doc.data();currentHelpRequestId=e.doc.id,isAudioContextStarted&&synth&&synth.triggerAttackRelease("C5","8n"),helpAlertMessage.textContent=`Um pedido de ajuda foi enviado da página ${t.page}.`,helpAlertModal.classList.remove("opacity-0","translate-y-full"),lucide.createIcons()}})})};
