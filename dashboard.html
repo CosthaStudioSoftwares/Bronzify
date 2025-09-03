@@ -165,7 +165,6 @@
         let isAudioContextStarted = false;
         let synth = null;
         let currentUser = null;
-        let currentHelpRequestId = null;
 
         // --- Elementos da UI ---
         const renewBtn = document.getElementById('renew-btn');
@@ -173,6 +172,8 @@
         const yearSelect = document.getElementById('filter-year');
         const ctx = document.getElementById('servicesChart').getContext('2d');
         const servicesChart = new Chart(ctx, { type: 'pie', data: { labels: [], datasets: [{ label: 'Vendas', data: [], backgroundColor: ['#B76E79', '#D49A9A', '#FADADD', '#A9606C', '#C98B8B', '#E3BDBD'], borderColor: '#FFF9F9', borderWidth: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } });
+
+        // --- Elementos do Modal de Pagamento ---
         const paymentModal = document.getElementById('payment-modal');
         const paymentForm = document.getElementById('payment-form');
         const nameInput = document.getElementById('name-input');
@@ -181,16 +182,6 @@
         const paymentError = document.getElementById('payment-error');
         const paymentSubmitBtn = document.getElementById('payment-submit-btn');
         const cancelPaymentBtn = document.getElementById('cancel-payment-btn');
-        const helpAlertModal = document.getElementById('help-alert-modal');
-        const helpAlertMessage = document.getElementById('help-alert-message');
-        const closeHelpAlertBtn = document.getElementById('close-help-alert');
-        const adminModeBtn = document.getElementById('admin-mode-btn');
-        const adminPasswordModal = document.getElementById('admin-password-modal');
-        const adminPasswordForm = document.getElementById('admin-password-form');
-        const adminPasswordInput = document.getElementById('admin-password-input');
-        const adminModalTitle = document.getElementById('admin-modal-title');
-        const adminModalSubtitle = document.getElementById('admin-modal-subtitle');
-        const forgotAdminPasswordLink = document.getElementById('forgot-admin-password-link');
 
         // --- Lógica de Inicialização ---
         document.body.addEventListener('click', async () => { if (!isAudioContextStarted && typeof Tone !== 'undefined') { await Tone.start(); synth = new Tone.Synth().toDestination(); isAudioContextStarted = true; }}, { once: true });
@@ -198,13 +189,13 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
-                await checkUserPlan(user);
-            } else {
-                window.location.href = 'index.html';
+                await checkUserPlan(user); 
+            } else { 
+                window.location.href = 'index.html'; 
             }
         });
 
-        async function checkUserPlan(user, retryCount = 0) {
+        async function checkUserPlan(user) {
             const userProfileRef = doc(db, "users", user.uid);
             try {
                 const docSnap = await getDoc(userProfileRef);
@@ -215,23 +206,12 @@
                         window.location.href = './assinatura.html';
                         return;
                     }
-                    await initializeDashboard(user);
                     document.body.classList.remove('opacity-0');
+                    await initializeDashboard(user);
                 } else {
-                     if (retryCount < 2) {
-                        setTimeout(() => checkUserPlan(user, retryCount + 1), 2000);
-                    } else {
-                        window.location.href = './assinatura.html';
-                    }
+                     window.location.href = './assinatura.html';
                 }
-            } catch (error) {
-                 console.error("Erro ao verificar plano:", error);
-                 if (retryCount < 2) {
-                    setTimeout(() => checkUserPlan(user, retryCount + 1), 2000);
-                 } else {
-                    window.location.href = 'index.html'; // Fallback em caso de erro persistente
-                 }
-            }
+            } catch (error) { console.error("Erro:", error); window.location.href = './index.html'; }
         }
         
         // --- Lógica de Pagamento Asaas ---
@@ -281,9 +261,9 @@
             }
         });
 
-        // --- Funções do Dashboard ---
+        // --- Funções Originais do Dashboard (Restauradas) ---
         async function initializeDashboard(user) {
-            updateSubscriptionCard(user);
+            await updateSubscriptionCard(user);
             await checkAdminPasswordSetup(user);
             await fetchDashboardData();
             listenForHelpRequests(user);
@@ -311,9 +291,20 @@
             if (diffDays <= 7) { daysEl.classList.add('text-amber-600'); }
         }
 
+        const helpAlertModal = document.getElementById('help-alert-modal');
+        const helpAlertMessage = document.getElementById('help-alert-message');
+        const closeHelpAlertBtn = document.getElementById('close-help-alert');
+        let currentHelpRequestId=null;
         function listenForHelpRequests(e){const t=collection(db,"businesses",e.uid,"help_requests");onSnapshot(t,e=>{e.docChanges().forEach(e=>{if("added"===e.type){const t=e.doc.data();currentHelpRequestId=e.doc.id,isAudioContextStarted&&synth&&synth.triggerAttackRelease("C5","8n"),helpAlertMessage.textContent=`Um pedido de ajuda foi enviado da página ${t.page}.`,helpAlertModal.classList.remove("opacity-0","translate-y-full"),lucide.createIcons()}})})};
         closeHelpAlertBtn.addEventListener("click",async()=>{if(currentHelpRequestId&&auth.currentUser)try{const e=doc(db,"businesses",auth.currentUser.uid,"help_requests",currentHelpRequestId);await deleteDoc(e),helpAlertModal.classList.add("opacity-0","translate-y-full"),currentHelpRequestId=null}catch(e){console.error("Erro ao remover pedido de ajuda:",e)}});
         
+        const adminModeBtn = document.getElementById('admin-mode-btn');
+        const adminPasswordModal = document.getElementById('admin-password-modal');
+        const adminPasswordForm = document.getElementById('admin-password-form');
+        const adminPasswordInput = document.getElementById('admin-password-input');
+        const adminModalTitle = document.getElementById('admin-modal-title');
+        const adminModalSubtitle = document.getElementById('admin-modal-subtitle');
+        const forgotAdminPasswordLink = document.getElementById('forgot-admin-password-link');
         async function checkAdminPasswordSetup(e){const t=doc(db,"admin_passwords",e.uid);try{const e=await getDoc(t);e.exists()||(adminModalTitle.textContent="Bem-vindo(a)!",adminModalSubtitle.textContent="Este parece ser seu primeiro acesso ou sua senha foi redefinida. Por favor, crie uma nova senha de administrador.",document.getElementById("cancel-admin-password").classList.add("hidden"),forgotAdminPasswordLink.classList.add("hidden"),adminPasswordModal.classList.remove("hidden"))}catch(e){console.error("Erro ao verificar configuração de senha ADM:",e)}}
         function updateUIVisibility(){const e=document.getElementById("monthly-revenue"),t=document.getElementById("daily-revenue"),n=document.getElementById("payment-methods-details"),o=document.getElementById("chart-container"),a=document.getElementById("admin-mode-text"),d=adminModeBtn.querySelector("i"),s=document.getElementById("appointments-title"),i=document.getElementById("daily-appointments"),r=document.getElementById("payment-details-title");if(isAdminModeActive&&dashboardDataCache){e.textContent=dashboardDataCache.monthlyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"}),t.textContent=dashboardDataCache.dailyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"}),dashboardDataCache.isFilteredPeriod?(s.textContent="Atendimentos no Período",i.textContent=dashboardDataCache.periodAppointments,r.textContent="Faturamento por Pagamento no Período",n.innerHTML="",Object.keys(dashboardDataCache.periodPaymentMethodTotals).length>0?Object.keys(dashboardDataCache.periodPaymentMethodTotals).forEach(e=>{n.innerHTML+=`<div class="flex justify-between items-center"><span class="text-gray-600">${e}</span><span class="font-bold text-gray-800">${dashboardDataCache.periodPaymentMethodTotals[e].toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</span></div>`}):n.innerHTML='<p class="text-gray-500">Nenhuma venda no período.</p>'):(s.textContent="Atendimentos no Dia",i.textContent=dashboardDataCache.dailyAppointments,r.textContent="Faturamento Diário por Pagamento",n.innerHTML="",Object.keys(dashboardDataCache.dailyPaymentMethodTotals).length>0?Object.keys(dashboardDataCache.dailyPaymentMethodTotals).forEach(e=>{n.innerHTML+=`<div class="flex justify-between items-center"><span class="text-gray-600">${e}</span><span class="font-bold text-gray-800">${dashboardDataCache.dailyPaymentMethodTotals[e].toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</span></div>`}):n.innerHTML='<p class="text-gray-500">Nenhuma venda hoje.</p>'),o.style.opacity=1,d.setAttribute("data-lucide","eye-off"),a.textContent="Desativar Modo ADM"}else e.textContent="R$ *******",t.textContent="R$ *******",i.textContent="***",n.innerHTML='<p class="text-gray-500">Dados ocultos. Ative o modo ADM.</p>',o.style.opacity=0,d.setAttribute("data-lucide","eye"),a.textContent="Ativar Modo ADM",s.textContent="Atendimentos no Dia",r.textContent="Faturamento Diário por Pagamento";lucide.createIcons()}
         adminModeBtn.addEventListener("click",async()=>{isAdminModeActive?(isAdminModeActive=!1,updateUIVisibility()):(adminModalTitle.textContent="Modo Administrador",adminModalSubtitle.textContent="Insira a sua senha de administrador.",document.getElementById("cancel-admin-password").classList.remove("hidden"),forgotAdminPasswordLink.classList.remove("hidden"),adminPasswordModal.classList.remove("hidden"))});
@@ -332,4 +323,3 @@
     </script>
 </body>
 </html>
-
