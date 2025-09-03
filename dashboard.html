@@ -195,8 +195,10 @@
         // --- Lógica de Inicialização ---
         document.body.addEventListener('click', async () => { if (!isAudioContextStarted && typeof Tone !== 'undefined') { await Tone.start(); synth = new Tone.Synth().toDestination(); isAudioContextStarted = true; }}, { once: true });
 
+        // CORREÇÃO: Lógica de autenticação reestruturada para ser mais robusta e evitar loops de recarregamento.
         onAuthStateChanged(auth, async (user) => {
             if (user) {
+                // O utilizador está logado, vamos verificar o seu plano.
                 currentUser = user;
                 const userProfileRef = doc(db, "users", user.uid);
                 try {
@@ -206,19 +208,29 @@
                         const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
 
                         if (diffDays <= 0) {
+                            // O plano expirou, redireciona para a página de assinatura.
                             window.location.href = './assinatura.html';
                             return;
                         }
+                        // O plano é válido, inicializa o dashboard.
                         await initializeDashboard(user, docSnap.data());
-                        document.body.classList.remove('opacity-0');
+                        document.body.classList.remove('opacity-0'); // Mostra a página
                     } else {
+                         // O documento do utilizador não existe ou não tem plano, redireciona.
                          window.location.href = './assinatura.html';
                     }
                 } catch (error) { 
-                    console.error("Erro ao verificar plano:", error);
-                    window.location.href = 'index.html';
+                    console.error("Erro crítico ao verificar o plano do utilizador:", error);
+                    // Um erro aqui pode indicar um problema de permissões no Firestore.
+                    // Em vez de redirecionar (o que causa um loop), mostramos uma mensagem de erro.
+                    const mainContent = document.querySelector('main');
+                    if(mainContent) {
+                        mainContent.innerHTML = `<div class="w-full h-full flex items-center justify-center text-center p-4"><div><h1 class="text-2xl text-red-600">Erro Crítico</h1><p class="text-gray-700 mt-2">Não foi possível carregar os dados da sua conta. Por favor, contacte o suporte.</p></div></div>`;
+                    }
+                    document.body.classList.remove('opacity-0');
                 }
             } else { 
+                // O utilizador não está logado, redireciona para a página de login.
                 window.location.href = 'index.html'; 
             }
         });
