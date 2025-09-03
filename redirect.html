@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Redirecionando...</title>
+    <script>
+        try {
+            // Pega os parâmetros do URL atual
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetSubdomain = urlParams.get('target');
+
+            if (targetSubdomain) {
+                // Monta a nova URL para o subdomínio correto
+                const finalUrl = `https://${targetSubdomain}.costhastudiodesoftwares.com/dashboard.html?payment=success`;
+                // Redireciona o utilizador
+                window.location.href = finalUrl;
+            } else {
+                // Se, por algum motivo, o parâmetro 'target' não for encontrado,
+                // envia para um destino padrão como medida de segurança.
+                window.location.href = "https://bronzify.costhastudiodesoftwares.com/dashboard.html";
+            }
+        } catch (e) {
+            // Fallback em caso de erro no script
+            console.error("Erro no redirecionamento:", e);
+            window.location.href = "https://bronzify.costhastudiodesoftwares.com/dashboard.html";
+        }
+    </script>
+</head>
+<body>
+    <p>A processar o seu pagamento... Por favor, aguarde enquanto o redirecionamos.</p>
+</body>
+</html>
