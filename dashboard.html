@@ -192,19 +192,31 @@
         const adminModalTitle = document.getElementById('admin-modal-title');
         const adminModalSubtitle = document.getElementById('admin-modal-subtitle');
         const forgotAdminPasswordLink = document.getElementById('forgot-admin-password-link');
+        
+        // CORREÇÃO: A lógica para popular os filtros foi movida para o escopo global do script,
+        // garantindo que execute assim que os elementos da UI estiverem disponíveis.
+        const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+        const currentYear = new Date().getFullYear();
+        months.forEach((month, index) => monthSelect.add(new Option(month, index)));
+        monthSelect.add(new Option("Ano Inteiro", 12));
+        for (let year = currentYear; year >= 2020; year--) {
+            yearSelect.add(new Option(year, year));
+        }
+        monthSelect.value = new Date().getMonth();
+        yearSelect.value = currentYear;
+
 
         // --- Lógica de Inicialização ---
         document.body.addEventListener('click', async () => { if (!isAudioContextStarted && typeof Tone !== 'undefined') { await Tone.start(); synth = new Tone.Synth().toDestination(); isAudioContextStarted = true; }}, { once: true });
 
         onAuthStateChanged(auth, async (user) => {
-            if (isInitialized) return; // Se já inicializou, não faz nada para evitar loops.
+            if (isInitialized) return;
             
             if (user) {
-                isInitialized = true; // Marca como inicializado na primeira vez que o utilizador é detetado.
+                isInitialized = true;
                 currentUser = user;
                 await checkUserPlan(user);
             } else {
-                 // Espera um pouco para o Firebase resolver o estado inicial de auth
                 setTimeout(() => {
                     if (!auth.currentUser && !isInitialized) {
                         isInitialized = true;
@@ -293,7 +305,7 @@
             await checkAdminPasswordSetup(user);
             await fetchDashboardData();
             listenForHelpRequests(user);
-            populateFilters();
+            // A chamada para populateFilters() foi removida daqui pois agora é executada globalmente.
         }
         
         function updateSubscriptionCard(userData) {
@@ -323,9 +335,7 @@
         forgotAdminPasswordLink.addEventListener("click",async e=>{e.preventDefault();const t=auth.currentUser;if(t&&confirm("Isso enviará um link para o seu e-mail para redefinir sua senha de LOGIN PRINCIPAL. Após redefinir e entrar novamente, sua senha de ADM será apagada e você poderá criar uma nova. Deseja continuar?"))try{await sendPasswordResetEmail(auth,t.email);const e=doc(db,"admin_passwords",t.uid);await setDoc(e,{reset_pending:!0},{merge:!0}),alert("Enviamos um link para o seu e-mail. Siga as instruções para redefinir sua senha de login. Após entrar novamente, você será solicitado(a) a criar uma nova senha de ADM."),adminPasswordModal.classList.add("hidden")}catch(e){console.error("Erro ao enviar e-mail de redefinição:",e),alert("Ocorreu um erro ao tentar enviar o e-mail. Tente novamente.")}});
         document.getElementById("cancel-admin-password").addEventListener("click",()=>adminPasswordModal.classList.add("hidden"));
         adminPasswordForm.addEventListener("submit",async e=>{e.preventDefault();const t=auth.currentUser;if(t){const e=adminPasswordInput.value,n=doc(db,"admin_passwords",t.uid);try{let o=!1;const a=await getDoc(n);a.exists()?a.data().value===e?o=!0:alert("Senha incorreta!"):(await setDoc(n,{value:e}),alert("Sua senha de administrador individual foi definida com sucesso!"),o=!0),o&&(isAdminModeActive=!0,adminPasswordForm.reset(),adminPasswordModal.classList.add("hidden"),await fetchDashboardData(!1))}catch(e){console.error("Erro ao verificar/definir senha de ADM:",e),alert("Ocorreu um erro. Tente novamente.")}}});
-        
-        function populateFilters(){ const months=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"],currentYear=(new Date).getFullYear();monthSelect.innerHTML = ''; yearSelect.innerHTML = ''; months.forEach((e,t)=>monthSelect.add(new Option(e,t))),monthSelect.add(new Option("Ano Inteiro",12));for(let e=currentYear;e>=2020;e--)yearSelect.add(new Option(e,e));monthSelect.value=(new Date).getMonth(),yearSelect.value=currentYear; }
-        
+                
         async function fetchDashboardData(e=!1){const t=auth.currentUser;if(t){const n=parseInt(monthSelect.value),o=parseInt(yearSelect.value);let a,d;const s=document.getElementById("revenue-title"),i=document.getElementById("services-chart-title");12===n?(a=new Date(o,0,1),d=new Date(o,11,31,23,59,59),s.textContent="Faturamento Anual",i.textContent="Tipos de Bronze e Serviços (Ano)"):(a=new Date(o,n,1),d=new Date(o,n+1,0,23,59,59),s.textContent="Faturamento Mensal",i.textContent="Tipos de Bronze e Serviços (Mês)");const r=new Date;r.setHours(0,0,0,0);const l=new Date;l.setHours(23,59,59,999);const c=collection(db,"businesses",t.uid,"sales"),u=query(c,where("createdAt",">=",Timestamp.fromDate(a)),where("createdAt","<=",Timestamp.fromDate(d))),m=query(c,where("createdAt",">=",Timestamp.fromDate(r)),where("createdAt","<=",Timestamp.fromDate(l)));try{const[t,n]=await Promise.all([getDocs(u),getDocs(m)]);let o=0,a=0;const s={},r={},l={};let c=0;t.forEach(e=>{const t=e.data();o+=t.total||0,t.items&&t.items.forEach(e=>{s[e.name]=(s[e.name]||0)+1});const n=t.paymentMethod||"N/A";r[n]=(r[n]||0)+t.total}),c=t.size,n.forEach(e=>{const t=e.data();a+=t.total||0;const n=t.paymentMethod||"N/A";l[n]=(l[n]||0)+t.total}),dashboardDataCache={monthlyRevenue:o,dailyRevenue:a,dailyPaymentMethodTotals:l,dailyAppointments:n.size,serviceCounts:s,periodAppointments:c,periodPaymentMethodTotals:r,isFilteredPeriod:e},servicesChart.data.labels=Object.keys(s),servicesChart.data.datasets[0].data=Object.values(s),servicesChart.update(),updateUIVisibility()}catch(e){console.error("Erro ao buscar dados do dashboard: ",e)}}}
         
         document.getElementById("filter-apply").addEventListener("click",()=>{isAdminModeActive?fetchDashboardData(!0):alert("Por favor, ative o Modo ADM para poder usar os filtros.")});
