@@ -204,7 +204,6 @@
             }
         });
 
-        // CORREÇÃO: Lógica reestruturada para ser mais robusta e evitar loops.
         async function checkUserPlan(user, retryCount = 0) {
             const userProfileRef = doc(db, "users", user.uid);
             try {
@@ -216,27 +215,22 @@
                         window.location.href = './assinatura.html';
                         return;
                     }
-                    await initializeDashboard(user, docSnap.data());
+                    await initializeDashboard(user);
                     document.body.classList.remove('opacity-0');
                 } else {
-                    if (retryCount < 2) {
+                     if (retryCount < 2) {
                         setTimeout(() => checkUserPlan(user, retryCount + 1), 2000);
                     } else {
                         window.location.href = './assinatura.html';
                     }
                 }
             } catch (error) {
-                console.error("Erro ao verificar plano, tentando novamente:", error);
-                if (retryCount < 2) {
+                 console.error("Erro ao verificar plano:", error);
+                 if (retryCount < 2) {
                     setTimeout(() => checkUserPlan(user, retryCount + 1), 2000);
-                } else {
-                    console.error("Erro crítico e persistente ao verificar o plano:", error);
-                    const mainContent = document.querySelector('main');
-                    if (mainContent) {
-                        mainContent.innerHTML = `<div class="w-full h-full flex items-center justify-center text-center p-4"><div><h1 class="text-2xl text-red-600">Erro Crítico</h1><p class="text-gray-700 mt-2">Não foi possível carregar os dados da sua conta. Por favor, verifique sua conexão ou contacte o suporte.</p></div></div>`;
-                    }
-                    document.body.classList.remove('opacity-0');
-                }
+                 } else {
+                    window.location.href = 'index.html'; // Fallback em caso de erro persistente
+                 }
             }
         }
         
@@ -288,15 +282,18 @@
         });
 
         // --- Funções do Dashboard ---
-        async function initializeDashboard(user, userData) {
-            updateSubscriptionCard(userData);
+        async function initializeDashboard(user) {
+            updateSubscriptionCard(user);
             await checkAdminPasswordSetup(user);
             await fetchDashboardData();
             listenForHelpRequests(user);
             populateFilters();
         }
         
-        function updateSubscriptionCard(userData) {
+        async function updateSubscriptionCard(user) {
+            const userProfileRef = doc(db, "users", user.uid);
+            const docSnap = await getDoc(userProfileRef);
+            const userData = docSnap.data();
             const expiresAtDate = userData.plan.expiresAt.toDate();
             const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
             const cardTitle = document.getElementById('subscription-card-title');
