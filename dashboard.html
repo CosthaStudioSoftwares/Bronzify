@@ -229,7 +229,6 @@
         monthSelect.value = new Date().getMonth();
         yearSelect.value = currentYear;
 
-        // ✅ FUNÇÕES DE VALIDAÇÃO PARA CPF E CNPJ
         function validaCPF(cpf) {
             cpf = cpf.replace(/[^\d]+/g, '');
             if (cpf === '' || cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
@@ -246,32 +245,40 @@
             return true;
         }
 
+        // ✅ FUNÇÃO DE VALIDAÇÃO DE CNPJ CORRIGIDA E MAIS ROBUSTA
         function validaCNPJ(cnpj) {
-            cnpj = cnpj.replace(/[^\d]+/g,'');
-            if(cnpj === '' || cnpj.length !== 14 || /^(\d)\1{13}$/.test(cnpj)) return false;
-            let tamanho = cnpj.length - 2
-            let numeros = cnpj.substring(0,tamanho);
+            cnpj = cnpj.replace(/[^\d]+/g, '');
+            if (cnpj === '' || cnpj.length !== 14 || /^(\d)\1{13}$/.test(cnpj)) {
+                return false;
+            }
+            let tamanho = cnpj.length - 2;
+            let numeros = cnpj.substring(0, tamanho);
             let digitos = cnpj.substring(tamanho);
             let soma = 0;
             let pos = tamanho - 7;
             for (let i = tamanho; i >= 1; i--) {
-                soma += numeros.charAt(tamanho - i) * pos--;
+                soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
                 if (pos < 2) pos = 9;
             }
             let resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
-            if (resultado != digitos.charAt(0)) return false;
+            if (resultado !== parseInt(digitos.charAt(0))) {
+                return false;
+            }
             tamanho = tamanho + 1;
-            numeros = cnpj.substring(0,tamanho);
+            numeros = cnpj.substring(0, tamanho);
             soma = 0;
             pos = tamanho - 7;
             for (let i = tamanho; i >= 1; i--) {
-                soma += numeros.charAt(tamanho - i) * pos--;
+                soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
                 if (pos < 2) pos = 9;
             }
             resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
-            if (resultado != digitos.charAt(1)) return false;
+            if (resultado !== parseInt(digitos.charAt(1))) {
+                return false;
+            }
             return true;
         }
+
 
         document.body.addEventListener('click', async () => { if (!isAudioContextStarted && typeof Tone !== 'undefined') { await Tone.start(); synth = new Tone.Synth().toDestination(); isAudioContextStarted = true; }}, { once: true });
 
@@ -348,7 +355,7 @@
             let cpfCnpj = cpfInput.value.replace(/\D/g, '');
             let phone = phoneInput.value.replace(/\D/g, '');
 
-            // ✅ LÓGICA DE VALIDAÇÃO PARA CPF E CNPJ
+            // ✅ LÓGICA DE VALIDAÇÃO CORRIGIDA PARA CPF E CNPJ
             if (cpfCnpj.length === 11 && !validaCPF(cpfCnpj)) {
                 paymentError.textContent = 'CPF inválido. Por favor, verifique o número.';
                 return;
