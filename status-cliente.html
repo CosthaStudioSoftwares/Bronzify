@@ -22,7 +22,6 @@
     </style>
 </head>
 <body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
-    <!-- Conteúdo HTML -->
     <div id="status-container" class="w-full max-w-md text-center">
         <div id="loading-state" class="text-center">
             <i data-lucide="loader-2" class="w-16 h-16 text-gray-400 mx-auto animate-spin"></i>
@@ -71,25 +70,22 @@
 
     <script>lucide.createIcons();</script>
     <script type="module">
+        // IMPORTS ATUALIZADOS - SEM getAuth, signInAnonymously, onAuthStateChanged
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, doc, onSnapshot, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 
-        // --- ATENÇÃO: A SUA CONFIGURAÇÃO ORIGINAL ESTAVA AQUI, MAS É MELHOR USAR O config.js ---
-        // --- CERTIFIQUE-SE DE QUE TEM UM FICHEIRO config.js COM A SUA firebaseConfig ---
-        // --- SE NÃO TIVER, DESCOMENTE AS LINHAS ABAIXO E COLOQUE A SUA CONFIGURAÇÃO ---
         const firebaseConfig = {
-             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
-             authDomain: "bronzify-b2491.firebaseapp.com",
-             projectId: "bronzify-b2491",
-             storageBucket: "bronzify-b2491.appspot.com",
-             messagingSenderId: "399230151633",
-             appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
+            apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
+            authDomain: "bronzify-b2491.firebaseapp.com",
+            projectId: "bronzify-b2491",
+            storageBucket: "bronzify-b2491.appspot.com",
+            messagingSenderId: "399230151633",
+            appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
         };
 
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
+        // auth não é mais necessário aqui
         const db = getFirestore(app);
         const messaging = getMessaging(app);
         let synth = null;
@@ -137,11 +133,10 @@
                     console.log("[DEBUG] Token FCM obtido com sucesso:", token);
                     return token;
                 }
-                // Esta linha nunca deveria ser alcançada se getToken falhar, pois ele lança um erro.
                 throw new Error("Não foi possível obter o token, mas não houve erro explícito.");
             } catch (err) {
                 console.error("[DEBUG] Erro CRÍTICO ao obter o token FCM:", err);
-                throw err; // Re-lança o erro para a função que chamou
+                throw err;
             }
         }
 
@@ -215,46 +210,40 @@
                 console.log("[DEBUG] Contexto de áudio iniciado.");
             };
 
-            try {
-                await signInAnonymously(auth);
-                console.log("[DEBUG] Login anónimo bem-sucedido.");
-            } catch (err) {
-                console.error("[DEBUG] Falha no login anónimo:", err);
-            }
+            // LÓGICA DE LOGIN ANÔNIMO E onAuthStateChanged REMOVIDA
+            // A busca de dados agora é feita diretamente aqui.
+            console.log("[DEBUG] A escutar alterações no documento (sem autenticação).");
+            const saleRef = doc(db, "businesses", businessId, "sales", saleId);
             
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    console.log("[DEBUG] Utilizador autenticado. A escutar alterações no documento.");
-                    const saleRef = doc(db, "businesses", businessId, "sales", saleId);
-                    ui.enableNotificationsBtn.onclick = () => requestNotificationPermission(saleRef);
-                    onSnapshot(saleRef, (docSnap) => {
-                        if (docSnap.exists()) {
-                            const data = docSnap.data();
-                            console.log("[DEBUG] Dados recebidos do Firestore:", data);
-                            document.title = `${data.password} - ${data.clientName}`;
-                            if (data.status === 'waiting') {
-                                ui.clientName.textContent = data.clientName;
-                                ui.password.textContent = data.password;
-                                showState('waiting');
-                            } else if (data.status === 'called') {
-                                ui.calledPassword.textContent = data.password;
-                                showState('called');
-                                playSound();
-                            } else {
-                                ui.error.querySelector('h2').textContent = "Atendimento Finalizado";
-                                ui.error.querySelector('p').textContent = "Obrigado por utilizar os nossos serviços!";
-                                ui.error.querySelector('i').setAttribute('data-lucide', 'check-circle-2');
-                                lucide.createIcons();
-                                showState('error');
-                            }
-                        } else {
-                            console.warn("[DEBUG] O documento da venda não existe.");
-                            showState('error');
-                        }
-                    }, (error) => {
-                        console.error("[DEBUG] Erro no onSnapshot:", error);
-                    });
+            ui.enableNotificationsBtn.onclick = () => requestNotificationPermission(saleRef);
+            
+            onSnapshot(saleRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    console.log("[DEBUG] Dados recebidos do Firestore:", data);
+                    document.title = `${data.password} - ${data.clientName}`;
+                    if (data.status === 'waiting') {
+                        ui.clientName.textContent = data.clientName;
+                        ui.password.textContent = data.password;
+                        showState('waiting');
+                    } else if (data.status === 'called') {
+                        ui.calledPassword.textContent = data.password;
+                        showState('called');
+                        playSound();
+                    } else {
+                        ui.error.querySelector('h2').textContent = "Atendimento Finalizado";
+                        ui.error.querySelector('p').textContent = "Obrigado por utilizar os nossos serviços!";
+                        ui.error.querySelector('i').setAttribute('data-lucide', 'check-circle-2');
+                        lucide.createIcons();
+                        showState('error');
+                    }
+                } else {
+                    console.warn("[DEBUG] O documento da venda não existe.");
+                    showState('error');
                 }
+            }, (error) => {
+                console.error("[DEBUG] Erro no onSnapshot:", error);
+                showState('error');
             });
         }
 
