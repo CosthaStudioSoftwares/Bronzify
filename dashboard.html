@@ -127,7 +127,7 @@
                         </button>
                         <button type="button" id="cancel-payment-btn" class="w-full text-gray-600 py-2 rounded-lg hover:bg-gray-100">Cancelar</button>
                     </div>
-                    </form>
+                </form>
             </div>
         </div>
 
@@ -229,6 +229,23 @@
         monthSelect.value = new Date().getMonth();
         yearSelect.value = currentYear;
 
+        // ✅ NOVA FUNÇÃO PARA VALIDAR CPF
+        function validaCPF(cpf) {
+            cpf = cpf.replace(/[^\d]+/g, '');
+            if (cpf === '' || cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+            let add = 0;
+            for (let i = 0; i < 9; i++) add += parseInt(cpf.charAt(i)) * (10 - i);
+            let rev = 11 - (add % 11);
+            if (rev === 10 || rev === 11) rev = 0;
+            if (rev !== parseInt(cpf.charAt(9))) return false;
+            add = 0;
+            for (let i = 0; i < 10; i++) add += parseInt(cpf.charAt(i)) * (11 - i);
+            rev = 11 - (add % 11);
+            if (rev === 10 || rev === 11) rev = 0;
+            if (rev !== parseInt(cpf.charAt(10))) return false;
+            return true;
+        }
+
         document.body.addEventListener('click', async () => { if (!isAudioContextStarted && typeof Tone !== 'undefined') { await Tone.start(); synth = new Tone.Synth().toDestination(); isAudioContextStarted = true; }}, { once: true });
 
         onAuthStateChanged(auth, async (user) => {
@@ -253,17 +270,14 @@
             try {
                 onSnapshot(userProfileRef, (docSnap) => {
                     if (docSnap.exists() && docSnap.data().plan?.expiresAt) {
+                        updateSubscriptionCard(docSnap.data());
                         const expiresAtDate = docSnap.data().plan.expiresAt.toDate();
                         const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                        
-                        updateSubscriptionCard(docSnap.data());
-
                         if (diffDays <= 0 && window.location.pathname.includes('dashboard.html')) {
                             window.location.href = './assinatura.html';
                             return;
                         }
                         sessionStorage.setItem('acessoLiberado', 'true');
-
                         if (document.body.classList.contains('opacity-0')) {
                              initializeDashboard(user, docSnap.data());
                              document.body.classList.remove('opacity-0');
@@ -276,7 +290,7 @@
                 console.error("Erro crítico ao verificar o plano:", error);
                 const mainContent = document.querySelector('main');
                 if (mainContent) {
-                    mainContent.innerHTML = `<div class="w-full h-full flex items-center justify-center text-center p-4"><div><h1 class="text-2xl text-red-600">Erro Crítico</h1><p class="text-gray-700 mt-2">Não foi possível carregar os dados da sua conta. Por favor, verifique sua conexão ou contacte o suporte.</p></div></div>`;
+                    mainContent.innerHTML = `<div class="w-full h-full flex items-center justify-center text-center p-4"><div><h1 class="text-2xl text-red-600">Erro Crítico</h1><p class="text-gray-700 mt-2">Não foi possível carregar os dados. Verifique sua conexão ou contacte o suporte.</p></div></div>`;
                 }
                 document.body.classList.remove('opacity-0');
             }
@@ -295,19 +309,23 @@
             paymentError.textContent = '';
         });
 
-        // ✅ NOVA LÓGICA PARA O FORMULÁRIO DE PAGAMENTO
-        // (SUBSTITUA O SEU 'paymentForm.addEventListener' ANTIGO)
         paymentForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const clickedButton = e.submitter; // Pega qual botão foi clicado
-            const paymentMethod = clickedButton.dataset.method; // Pega o método ('PIX' ou 'CREDIT_CARD')
+            const clickedButton = e.submitter;
+            const paymentMethod = clickedButton.dataset.method;
 
-            if (!paymentMethod) return; // Se clicou em outro botão que não seja de pagamento
+            if (!paymentMethod) return;
 
             paymentError.textContent = '';
             let userName = nameInput.value.trim();
             let cpfCnpj = cpfInput.value.replace(/\D/g, '');
             let phone = phoneInput.value.replace(/\D/g, '');
+
+            // ✅ LÓGICA DE VALIDAÇÃO DO CPF ADICIONADA AQUI
+            if (cpfCnpj.length === 11 && !validaCPF(cpfCnpj)) {
+                paymentError.textContent = 'CPF inválido. Por favor, verifique o número.';
+                return;
+            }
 
             if (userName.length < 3 || (cpfCnpj.length !== 11 && cpfCnpj.length !== 14) || phone.length < 10) {
                 paymentError.textContent = 'Dados inválidos. Verifique todos os campos.';
@@ -320,8 +338,6 @@
 
             try {
                 const createAsaasPaymentLink = httpsCallable(functions, 'createAsaasPaymentLink');
-                
-                // Enviamos o 'metodo' para o backend
                 const result = await createAsaasPaymentLink({ userName, cpfCnpj, phone, metodo: paymentMethod });
                 
                 if (result.data.success) {
@@ -332,10 +348,8 @@
             } catch (error) {
                 console.error("Erro ao iniciar pagamento:", error);
                 paymentError.textContent = `Erro: ${error.message}`;
-                // Reabilita os botões em caso de erro
                 document.querySelectorAll('.payment-submit-btn').forEach(btn => {
                     btn.disabled = false;
-                    // Restaura o conteúdo original do botão clicado
                     if(btn.dataset.method === paymentMethod) {
                         btn.innerHTML = originalContent;
                     }
@@ -370,7 +384,7 @@
         // --- O RESTANTE DO SEU CÓDIGO JS VEM AQUI ---
         function listenForHelpRequests(e){const t=collection(db,"businesses",e.uid,"help_requests");onSnapshot(t,e=>{e.docChanges().forEach(e=>{if("added"===e.type){const t=e.doc.data();currentHelpRequestId=e.doc.id,isAudioContextStarted&&synth&&synth.triggerAttackRelease("C5","8n"),helpAlertMessage.textContent=`Um pedido de ajuda foi enviado da página ${t.page}.`,helpAlertModal.classList.remove("opacity-0","translate-y-full"),lucide.createIcons()}})})};closeHelpAlertBtn.addEventListener("click",async()=>{if(currentHelpRequestId&&auth.currentUser)try{const e=doc(db,"businesses",auth.currentUser.uid,"help_requests",currentHelpRequestId);await deleteDoc(e),helpAlertModal.classList.add("opacity-0","translate-y-full"),currentHelpRequestId=null}catch(e){console.error("Erro ao remover pedido de ajuda:",e)}});async function checkAdminPasswordSetup(e){const t=doc(db,"admin_passwords",e.uid);try{const e=await getDoc(t);e.exists()||(adminModalTitle.textContent="Bem-vindo(a)!",adminModalSubtitle.textContent="Este parece ser seu primeiro acesso ou sua senha foi redefinida. Por favor, crie uma nova senha de administrador.",document.getElementById("cancel-admin-password").classList.add("hidden"),forgotAdminPasswordLink.classList.add("hidden"),adminPasswordModal.classList.remove("hidden"))}catch(e){console.error("Erro ao verificar configuração de senha ADM:",e)}}
         function updateUIVisibility(){const e=document.getElementById("monthly-revenue"),t=document.getElementById("daily-revenue"),n=document.getElementById("payment-methods-details"),o=document.getElementById("chart-container"),a=document.getElementById("admin-mode-text"),d=adminModeBtn.querySelector("i"),s=document.getElementById("appointments-title"),i=document.getElementById("daily-appointments"),r=document.getElementById("payment-details-title");if(isAdminModeActive&&dashboardDataCache){e.textContent=dashboardDataCache.monthlyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"}),t.textContent=dashboardDataCache.dailyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"}),dashboardDataCache.isFilteredPeriod?(s.textContent="Atendimentos no Período",i.textContent=dashboardDataCache.periodAppointments,r.textContent="Faturamento por Pagamento no Período",n.innerHTML="",Object.keys(dashboardDataCache.periodPaymentMethodTotals).length>0?Object.keys(dashboardDataCache.periodPaymentMethodTotals).forEach(e=>{n.innerHTML+=`<div class="flex justify-between items-center"><span class="text-gray-600">${e}</span><span class="font-bold text-gray-800">${dashboardDataCache.periodPaymentMethodTotals[e].toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</span></div>`}):n.innerHTML='<p class="text-gray-500">Nenhuma venda no período.</p>'):(s.textContent="Atendimentos no Dia",i.textContent=dashboardDataCache.dailyAppointments,r.textContent="Faturamento Diário por Pagamento",n.innerHTML="",Object.keys(dashboardDataCache.dailyPaymentMethodTotals).length>0?Object.keys(dashboardDataCache.dailyPaymentMethodTotals).forEach(e=>{n.innerHTML+=`<div class="flex justify-between items-center"><span class="text-gray-600">${e}</span><span class="font-bold text-gray-800">${dashboardDataCache.dailyPaymentMethodTotals[e].toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</span></div>`}):n.innerHTML='<p class="text-gray-500">Nenhuma venda hoje.</p>'),o.style.opacity=1,d.setAttribute("data-lucide","eye-off"),a.textContent="Desativar Modo ADM"}else e.textContent="R$ *******",t.textContent="R$ *******",i.textContent="***",n.innerHTML='<p class="text-gray-500">Dados ocultos. Ative o modo ADM.</p>',o.style.opacity=0,d.setAttribute("data-lucide","eye"),a.textContent="Ativar Modo ADM",s.textContent="Atendimentos no Dia",r.textContent="Faturamento Diário por Pagamento";lucide.createIcons()}
-        adminModeBtn.addEventListener("click",async()=>{isAdminModeActive?(isAdminModeActive=!1,updateUIVisibility()):(adminModalTitle.textContent="Modo Administrador",adminModalSubtitle.textContent="Insira a sua senha de administrador.",document.getElementById("cancel-admin-password").classList.remove("hidden"),forgotAdminPasswordLink.classList.remove("hidden"),adminPasswordModal.classList.remove("hidden"))});forgotAdminPasswordLink.addEventListener("click",async e=>{e.preventDefault();const t=auth.currentUser;if(t&&confirm("Isso enviará um link para o seu e-mail para redefinir sua senha de LOGIN PRINCIPAL. Após redefinir e entrar novamente, sua senha de ADM será apagada e você poderá criar uma nova. Deseja continuar?"))try{await sendPasswordResetEmail(auth,t.email);const e=doc(db,"admin_passwords",t.uid);await setDoc(e,{reset_pending:!0},{merge:!0}),alert("Enviamos um link para o seu e--mail. Siga as instruções para redefinir sua senha de login. Após entrar novamente, você será solicitado(a) a criar uma nova senha de ADM."),adminPasswordModal.classList.add("hidden")}catch(e){console.error("Erro ao enviar e-mail de redefinição:",e),alert("Ocorreu um erro ao tentar enviar o e-mail. Tente novamente.")}});document.getElementById("cancel-admin-password").addEventListener("click",()=>adminPasswordModal.classList.add("hidden"));adminPasswordForm.addEventListener("submit",async e=>{e.preventDefault();const t=auth.currentUser;if(t){const e=adminPasswordInput.value,n=doc(db,"admin_passwords",t.uid);try{let o=!1;const a=await getDoc(n);a.exists()?a.data().value===e?o=!0:alert("Senha incorreta!"):(await setDoc(n,{value:e}),alert("Sua senha de administrador individual foi definida com sucesso!"),o=!0),o&&(isAdminModeActive=!0,adminPasswordForm.reset(),adminPasswordModal.classList.add("hidden"),await fetchDashboardData(!1))}catch(e){console.error("Erro ao verificar/definir senha de ADM:",e),alert("Ocorreu um erro. Tente novamente.")}}});async function fetchDashboardData(e=!1){const t=auth.currentUser;if(t){const n=parseInt(monthSelect.value),o=parseInt(yearSelect.value);let a,d;const s=document.getElementById("revenue-title"),i=document.getElementById("services-chart-title");12===n?(a=new Date(o,0,1),d=new Date(o,11,31,23,59,59),s.textContent="Faturamento Anual",i.textContent="Tipos de Bronze e Serviços (Ano)"):(a=new Date(o,n,1),d=new Date(o,n+1,0,23,59,59),s.textContent="Faturamento Mensal",i.textContent="Tipos de Bronze e Serviços (Mês)");const r=new Date;r.setHours(0,0,0,0);const l=new Date;l.setHours(23,59,59,999);const c=collection(db,"businesses",t.uid,"sales"),u=query(c,where("createdAt",">=",Timestamp.fromDate(a)),where("createdAt","<=",Timestamp.fromDate(d))),m=query(c,where("createdAt",">=",Timestamp.fromDate(r)),where("createdAt","<=",Timestamp.fromDate(l)));try{const[t,n]=await Promise.all([getDocs(u),getDocs(m)]);let o=0,a=0;const s={},r={},l={};let c=0;t.forEach(e=>{const t=e.data();o+=t.total||0,t.items&&t.items.forEach(e=>{s[e.name]=(s[e.name]||0)+1});const n=t.paymentMethod||"N/A";r[n]=(r[n]||0)+t.total}),c=t.size,n.forEach(e=>{const t=e.data();a+=t.total||0;const n=t.paymentMethod||"N/A";l[n]=(l[n]||0)+t.total}),dashboardDataCache={monthlyRevenue:o,dailyRevenue:a,dailyPaymentMethodTotals:l,dailyAppointments:n.size,serviceCounts:s,periodAppointments:c,periodPaymentMethodTotals:r,isFilteredPeriod:e},servicesChart.data.labels=Object.keys(s),servicesChart.data.datasets[0].data=Object.values(s),servicesChart.update(),updateUIVisibility()}catch(e){console.error("Erro ao buscar dados do dashboard: ",e)}}}
+        adminModeBtn.addEventListener("click",async()=>{isAdminModeActive?(isAdminModeActive=!1,updateUIVisibility()):(adminModalTitle.textContent="Modo Administrador",adminModalSubtitle.textContent="Insira a sua senha de administrador.",document.getElementById("cancel-admin-password").classList.remove("hidden"),forgotAdminPasswordLink.classList.remove("hidden"),adminPasswordModal.classList.remove("hidden"))});forgotAdminPasswordLink.addEventListener("click",async e=>{e.preventDefault();const t=auth.currentUser;if(t&&confirm("Isso enviará um link para o seu e-mail para redefinir sua senha de LOGIN PRINCIPAL. Após redefinir e entrar novamente, sua senha de ADM será apagada e você poderá criar uma nova. Deseja continuar?"))try{await sendPasswordResetEmail(auth,t.email);const e=doc(db,"admin_passwords",t.uid);await setDoc(e,{reset_pending:!0},{merge:!0}),alert("Enviamos um link para o seu e-mail. Siga as instruções para redefinir sua senha de login. Após entrar novamente, você será solicitado(a) a criar uma nova senha de ADM."),adminPasswordModal.classList.add("hidden")}catch(e){console.error("Erro ao enviar e-mail de redefinição:",e),alert("Ocorreu um erro ao tentar enviar o e-mail. Tente novamente.")}});document.getElementById("cancel-admin-password").addEventListener("click",()=>adminPasswordModal.classList.add("hidden"));adminPasswordForm.addEventListener("submit",async e=>{e.preventDefault();const t=auth.currentUser;if(t){const e=adminPasswordInput.value,n=doc(db,"admin_passwords",t.uid);try{let o=!1;const a=await getDoc(n);a.exists()?a.data().value===e?o=!0:alert("Senha incorreta!"):(await setDoc(n,{value:e}),alert("Sua senha de administrador individual foi definida com sucesso!"),o=!0),o&&(isAdminModeActive=!0,adminPasswordForm.reset(),adminPasswordModal.classList.add("hidden"),await fetchDashboardData(!1))}catch(e){console.error("Erro ao verificar/definir senha de ADM:",e),alert("Ocorreu um erro. Tente novamente.")}}});async function fetchDashboardData(e=!1){const t=auth.currentUser;if(t){const n=parseInt(monthSelect.value),o=parseInt(yearSelect.value);let a,d;const s=document.getElementById("revenue-title"),i=document.getElementById("services-chart-title");12===n?(a=new Date(o,0,1),d=new Date(o,11,31,23,59,59),s.textContent="Faturamento Anual",i.textContent="Tipos de Bronze e Serviços (Ano)"):(a=new Date(o,n,1),d=new Date(o,n+1,0,23,59,59),s.textContent="Faturamento Mensal",i.textContent="Tipos de Bronze e Serviços (Mês)");const r=new Date;r.setHours(0,0,0,0);const l=new Date;l.setHours(23,59,59,999);const c=collection(db,"businesses",t.uid,"sales"),u=query(c,where("createdAt",">=",Timestamp.fromDate(a)),where("createdAt","<=",Timestamp.fromDate(d))),m=query(c,where("createdAt",">=",Timestamp.fromDate(r)),where("createdAt","<=",Timestamp.fromDate(l)));try{const[t,n]=await Promise.all([getDocs(u),getDocs(m)]);let o=0,a=0;const s={},r={},l={};let c=0;t.forEach(e=>{const t=e.data();o+=t.total||0,t.items&&t.items.forEach(e=>{s[e.name]=(s[e.name]||0)+1});const n=t.paymentMethod||"N/A";r[n]=(r[n]||0)+t.total}),c=t.size,n.forEach(e=>{const t=e.data();a+=t.total||0;const n=t.paymentMethod||"N/A";l[n]=(l[n]||0)+t.total}),dashboardDataCache={monthlyRevenue:o,dailyRevenue:a,dailyPaymentMethodTotals:l,dailyAppointments:n.size,serviceCounts:s,periodAppointments:c,periodPaymentMethodTotals:r,isFilteredPeriod:e},servicesChart.data.labels=Object.keys(s),servicesChart.data.datasets[0].data=Object.values(s),servicesChart.update(),updateUIVisibility()}catch(e){console.error("Erro ao buscar dados do dashboard: ",e)}}}
         document.getElementById("filter-apply").addEventListener("click",()=>{isAdminModeActive?fetchDashboardData(!0):alert("Por favor, ative o Modo ADM para poder usar os filtros.")});document.getElementById("download-btn").addEventListener("click",()=>{if(!isAdminModeActive||!dashboardDataCache)return void alert("Ative o Modo ADM para baixar o relatório.");const e=new jsPDF,t=monthSelect.options[monthSelect.selectedIndex].text+" de "+yearSelect.value;e.setFontSize(18),e.text("Relatório de Faturamento - Bronzify",14,22),e.setFontSize(11),e.setTextColor(100),e.text(`Período do Relatório: ${t}`,14,30);const n=[["Faturamento do Período",dashboardDataCache.monthlyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})],["Faturamento de Hoje",dashboardDataCache.dailyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})],[dashboardDataCache.isFilteredPeriod?"Atendimentos no Período":"Atendimentos Hoje",dashboardDataCache.isFilteredPeriod?dashboardDataCache.periodAppointments:dashboardDataCache.dailyAppointments]];e.autoTable({head:[["Resumo Financeiro","Valor"]],body:n,startY:40,headStyles:{fillColor:[183,110,121]}});const o=dashboardDataCache.isFilteredPeriod?dashboardDataCache.periodPaymentMethodTotals:dashboardDataCache.dailyPaymentMethodTotals,a=dashboardDataCache.isFilteredPeriod?"Faturamento por Pagamento no Período":"Faturamento Diário por Pagamento",d=Object.entries(o).map(([e,t])=>[e,t.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})]);d.length>0&&e.autoTable({head:[[a,"Total"]],body:d,startY:e.autoTable.previous.finalY+10,headStyles:{fillColor:[183,110,121]}});const s=Object.entries(dashboardDataCache.serviceCounts).map(([e,t])=>[e,t]);s.length>0&&e.autoTable({head:[["Serviços Realizados no Período","Quantidade"]],body:s,startY:e.autoTable.previous.finalY+10,headStyles:{fillColor:[183,110,121]}}),e.save(`relatorio_vendas_bronzify_${yearSelect.value}_${monthSelect.options[monthSelect.selectedIndex].text}.pdf`)});document.getElementById("share-btn").addEventListener("click",async()=>{if(!isAdminModeActive||!dashboardDataCache)return void alert("Ative o Modo ADM para compartilhar o relatório.");const e=monthSelect.options[monthSelect.selectedIndex].text+" de "+yearSelect.value;let t=`*Relatório Bronzify - ${e}*\n\n`;t+=`*Faturamento:* ${dashboardDataCache.monthlyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}\n`,t+=dashboardDataCache.isFilteredPeriod?`*Atendimentos no Período:* ${dashboardDataCache.periodAppointments}\n\n`:`*Atendimentos (hoje):* ${dashboardDataCache.dailyAppointments}\n\n`,t+="*Serviços mais realizados:*\n";for(const e in dashboardDataCache.serviceCounts)t+=`- ${e}: ${dashboardDataCache.serviceCounts[e]}\n`;if(navigator.share)try{await navigator.share({title:`Relatório Bronzify - ${e}`,text:t})}catch(e){console.error("Erro ao compartilhar:",e)}else alert("Função de compartilhamento não suportada neste navegador.")});
 
     </script>
