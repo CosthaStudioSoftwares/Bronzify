@@ -4,13 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aguardando sua vez - Bronzify</title>
-
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#B76E79">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Bronzify Fila">
-    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -193,7 +186,6 @@
             console.log("[DEBUG] Iniciando a aplicação do cliente.");
             if ('serviceWorker' in navigator) {
                 try {
-                    // Este código que você já tinha registra o Service Worker
                     await navigator.serviceWorker.register('/sw.js');
                     console.log("[DEBUG] Service Worker registado com sucesso.");
                 } catch (err) {
