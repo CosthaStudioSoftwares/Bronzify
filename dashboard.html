@@ -229,7 +229,7 @@
         monthSelect.value = new Date().getMonth();
         yearSelect.value = currentYear;
 
-        // ✅ NOVA FUNÇÃO PARA VALIDAR CPF
+        // ✅ FUNÇÕES DE VALIDAÇÃO PARA CPF E CNPJ
         function validaCPF(cpf) {
             cpf = cpf.replace(/[^\d]+/g, '');
             if (cpf === '' || cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
@@ -243,6 +243,33 @@
             rev = 11 - (add % 11);
             if (rev === 10 || rev === 11) rev = 0;
             if (rev !== parseInt(cpf.charAt(10))) return false;
+            return true;
+        }
+
+        function validaCNPJ(cnpj) {
+            cnpj = cnpj.replace(/[^\d]+/g,'');
+            if(cnpj === '' || cnpj.length !== 14 || /^(\d)\1{13}$/.test(cnpj)) return false;
+            let tamanho = cnpj.length - 2
+            let numeros = cnpj.substring(0,tamanho);
+            let digitos = cnpj.substring(tamanho);
+            let soma = 0;
+            let pos = tamanho - 7;
+            for (let i = tamanho; i >= 1; i--) {
+                soma += numeros.charAt(tamanho - i) * pos--;
+                if (pos < 2) pos = 9;
+            }
+            let resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
+            if (resultado != digitos.charAt(0)) return false;
+            tamanho = tamanho + 1;
+            numeros = cnpj.substring(0,tamanho);
+            soma = 0;
+            pos = tamanho - 7;
+            for (let i = tamanho; i >= 1; i--) {
+                soma += numeros.charAt(tamanho - i) * pos--;
+                if (pos < 2) pos = 9;
+            }
+            resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
+            if (resultado != digitos.charAt(1)) return false;
             return true;
         }
 
@@ -321,9 +348,12 @@
             let cpfCnpj = cpfInput.value.replace(/\D/g, '');
             let phone = phoneInput.value.replace(/\D/g, '');
 
-            // ✅ LÓGICA DE VALIDAÇÃO DO CPF ADICIONADA AQUI
+            // ✅ LÓGICA DE VALIDAÇÃO PARA CPF E CNPJ
             if (cpfCnpj.length === 11 && !validaCPF(cpfCnpj)) {
                 paymentError.textContent = 'CPF inválido. Por favor, verifique o número.';
+                return;
+            } else if (cpfCnpj.length === 14 && !validaCNPJ(cpfCnpj)) {
+                paymentError.textContent = 'CNPJ inválido. Por favor, verifique o número.';
                 return;
             }
 
