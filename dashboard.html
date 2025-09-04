@@ -278,6 +278,7 @@
                             window.location.href = './assinatura.html';
                             return;
                         }
+                        sessionStorage.setItem('acessoLiberado', 'true');
 
                         // Só inicializa o dashboard uma vez
                         if (document.body.classList.contains('opacity-0')) {
@@ -378,3 +379,4 @@
     </script>
 </body>
 </html>
+
