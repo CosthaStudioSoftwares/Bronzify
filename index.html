@@ -199,6 +199,8 @@
                 });
         });
 
+       // No seu arquivo index.html, substitua o bloco do registerForm por este:
+
         const registerForm = document.getElementById('register-form');
         registerForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -210,14 +212,20 @@
 
             createUserWithEmailAndPassword(auth, email, password)
                 .then((userCredential) => {
-                    sendEmailVerification(userCredential.user);
+                    const user = userCredential.user;
+                    sendEmailVerification(user);
                     alert('Conta criada! Você ganhou 5 dias de teste grátis. Um e-mail de verificação foi enviado. Você será redirecionado para o painel em instantes.');
                     
-                    // CORREÇÃO: Espera 4 segundos para a Cloud Function criar o teste grátis
-                    // e depois redireciona para o dashboard.
-                    setTimeout(() => {
-                        window.location.href = './dashboard.html';
-                    }, 4000);
+                    // ✅ NOVA LÓGICA: Espera o plano de teste ser criado no Firestore
+                    const userProfileRef = doc(db, "users", user.uid);
+                    const unsubscribe = onSnapshot(userProfileRef, (docSnap) => {
+                        // Se o documento do usuário agora existe E tem um plano, redireciona.
+                        if (docSnap.exists() && docSnap.data().plan) {
+                            unsubscribe(); // Para de escutar para não causar redirects múltiplos
+                            window.location.href = './dashboard.html';
+                        }
+                    });
+
                 })
                 .catch((error) => {
                     loaderSection.classList.add('hidden');
@@ -278,4 +286,5 @@
     </script>
 </body>
 </html>
+
 
