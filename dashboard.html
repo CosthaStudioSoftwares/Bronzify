@@ -299,29 +299,43 @@
             }
         });
         
-        async function checkUserPlan(user) {
+               async function checkUserPlan(user) {
             const userProfileRef = doc(db, "users", user.uid);
             try {
-                onSnapshot(userProfileRef, (docSnap) => {
-                    if (docSnap.exists() && docSnap.data().plan?.expiresAt) {
-                        updateSubscriptionCard(docSnap.data());
-                        const expiresAtDate = docSnap.data().plan.expiresAt.toDate();
-                        const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                        if (diffDays <= 0 && window.location.pathname.includes('dashboard.html')) {
-                            window.location.href = './assinatura.html';
-                            return;
-                        }
-                        sessionStorage.setItem('acessoLiberado', 'true');
-                        if (document.body.classList.contains('opacity-0')) {
-                             initializeDashboard(user, docSnap.data());
-                             document.body.classList.remove('opacity-0');
-                        }
-                    } else {
+                // ETAPA 1: FAZ UMA LEITURA ÚNICA E DEFINITIVA PARA VERIFICAR O ACESSO
+                const docSnap = await getDoc(userProfileRef);
+
+                // Se o documento existe E o status é 'active' (seja teste ou pago)
+                if (docSnap.exists() && docSnap.data().status === 'active') {
+                    
+                    const expiresAtDate = docSnap.data().plan.expiresAt.toDate();
+                    const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+
+                    // Se mesmo com status ativo, os dias expiraram, redireciona.
+                    if (diffDays <= 0) {
                         window.location.href = './assinatura.html';
+                        return;
                     }
-                });
+
+                    // Se chegou até aqui, o acesso está liberado!
+                    console.log("Acesso liberado. Inicializando o dashboard...");
+                    initializeDashboard(user, docSnap.data());
+                    document.body.classList.remove('opacity-0');
+
+                    // ETAPA 2: AGORA SIM, ATIVA O OUVINTE EM TEMPO REAL APENAS PARA ATUALIZAR A UI
+                    onSnapshot(userProfileRef, (updatedDoc) => {
+                        if (updatedDoc.exists()) {
+                            updateSubscriptionCard(updatedDoc.data());
+                        }
+                    });
+
+                } else {
+                    // Se o documento não existe ou o status não é 'active', redireciona.
+                    window.location.href = './assinatura.html';
+                }
             } catch (error) {
                 console.error("Erro crítico ao verificar o plano:", error);
+
                 const mainContent = document.querySelector('main');
                 if (mainContent) {
                     mainContent.innerHTML = `<div class="w-full h-full flex items-center justify-center text-center p-4"><div><h1 class="text-2xl text-red-600">Erro Crítico</h1><p class="text-gray-700 mt-2">Não foi possível carregar os dados. Verifique sua conexão ou contacte o suporte.</p></div></div>`;
@@ -427,3 +441,4 @@
     </script>
 </body>
 </html>
+
