@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const path = window.location.pathname;
     const currentPage = path.substring(path.lastIndexOf('/') + 1) || 'index.html';
 
-    // 2. Define o HTML do menu lateral (sidebar)
+    // 2. Define o HTML completo do menu lateral (sidebar)
     const sidebarHTML = `
         <aside id="sidebar" class="w-64 bg-white shadow-md flex-shrink-0 lg:block fixed lg:relative z-20 h-full flex flex-col sidebar-mobile">
             <div class="p-6">
@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sidebarContainer.innerHTML = sidebarHTML;
     }
 
-    // 4. Ativa os ícones do Lucide
+    // 4. Ativa os ícones do Lucide que acabamos de adicionar ao menu
     lucide.createIcons();
 
     // 5. Adiciona a lógica para os botões e links funcionarem
@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const openBtn = document.getElementById('open-menu-btn');
     const logoutBtnDesktop = document.getElementById('logout-btn-desktop');
     const whatsappLink = document.getElementById('whatsapp-support-link');
-    const tutorialLink = document.getElementById('tutorial-link'); // ✅ Pega o novo botão
+    const tutorialLink = document.getElementById('tutorial-link');
 
     // Lógica para abrir/fechar no celular
     const closeSidebar = () => {
@@ -101,17 +101,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ✅ LÓGICA PARA O NOVO LINK DO TUTORIAL
+    // Lógica para o link do Tutorial
     if (tutorialLink) {
         tutorialLink.addEventListener('click', async (e) => {
-            e.preventDefault(); // Impede o link de navegar
-            
+            e.preventDefault(); 
             const userConfirmed = await showConfirm(
-                'Você será redirecionado para uma playlist de tutoriais no YouTube. Deseja continuar?', // Mensagem
-                'Ver Tutoriais', // Título
-                'Sim, ir para o YouTube' // Texto do botão de confirmação
+                'Você será redirecionado para uma playlist de tutoriais no YouTube. Deseja continuar?',
+                'Ver Tutoriais',
+                'Sim, ir para o YouTube'
             );
-
             if (userConfirmed) {
                 const youtubeUrl = 'https://www.youtube.com/playlist?list=PL3mqkhFWRu870OW5IwFLWttp45tDfuT3j';
                 window.open(youtubeUrl, '_blank', 'noopener,noreferrer');
