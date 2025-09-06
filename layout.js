@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <a href="./ordem-chegada.html" class="sidebar-link ${currentPage === 'ordem-chegada.html' ? 'active' : ''}"><i data-lucide="list-ordered"></i> <span>Ordem de Chegada</span></a>
                 <a href="./patio.html" class="sidebar-link ${currentPage === 'patio.html' ? 'active' : ''}"><i data-lucide="sun"></i> <span>Pátio</span></a>
                 <a href="#" id="whatsapp-support-link" class="sidebar-link"><i data-lucide="message-circle"></i> <span>Suporte Whatsapp</span></a>
+                <a href="#" id="tutorial-link" class="sidebar-link"><i data-lucide="youtube"></i> <span>Tutorial</span></a>
             </nav>
             <div class="p-4">
                 <button id="logout-btn-desktop" class="w-full flex items-center justify-center gap-2 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors duration-300"><i data-lucide="log-out"></i> Sair</button>
@@ -33,13 +34,13 @@ document.addEventListener('DOMContentLoaded', () => {
         <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-10 hidden lg:hidden"></div>
     `;
 
-    // 3. Insere o HTML do menu no container que criamos no Passo 1
+    // 3. Insere o HTML do menu no container
     const sidebarContainer = document.getElementById('sidebar-container');
     if (sidebarContainer) {
         sidebarContainer.innerHTML = sidebarHTML;
     }
 
-    // 4. Ativa os ícones do Lucide que acabamos de adicionar
+    // 4. Ativa os ícones do Lucide
     lucide.createIcons();
 
     // 5. Adiciona a lógica para os botões e links funcionarem
@@ -48,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const openBtn = document.getElementById('open-menu-btn');
     const logoutBtnDesktop = document.getElementById('logout-btn-desktop');
     const whatsappLink = document.getElementById('whatsapp-support-link');
+    const tutorialLink = document.getElementById('tutorial-link'); // ✅ Pega o novo botão
 
     // Lógica para abrir/fechar no celular
     const closeSidebar = () => {
@@ -83,22 +85,36 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ✅ LÓGICA PARA O LINK DO WHATSAPP (AQUI ESTÁ O LOCAL CORRETO)
+    // Lógica para o link do WhatsApp
     if (whatsappLink) {
         whatsappLink.addEventListener('click', async (e) => {
-            e.preventDefault(); // Impede o link de navegar
-            
-            // Chama a sua função de confirmação (do utils.js)
+            e.preventDefault();
             const userConfirmed = await showConfirm(
-                'Você será redirecionado para o WhatsApp para iniciar uma conversa. Deseja continuar?', // Mensagem
-                'Ir para o Suporte', // Título
-                'Sim, continuar' // Texto do botão de confirmação
+                'Você será redirecionado para o WhatsApp para iniciar uma conversa. Deseja continuar?',
+                'Ir para o Suporte',
+                'Sim, continuar'
             );
-
-            // Se o usuário confirmou, abre o link em uma nova aba
             if (userConfirmed) {
                 const whatsappUrl = 'https://wa.me/5579996365824?text=Ol%C3%A1!%20preciso%20de%20ajuda%20com%20o%20Bronzify.';
                 window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+            }
+        });
+    }
+
+    // ✅ LÓGICA PARA O NOVO LINK DO TUTORIAL
+    if (tutorialLink) {
+        tutorialLink.addEventListener('click', async (e) => {
+            e.preventDefault(); // Impede o link de navegar
+            
+            const userConfirmed = await showConfirm(
+                'Você será redirecionado para uma playlist de tutoriais no YouTube. Deseja continuar?', // Mensagem
+                'Ver Tutoriais', // Título
+                'Sim, ir para o YouTube' // Texto do botão de confirmação
+            );
+
+            if (userConfirmed) {
+                const youtubeUrl = 'https://www.youtube.com/playlist?list=PL3mqkhFWRu870OW5IwFLWttp45tDfuT3j';
+                window.open(youtubeUrl, '_blank', 'noopener,noreferrer');
             }
         });
     }
