@@ -30,10 +30,7 @@
         .sidebar-mobile.open { transform: translateX(0); }
         .toast-success { transform: translateY(100%); opacity: 0; transition: transform 0.5s ease-out, opacity 0.5s ease-out; }
         .toast-success.show { transform: translateY(0); opacity: 1; }
-        /* Estilos para o novo menu dropdown */
-        .dropdown-content {
-            transition: opacity 0.2s ease-out, transform 0.2s ease-out;
-        }
+        .dropdown-content { transition: opacity 0.2s ease-out, transform 0.2s ease-out; }
     </style>
 </head>
 <body class="bg-gray-50 opacity-0 transition-opacity duration-300">
@@ -43,19 +40,9 @@
             <header class="flex justify-between items-center mb-8">
                 <button id="open-menu-btn" class="lg:hidden p-2 -ml-2"><i data-lucide="menu" class="w-6 h-6 text-gray-800"></i></button>
                 <h2 class="text-3xl lg:text-4xl text-gray-800">Dashboard</h2>
-                <div class="flex items-center gap-2 sm:gap-4">
-                    <div class="relative">
-                        <button id="settings-menu-btn" class="p-2 rounded-full hover:bg-gray-200 transition-colors">
-                            <i data-lucide="settings" class="w-6 h-6 text-gray-700"></i>
-                        </button>
-                        <div id="settings-dropdown" class="dropdown-content absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl z-50 p-2 opacity-0 transform scale-95 pointer-events-none">
-                            <a href="#" class="flex items-center gap-3 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md text-sm"><i data-lucide="dollar-sign" class="w-4 h-4"></i>Configurações do Caixa</a>
-                            <a href="#" class="flex items-center gap-3 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md text-sm"><i data-lucide="users" class="w-4 h-4"></i>Configurações de Acesso</a>
-                        </div>
-                    </div>
-                    <img src="https://placehold.co/40x40/FADADD/B76E79?text=B" alt="Avatar" class="rounded-full">
-                </div>
+                <img src="https://placehold.co/40x40/FADADD/B76E79?text=B" alt="Avatar" class="rounded-full">
             </header>
+
             <div class="bg-white p-4 rounded-2xl shadow-md mb-8 flex flex-wrap items-center justify-between gap-4">
                 <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
                     <h3 class="text-lg font-semibold text-gray-700 w-full sm:w-auto">Filtros:</h3>
@@ -64,12 +51,22 @@
                     <button id="filter-apply" class="bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90 w-full sm:w-auto">Aplicar</button>
                 </div>
                 <div class="flex items-center gap-3 w-full sm:w-auto justify-center">
+                    <div class="relative">
+                        <button id="settings-menu-btn" class="flex items-center gap-2 p-2 border rounded-lg text-gray-600 hover:bg-gray-100">
+                            <i data-lucide="settings"></i> <span class="hidden sm:inline">Configurações</span>
+                        </button>
+                        <div id="settings-dropdown" class="dropdown-content absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl z-50 p-2 opacity-0 transform scale-95 pointer-events-none">
+                            <a href="#" class="flex items-center gap-3 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md text-sm"><i data-lucide="dollar-sign" class="w-4 h-4"></i>Configurações do Caixa</a>
+                            <a href="#" class="flex items-center gap-3 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md text-sm"><i data-lucide="users" class="w-4 h-4"></i>Configurações de Acesso</a>
+                        </div>
+                    </div>
                     <button id="share-btn" class="flex items-center gap-2 p-2 border rounded-lg text-gray-600 hover:bg-gray-100"><i data-lucide="share-2"></i> <span class="hidden sm:inline">Compartilhar</span></button>
                     <button id="download-btn" class="flex items-center gap-2 p-2 border rounded-lg text-gray-600 hover:bg-gray-100"><i data-lucide="download"></i> <span class="hidden sm:inline">Baixar PDF</span></button>
                 </div>
             </div>
+
             <div id="report-content">
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <div class="bg-white p-6 rounded-2xl shadow-md flex flex-col justify-between">
                         <div>
                             <h3 id="subscription-card-title" class="text-lg font-semibold text-gray-500">Status da Assinatura</h3>
@@ -106,12 +103,7 @@
             </div>
         </main>
         
-        <div id="payment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
-            </div>
-        
-        <div id="help-alert-modal" class="fixed bottom-8 right-8 bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-50 transform translate-y-full opacity-0 transition-all duration-300 ease-out">
-            </div>
-    </div>
+        </div>
     
     <div id="payment-success-toast" class="toast-success fixed bottom-8 right-8 bg-green-500 text-white p-4 rounded-xl shadow-lg flex items-center gap-3 z-[100]">
         <i data-lucide="check-circle" class="w-6 h-6"></i>
@@ -121,29 +113,25 @@
     <script> lucide.createIcons(); const { jsPDF } = window.jspdf; </script>
     <script src="./config.js"></script>
     <script type="module" src="./layout.js"></script>
+    <script src="./utils.js"></script>
+    
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, doc, getDoc, collection, onSnapshot, query, where, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
-
+        
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const functions = getFunctions(app, 'southamerica-east1');
 
-        // Código omitido para brevidade (validações, etc.) ...
-        
         let dashboardDataCache = null;
         let currentUser = null;
-        // Variáveis de admin removidas
-        
+
         const monthSelect = document.getElementById('filter-month');
         const yearSelect = document.getElementById('filter-year');
         const ctx = document.getElementById('servicesChart').getContext('2d');
-        const servicesChart = new Chart(ctx, { /* Configuração do gráfico */ });
+        const servicesChart = new Chart(ctx, { type: 'pie', data: { labels: [], datasets: [{ data: [], backgroundColor: ['#B76E79', '#D49A9A', '#FADADD', '#A9606C', '#C98B8B', '#E3BDBD'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } });
 
-        // NOVO: Lógica do menu de configurações
         const settingsMenuBtn = document.getElementById('settings-menu-btn');
         const settingsDropdown = document.getElementById('settings-dropdown');
 
@@ -173,10 +161,16 @@
             const userProfileRef = doc(db, "users", user.uid);
             onSnapshot(userProfileRef, (docSnap) => {
                 if (docSnap.exists() && docSnap.data().plan?.expiresAt) {
-                    // ... (lógica de verificação de plano existente)
+                    const expiresAtDate = docSnap.data().plan.expiresAt.toDate();
+                    const diffDays = Math.ceil((expiresAtDate - new Date()) / (1000 * 60 * 60 * 24));
+                    if (diffDays <= 0) {
+                        window.location.href = './assinatura.html';
+                        return;
+                    }
                     sessionStorage.setItem('acessoLiberado', 'true');
+                    updateSubscriptionCard(docSnap.data());
                     if (document.body.classList.contains('opacity-0')) {
-                        initializeDashboard(user);
+                        initializeDashboard();
                         document.body.classList.remove('opacity-0');
                     }
                 } else {
@@ -184,50 +178,23 @@
                 }
             });
         }
-        
-        async function initializeDashboard(user) {
-            await fetchDashboardData(); // Carrega os dados imediatamente
-            // a lógica de senha de admin foi removida
+
+        function updateSubscriptionCard(userData) {
+            const expiresAtDate = userData.plan.expiresAt.toDate();
+            const diffDays = Math.ceil((expiresAtDate - new Date()) / (1000 * 60 * 60 * 24));
+            document.getElementById('subscription-days').textContent = `${diffDays} dia${diffDays !== 1 ? 's' : ''}`;
+            document.getElementById('subscription-status-text').textContent = `Expira em ${expiresAtDate.toLocaleDateString('pt-BR')}.`;
         }
 
-        function updateUIVisibility(){
-            const monthlyRevenueEl = document.getElementById("monthly-revenue");
-            const dailyRevenueEl = document.getElementById("daily-revenue");
-            const paymentDetailsEl = document.getElementById("payment-methods-details");
-            const chartContainer = document.getElementById("chart-container");
-            const appointmentsTitleEl = document.getElementById("appointments-title");
-            const dailyAppointmentsEl = document.getElementById("daily-appointments");
-            const paymentDetailsTitleEl = document.getElementById("payment-details-title");
-
-            // Se não houver dados, exibe "Carregando..."
-            if (!dashboardDataCache) {
-                monthlyRevenueEl.textContent = "Carregando...";
-                dailyRevenueEl.textContent = "Carregando...";
-                dailyAppointmentsEl.textContent = "...";
-                return;
-            }
-
-            // Sempre exibe os dados, pois não há mais modo admin
-            monthlyRevenueEl.textContent = dashboardDataCache.monthlyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
-            dailyRevenueEl.textContent = dashboardDataCache.dailyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
-            
-            const totalsSource = dashboardDataCache.isFilteredPeriod ? dashboardDataCache.periodPaymentMethodTotals : dashboardDataCache.dailyPaymentMethodTotals;
-            
-            appointmentsTitleEl.textContent = dashboardDataCache.isFilteredPeriod ? "Atendimentos no Período" : "Atendimentos no Dia";
-            dailyAppointmentsEl.textContent = dashboardDataCache.isFilteredPeriod ? dashboardDataCache.periodAppointments : dashboardDataCache.dailyAppointments;
-            paymentDetailsTitleEl.textContent = dashboardDataCache.isFilteredPeriod ? "Faturamento por Pagamento no Período" : "Faturamento Diário por Pagamento";
-
-            paymentDetailsEl.innerHTML = "";
-            if (Object.keys(totalsSource).length > 0) {
-                Object.keys(totalsSource).forEach(method => {
-                    paymentDetailsEl.innerHTML += `<div class="flex justify-between items-center"><span class="text-gray-600">${method}</span><span class="font-bold text-gray-800">${totalsSource[method].toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</span></div>`;
-                });
-            } else {
-                paymentDetailsEl.innerHTML = `<p class="text-gray-500">${dashboardDataCache.isFilteredPeriod ? 'Nenhuma venda no período.' : 'Nenhuma venda hoje.'}</p>`;
-            }
-
-            chartContainer.style.opacity = 1;
-            lucide.createIcons();
+        async function initializeDashboard() {
+            const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+            const currentYear = new Date().getFullYear();
+            months.forEach((month, index) => monthSelect.add(new Option(month, index)));
+            monthSelect.add(new Option("Ano Inteiro", 12));
+            for (let year = currentYear; year >= 2020; year--) yearSelect.add(new Option(year, year));
+            monthSelect.value = new Date().getMonth();
+            yearSelect.value = currentYear;
+            await fetchDashboardData();
         }
 
         async function fetchDashboardData(isFiltered = false) {
@@ -237,27 +204,17 @@
             const selectedYear = parseInt(yearSelect.value);
             let startDate, endDate;
 
-            const revenueTitleEl = document.getElementById("revenue-title");
-            const servicesChartTitleEl = document.getElementById("services-chart-title");
+            document.getElementById("revenue-title").textContent = selectedMonth === 12 ? "Faturamento Anual" : "Faturamento Mensal";
+            document.getElementById("services-chart-title").textContent = selectedMonth === 12 ? "Serviços (Ano)" : "Serviços (Mês)";
+            startDate = new Date(selectedYear, selectedMonth === 12 ? 0 : selectedMonth, 1);
+            endDate = new Date(selectedYear, selectedMonth === 12 ? 11 : selectedMonth + 1, 0, 23, 59, 59);
 
-            if (selectedMonth === 12) { // Ano Inteiro
-                startDate = new Date(selectedYear, 0, 1);
-                endDate = new Date(selectedYear, 11, 31, 23, 59, 59);
-                revenueTitleEl.textContent = "Faturamento Anual";
-                servicesChartTitleEl.textContent = "Serviços (Ano)";
-            } else { // Mês Específico
-                startDate = new Date(selectedYear, selectedMonth, 1);
-                endDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
-                revenueTitleEl.textContent = "Faturamento Mensal";
-                servicesChartTitleEl.textContent = "Serviços (Mês)";
-            }
-            
             const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
             const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
             
             const salesRef = collection(db, "businesses", currentUser.uid, "sales");
-            const periodQuery = query(salesRef, where("createdAt", ">=", Timestamp.fromDate(startDate)), where("createdAt", "<=", Timestamp.fromDate(endDate)));
-            const todayQuery = query(salesRef, where("createdAt", ">=", Timestamp.fromDate(todayStart)), where("createdAt", "<=", Timestamp.fromDate(todayEnd)));
+            const periodQuery = query(salesRef, where("createdAt", ">=", startDate), where("createdAt", "<=", endDate));
+            const todayQuery = query(salesRef, where("createdAt", ">=", todayStart), where("createdAt", "<=", todayEnd));
             
             try {
                 const [periodSnapshot, todaySnapshot] = await Promise.all([getDocs(periodQuery), getDocs(todayQuery)]);
@@ -281,31 +238,97 @@
                 });
 
                 dashboardDataCache = {
-                    monthlyRevenue: monthlyRevenue,
-                    dailyRevenue: dailyRevenue,
-                    dailyPaymentMethodTotals: dailyPaymentTotals,
-                    dailyAppointments: todaySnapshot.size,
-                    serviceCounts: serviceCounts,
-                    periodAppointments: periodSnapshot.size,
-                    periodPaymentMethodTotals: periodPaymentTotals,
-                    isFilteredPeriod: isFiltered,
+                    monthlyRevenue, dailyRevenue, dailyPaymentMethodTotals: dailyPaymentTotals,
+                    dailyAppointments: todaySnapshot.size, serviceCounts, periodAppointments: periodSnapshot.size,
+                    periodPaymentMethodTotals: periodPaymentTotals, isFilteredPeriod: isFiltered,
                 };
                 
-                servicesChart.data.labels = Object.keys(serviceCounts);
-                servicesChart.data.datasets[0].data = Object.values(serviceCounts);
-                servicesChart.update();
-                
                 updateUIVisibility();
-
             } catch (error) {
                 console.error("Erro ao buscar dados do dashboard: ", error);
             }
         }
+        
+        function updateUIVisibility(){
+            if (!dashboardDataCache) return;
+            
+            document.getElementById("monthly-revenue").textContent = dashboardDataCache.monthlyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+            document.getElementById("daily-revenue").textContent = dashboardDataCache.dailyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+            
+            const totalsSource = dashboardDataCache.isFilteredPeriod ? dashboardDataCache.periodPaymentMethodTotals : dashboardDataCache.dailyPaymentMethodTotals;
+            
+            document.getElementById("appointments-title").textContent = dashboardDataCache.isFilteredPeriod ? "Atendimentos no Período" : "Atendimentos no Dia";
+            document.getElementById("daily-appointments").textContent = dashboardDataCache.isFilteredPeriod ? dashboardDataCache.periodAppointments : dashboardDataCache.dailyAppointments;
+            document.getElementById("payment-details-title").textContent = dashboardDataCache.isFilteredPeriod ? "Faturamento por Pagamento no Período" : "Faturamento Diário por Pagamento";
 
+            const paymentDetailsEl = document.getElementById("payment-methods-details");
+            paymentDetailsEl.innerHTML = "";
+            if (Object.keys(totalsSource).length > 0) {
+                Object.entries(totalsSource).forEach(([method, total]) => {
+                    paymentDetailsEl.innerHTML += `<div class="flex justify-between items-center"><span class="text-gray-600">${method}</span><span class="font-bold text-gray-800">${total.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</span></div>`;
+                });
+            } else {
+                paymentDetailsEl.innerHTML = `<p class="text-gray-500">${dashboardDataCache.isFilteredPeriod ? 'Nenhuma venda no período.' : 'Nenhuma venda hoje.'}</p>`;
+            }
+
+            servicesChart.data.labels = Object.keys(dashboardDataCache.serviceCounts);
+            servicesChart.data.datasets[0].data = Object.values(dashboardDataCache.serviceCounts);
+            servicesChart.update();
+        }
+
+        // --- Adicionando os Event Listeners que faltavam ---
         document.getElementById("filter-apply").addEventListener("click", () => fetchDashboardData(true));
         
-        // As demais funções (download, compartilhar, pagamento) permanecem as mesmas
-        // ...
+        document.getElementById("renew-btn").addEventListener("click", () => {
+             // A lógica do modal de pagamento pode ser adicionada aqui se necessário
+            alert("Redirecionando para a página de renovação...");
+            window.location.href = './assinatura.html';
+        });
+
+        document.getElementById("download-btn").addEventListener("click", () => {
+            if (!dashboardDataCache) return alert("Os dados ainda estão a carregar. Tente novamente em alguns segundos.");
+            const pdf = new jsPDF();
+            const periodText = monthSelect.options[monthSelect.selectedIndex].text + " de " + yearSelect.value;
+            pdf.setFontSize(18);
+            pdf.text("Relatório de Faturamento - Bronzify", 14, 22);
+            pdf.setFontSize(11);
+            pdf.setTextColor(100);
+            pdf.text(`Período do Relatório: ${periodText}`, 14, 30);
+            
+            const summaryData = [
+                ["Faturamento do Período", dashboardDataCache.monthlyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})],
+                ["Faturamento de Hoje", dashboardDataCache.dailyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})],
+                [dashboardDataCache.isFilteredPeriod ? "Atendimentos no Período" : "Atendimentos Hoje", dashboardDataCache.isFilteredPeriod ? dashboardDataCache.periodAppointments : dashboardDataCache.dailyAppointments]
+            ];
+            pdf.autoTable({ head: [["Resumo", "Valor"]], body: summaryData, startY: 40, headStyles: {fillColor: [183,110,121]} });
+            
+            const paymentTotals = dashboardDataCache.isFilteredPeriod ? dashboardDataCache.periodPaymentMethodTotals : dashboardDataCache.dailyPaymentMethodTotals;
+            const paymentTitle = dashboardDataCache.isFilteredPeriod ? "Faturamento por Pagamento no Período" : "Faturamento Diário por Pagamento";
+            const paymentData = Object.entries(paymentTotals).map(([key, value]) => [key, value.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})]);
+            if(paymentData.length > 0) pdf.autoTable({ head: [[paymentTitle, "Total"]], body: paymentData, startY: pdf.autoTable.previous.finalY + 10, headStyles: {fillColor: [183,110,121]} });
+
+            const serviceData = Object.entries(dashboardDataCache.serviceCounts).map(([key, value]) => [key, value]);
+            if(serviceData.length > 0) pdf.autoTable({ head: [["Serviços Realizados no Período", "Quantidade"]], body: serviceData, startY: pdf.autoTable.previous.finalY + 10, headStyles: {fillColor: [183,110,121]} });
+
+            pdf.save(`relatorio_bronzify_${yearSelect.value}_${monthSelect.options[monthSelect.selectedIndex].text}.pdf`);
+        });
+
+        document.getElementById("share-btn").addEventListener("click", async () => {
+            if (!dashboardDataCache) return alert("Os dados ainda estão a carregar.");
+            const periodText = monthSelect.options[monthSelect.selectedIndex].text + " de " + yearSelect.value;
+            let shareText = `*Relatório Bronzify - ${periodText}*\n\n`;
+            shareText += `*Faturamento:* ${dashboardDataCache.monthlyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}\n`;
+            shareText += dashboardDataCache.isFilteredPeriod ? `*Atendimentos no Período:* ${dashboardDataCache.periodAppointments}\n\n` : `*Atendimentos (hoje):* ${dashboardDataCache.dailyAppointments}\n\n`;
+            shareText += "*Serviços mais realizados:*\n";
+            for(const service in dashboardDataCache.serviceCounts) shareText += `- ${service}: ${dashboardDataCache.serviceCounts[service]}\n`;
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title: `Relatório Bronzify - ${periodText}`, text: shareText });
+                } catch (error) { console.error("Erro ao compartilhar:", error); }
+            } else {
+                alert("Função de compartilhamento não suportada neste navegador.");
+            }
+        });
     </script>
 </body>
 </html>
