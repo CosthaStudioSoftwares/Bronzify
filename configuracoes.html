@@ -21,7 +21,6 @@
         h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
         .sidebar-link:hover, .sidebar-link.active { background-color: #FADADD; color: #B76E79; }
         
-        /* Estilos para o menu sanfona (accordion) */
         .accordion-content {
             overflow: hidden;
             transition: max-height 0.3s ease-out;
@@ -117,11 +116,17 @@
             <h3 id="user-modal-title" class="text-2xl text-gray-800 mb-6">Convidar Novo Usuário</h3>
             <form id="user-form" class="space-y-4">
                 <input type="hidden" id="user-id">
-                <div>
-                    <label for="user-email" class="block text-gray-600 mb-2">E-mail do Usuário</label>
-                    <input type="email" id="user-email" class="w-full px-4 py-2 border rounded-lg" required>
-                    <p class="text-xs text-gray-500 mt-1">Importante: Adicione este e-mail na aba "Authentication" do seu painel Firebase antes de convidar.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="user-email" class="block text-gray-600 mb-2">E-mail do Usuário</label>
+                        <input type="email" id="user-email" class="w-full px-4 py-2 border rounded-lg" required>
+                    </div>
+                    <div>
+                        <label for="user-role" class="block text-gray-600 mb-2">Cargo</label>
+                        <input type="text" id="user-role" class="w-full px-4 py-2 border rounded-lg" placeholder="Ex: Recepcionista">
+                    </div>
                 </div>
+                <p class="text-xs text-gray-500">Importante: Adicione este e-mail na aba "Authentication" do seu painel Firebase antes de convidar.</p>
                 <div>
                     <label class="block text-gray-600 mb-2">Permissões de Acesso</label>
                     <div id="permissions-container" class="grid grid-cols-2 gap-2 p-4 border rounded-lg bg-gray-50">
@@ -169,7 +174,6 @@
             } else { window.location.href = './index.html'; }
         });
 
-        // --- LÓGICA DO MENU SANFONA (ACCORDION) ---
         document.getElementById('items-list-container').addEventListener('click', (e) => {
             const trigger = e.target.closest('[data-accordion-trigger]');
             if (trigger) {
@@ -187,7 +191,6 @@
             }
         });
 
-        // --- LÓGICA DE PRODUTOS DO CAIXA ---
         const itemModal = document.getElementById('item-modal');
         const itemForm = document.getElementById('item-form');
         
@@ -311,7 +314,10 @@
                 const userEl = document.createElement('div');
                 userEl.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
                 userEl.innerHTML = `
-                    <p class="font-semibold text-gray-800">${user.email}</p>
+                    <div>
+                        <p class="font-semibold text-gray-800">${user.email}</p>
+                        <p class="text-sm text-gray-500">${user.role || 'Cargo não definido'}</p>
+                    </div>
                     <div class="flex items-center gap-2">
                         <button class="edit-user-btn p-2 text-gray-500 hover:text-blue-600" data-id="${user.id}"><i data-lucide="key-round" class="w-5 h-5 pointer-events-none"></i></button>
                         <button class="delete-user-btn p-2 text-gray-500 hover:text-red-600" data-id="${user.id}"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button>
@@ -324,7 +330,7 @@
         function populatePermissionsCheckboxes(permissions = {}) {
             permissionsContainer.innerHTML = '';
             menuItems.forEach(item => {
-                const isChecked = permissions[item.id] !== false; // Permissão é dada por padrão (true se não definido)
+                const isChecked = permissions[item.id] !== false;
                 permissionsContainer.innerHTML += `
                     <label class="flex items-center gap-2 p-2 rounded-md hover:bg-gray-50">
                         <input type="checkbox" data-permission-id="${item.id}" class="h-4 w-4 rounded border-gray-300 text-[#B76E79] focus:ring-[#B76E79]" ${isChecked ? 'checked' : ''}>
@@ -352,6 +358,7 @@
                     userForm.querySelector('#user-id').value = user.id;
                     userForm.querySelector('#user-email').value = user.email;
                     userForm.querySelector('#user-email').disabled = true;
+                    userForm.querySelector('#user-role').value = user.role || '';
                     populatePermissionsCheckboxes(user.permissions);
                     userModal.classList.remove('hidden');
                 }
@@ -375,12 +382,13 @@
             e.preventDefault();
             const id = userForm.querySelector('#user-id').value;
             const email = userForm.querySelector('#user-email').value;
+            const role = userForm.querySelector('#user-role').value;
             const permissions = {};
             permissionsContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
                 permissions[checkbox.dataset.permissionId] = checkbox.checked;
             });
 
-            const userData = { email, permissions };
+            const userData = { email, role, permissions };
             const usersRef = collection(db, "businesses", currentUser.uid, "user_permissions");
 
             try {
