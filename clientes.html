@@ -297,7 +297,6 @@
                     }
                 }
 
-                // CORREÇÃO: Escapa aspas no nome do cliente para o atributo data-name
                 const safeClientName = (client.name || '').replace(/"/g, '&quot;');
 
                 const clientElement = document.createElement('div');
@@ -499,7 +498,11 @@
             }
             if (deleteBtn) {
                 const clientNameToDelete = deleteBtn.dataset.name;
-                const confirmed = await showConfirm(`Você tem certeza que deseja excluir "${clientNameToDelete}"?`);
+                // *** CORREÇÃO FINAL APLICADA AQUI ***
+                // Usando concatenação simples para evitar erros de sintaxe com nomes que contêm crase (`)
+                const confirmationMessage = 'Você tem certeza que deseja excluir "' + clientNameToDelete + '"?';
+                const confirmed = await showConfirm(confirmationMessage);
+                
                 if(confirmed) {
                     const clientIdToDelete = deleteBtn.dataset.id;
                     const clientRef = doc(db, "businesses", currentUser.uid, "clients", clientIdToDelete);
