@@ -101,7 +101,7 @@
                     <div class="bg-white p-6 rounded-2xl shadow-md">
                         <h3 class="text-2xl text-gray-800 mb-4">Lista de Clientes</h3>
                         <div id="clients-list" class="space-y-4">
-                            <!-- Clientes serão renderizados aqui -->
+                            <p class="text-gray-500">Faça uma busca ou use os filtros para ver os clientes.</p>
                         </div>
                         <!-- Controles de Paginação -->
                         <div id="pagination-controls" class="mt-6 flex justify-between items-center hidden">
@@ -517,43 +517,5 @@
                     if (selectedMonths.includes(saleMonth) && sale.clientId) {
                         salesInPeriod.push(sale);
                     }
-                });
-
-                if (salesInPeriod.length === 0) {
-                    showNotification("Nenhum cliente elegível encontrado para os meses selecionados.", "info");
-                    return;
-                }
-
-                const winningSale = salesInPeriod[Math.floor(Math.random() * salesInPeriod.length)];
-                const winnerInfo = allClientsData.find(c => c.id === winningSale.clientId);
-
-                if (winnerInfo) {
-                    document.getElementById('winner-name').textContent = winnerInfo.name;
-                    document.getElementById('winner-phone').textContent = winnerInfo.phone;
-                    document.getElementById('winner-date').textContent = `Compra em: ${winningSale.createdAt.toDate().toLocaleDateString('pt-BR')}`;
-                    winnerModal.classList.remove('hidden');
-                    lucide.createIcons();
-                } else {
-                    showNotification("Cliente sorteado não encontrado no cadastro.", "error");
-                }
-
-            } catch (error) {
-                console.error("Erro ao realizar sorteio: ", error);
-                showNotification("Ocorreu um erro ao buscar os dados para o sorteio.", "error");
-            }
-        });
-    </script>
-    <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').then(registration => {
-        console.log('Service Worker registrado com sucesso:', registration);
-      }).catch(error => {
-        console.log('Falha ao registrar Service Worker:', error);
-      });
-    });
-  }
-</script>
-</body>
-</html>
+           D
 
