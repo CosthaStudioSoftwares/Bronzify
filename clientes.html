@@ -78,7 +78,7 @@
                         <h3 class="text-2xl text-gray-800 mb-4">Pesquisar Clientes</h3>
                         <div class="flex flex-col gap-4">
                             <div class="relative flex-grow">
-                                <input type="text" id="search-input" placeholder="Buscar por nome ou telefone..." class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]">
+                                <input type="text" id="search-input" placeholder="Digite nome ou número do cliente..." class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]">
                             </div>
                             <div class="flex flex-col sm:flex-row gap-4">
                                 <button id="birthday-filter-btn" class="flex-1 bg-pink-100 text-[#B76E79] px-4 py-2 rounded-lg hover:bg-pink-200 flex items-center justify-center gap-2">
@@ -95,8 +95,9 @@
                     <div class="bg-white p-6 rounded-2xl shadow-md">
                         <h3 class="text-2xl text-gray-800 mb-4">Lista de Clientes</h3>
                         <div id="clients-list" class="space-y-4">
-                            <p class="text-gray-500">Faça uma busca ou use os filtros para ver os clientes.</p>
-                        </div>
+                            </div>
+                        <div id="pagination-controls" class="mt-6 flex justify-between items-center">
+                            </div>
                     </div>
                 </div>
 
@@ -156,10 +157,12 @@
     
     <script src="./config.js"></script>
     <script type="module" src="./layout.js"></script>
-    <script src="./utils.js"></script> <script type="module">
+    <script src="./utils.js"></script> 
+    
+    <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, getDocs, doc, updateDoc, deleteDoc, where, Timestamp, orderBy, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, getDocs, doc, updateDoc, deleteDoc, where, Timestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -167,29 +170,114 @@
 
         let currentUser = null;
         const clientsListEl = document.getElementById('clients-list');
-        let allClientsData = []; // Usado para filtros e sorteio
-        let lastSearchResults = []; // Usado para renderizar a lista atual
+        
+        let allClientsData = []; 
+        let currentClientList = []; // Lista que está sendo exibida (pode ser todos, filtrada, etc.)
+        
         let isBirthdayFilterActive = false;
         let isPackageFilterActive = false;
         let searchTimeout;
 
+        // --- LÓGICA DE PAGINAÇÃO ---
+        let currentPage = 1;
+        const CLIENTS_PER_PAGE = 5;
+
+
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
+                initializeClientList(); // Carrega a lista de clientes ao autenticar
                 document.body.classList.remove('opacity-0');
             } else {
                 window.location.href = 'index.html';
             }
         });
 
-        function renderClients(clientsToRender) {
+        /**
+         * Busca todos os clientes do Firestore, ordena e exibe a primeira página.
+         */
+        async function initializeClientList() {
+            if (!currentUser) return;
+            clientsListEl.innerHTML = '<p class="text-gray-500">A carregar clientes...</p>';
+            
+            const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
+            const q = query(clientsRef, orderBy("name")); // Ordena por nome
+            
+            try {
+                const querySnapshot = await getDocs(q);
+                allClientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                currentClientList = allClientsData; // A lista ativa inicialmente é a lista completa
+                currentPage = 1;
+                renderPaginatedClients();
+            } catch (error) {
+                console.error("Erro ao carregar lista de clientes:", error);
+                clientsListEl.innerHTML = '<p class="text-red-500">Erro ao carregar clientes.</p>';
+            }
+        }
+        
+        /**
+         * Renderiza a lista de clientes com base na página atual.
+         */
+        function renderPaginatedClients() {
             clientsListEl.innerHTML = '';
-            if (clientsToRender.length === 0) {
+            const paginationControls = document.getElementById('pagination-controls');
+            paginationControls.innerHTML = '';
+
+            if (currentClientList.length === 0) {
                 clientsListEl.innerHTML = '<p class="text-gray-500">Nenhum cliente encontrado.</p>';
                 return;
             }
+
+            const startIndex = (currentPage - 1) * CLIENTS_PER_PAGE;
+            const endIndex = startIndex + CLIENTS_PER_PAGE;
+            const paginatedClients = currentClientList.slice(startIndex, endIndex);
+
+            renderClientItems(paginatedClients); // Chama a função que renderiza os itens
+
+            // Lógica para criar os botões de paginação
+            const totalPages = Math.ceil(currentClientList.length / CLIENTS_PER_PAGE);
+
+            if (totalPages > 1) {
+                const prevButton = document.createElement('button');
+                prevButton.innerHTML = '<i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i> Voltar';
+                prevButton.className = 'px-4 py-2 text-gray-600 rounded-lg hover:bg-gray-100 flex items-center disabled:opacity-50 disabled:cursor-not-allowed';
+                prevButton.disabled = currentPage === 1;
+                prevButton.onclick = () => {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        renderPaginatedClients();
+                    }
+                };
+
+                const pageInfo = document.createElement('span');
+                pageInfo.className = 'text-sm text-gray-500';
+                pageInfo.textContent = `Página ${currentPage} de ${totalPages}`;
+
+                const nextButton = document.createElement('button');
+                nextButton.innerHTML = 'Ver mais <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>';
+                nextButton.className = 'px-4 py-2 text-gray-600 rounded-lg hover:bg-gray-100 flex items-center disabled:opacity-50 disabled:cursor-not-allowed';
+                nextButton.disabled = currentPage >= totalPages;
+                nextButton.onclick = () => {
+                    if (currentPage < totalPages) {
+                        currentPage++;
+                        renderPaginatedClients();
+                    }
+                };
+                
+                paginationControls.appendChild(prevButton);
+                paginationControls.appendChild(pageInfo);
+                paginationControls.appendChild(nextButton);
+                lucide.createIcons();
+            }
+        }
+
+        /**
+         * Recebe uma lista de clientes e os renderiza na tela.
+         * @param {Array} clients - A lista de clientes a ser renderizada.
+         */
+        function renderClientItems(clients) {
             const currentMonth = new Date().getMonth() + 1;
-            clientsToRender.forEach(client => {
+            clients.forEach(client => {
                 const clientBirthMonth = client.birthdate ? new Date(client.birthdate + 'T00:00:00').getMonth() + 1 : 0;
                 const isBirthdayMonth = clientBirthMonth === currentMonth;
                 const birthDateFormatted = client.birthdate ? new Date(client.birthdate + 'T00:00:00').toLocaleDateString('pt-BR') : 'Não informada';
@@ -228,83 +316,37 @@
             lucide.createIcons();
         }
 
-        // --- LÓGICA DE PESQUISA E FILTROS OTIMIZADA ---
+        // --- LÓGICA DE PESQUISA E FILTROS ---
         const searchInput = document.getElementById('search-input');
 
-        // ==========================================================
-        // ALTERAÇÃO PRINCIPAL AQUI: Função de busca modificada
-        // ==========================================================
-        async function performSearch() {
-            if (!currentUser) return;
-            const searchTerm = searchInput.value.trim();
+        function performSearch() {
+            const searchTerm = searchInput.value.trim().toLowerCase();
             
-            if (searchTerm.length < 2) {
-                clientsListEl.innerHTML = '<p class="text-gray-500">Digite pelo menos 2 caracteres para buscar.</p>';
+            if (!searchTerm) {
+                // Se a busca for limpa, volta para a lista completa
+                currentClientList = allClientsData;
+                currentPage = 1;
+                renderPaginatedClients();
                 return;
             }
+
+            // Filtra localmente por nome OU telefone
+            const searchResults = allClientsData.filter(client => 
+                client.name.toLowerCase().includes(searchTerm) ||
+                (client.phone && client.phone.replace(/\D/g, '').includes(searchTerm.replace(/\D/g, '')))
+            );
             
-            clientsListEl.innerHTML = '<p class="text-gray-500">Buscando...</p>';
-
-            const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
-            const endChar = '\uf8ff';
-
-            // --- Query para buscar por Nome ---
-            const searchTermCapitalized = searchTerm.charAt(0).toUpperCase() + searchTerm.slice(1);
-            const nameQuery = query(clientsRef, orderBy("name"), startAt(searchTermCapitalized), endAt(searchTermCapitalized + endChar));
-
-            // --- Query para buscar por Telefone ---
-            const phoneQuery = query(clientsRef, orderBy("phone"), startAt(searchTerm), endAt(searchTerm + endChar));
-
-            try {
-                // Executa as duas buscas ao mesmo tempo
-                const [nameSnapshot, phoneSnapshot] = await Promise.all([
-                    getDocs(nameQuery),
-                    getDocs(phoneQuery)
-                ]);
-
-                // Usa um Map para combinar os resultados e remover duplicatas automaticamente
-                const combinedResults = new Map();
-
-                nameSnapshot.forEach(doc => {
-                    combinedResults.set(doc.id, { id: doc.id, ...doc.data() });
-                });
-
-                phoneSnapshot.forEach(doc => {
-                    combinedResults.set(doc.id, { id: doc.id, ...doc.data() });
-                });
-
-                // Converte o Map de volta para um array
-                lastSearchResults = Array.from(combinedResults.values());
-                
-                // Ordena os resultados finais por nome para uma exibição consistente
-                lastSearchResults.sort((a, b) => a.name.localeCompare(b.name));
-
-                renderClients(lastSearchResults);
-
-            } catch (error) {
-                console.error("Erro ao buscar clientes:", error);
-                showNotification("Erro ao buscar clientes.", "error");
-            }
+            currentClientList = searchResults;
+            currentPage = 1; 
+            renderPaginatedClients();
         }
-        // ==========================================================
-        // FIM DA ALTERAÇÃO PRINCIPAL
-        // ==========================================================
-
 
         searchInput.addEventListener('input', () => {
             clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(performSearch, 500); // Espera 500ms após o usuário parar de digitar
+            searchTimeout = setTimeout(performSearch, 500); 
         });
         
-        async function applyFilter(filterType) {
-             if (!currentUser) return;
-             clientsListEl.innerHTML = '<p class="text-gray-500">Carregando todos os clientes para filtrar...</p>';
-             
-             // Para filtros, carregamos todos os clientes uma vez, pois o Firestore não suporta consultas complexas como "mês de aniversário"
-             const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
-             const querySnapshot = await getDocs(clientsRef);
-             allClientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
+        function applyFilter(filterType) {
              if (filterType === 'birthday') {
                 const currentMonth = new Date().getMonth() + 1;
                 const birthdayClients = allClientsData.filter(client => {
@@ -312,14 +354,16 @@
                     const birthMonth = new Date(client.birthdate + 'T00:00:00').getMonth() + 1;
                     return birthMonth === currentMonth;
                 });
-                renderClients(birthdayClients);
+                currentClientList = birthdayClients;
              } else if (filterType === 'package') {
                 const packageClients = allClientsData.filter(client => {
                     if (!client.packages) return false;
                     return Object.values(client.packages).some(count => count > 0);
                 });
-                renderClients(packageClients);
+                currentClientList = packageClients;
              }
+             currentPage = 1;
+             renderPaginatedClients();
         }
 
         document.getElementById('birthday-filter-btn').addEventListener('click', () => {
@@ -329,7 +373,9 @@
             if (isBirthdayFilterActive) {
                 applyFilter('birthday');
             } else {
-                clientsListEl.innerHTML = '<p class="text-gray-500">Faça uma busca ou use os filtros para ver os clientes.</p>';
+                currentClientList = allClientsData;
+                currentPage = 1;
+                renderPaginatedClients();
             }
         });
 
@@ -340,7 +386,9 @@
             if (isPackageFilterActive) {
                 applyFilter('package');
             } else {
-                clientsListEl.innerHTML = '<p class="text-gray-500">Faça uma busca ou use os filtros para ver os clientes.</p>';
+                currentClientList = allClientsData;
+                currentPage = 1;
+                renderPaginatedClients();
             }
         });
 
@@ -389,8 +437,7 @@
             const deleteBtn = e.target.closest('.delete-btn');
             if (editBtn) {
                 const clientId = editBtn.dataset.id;
-                // Busca o cliente na lista renderizada atualmente
-                const clientToEdit = lastSearchResults.find(c => c.id === clientId) || allClientsData.find(c => c.id === clientId);
+                const clientToEdit = allClientsData.find(c => c.id === clientId);
                 if (clientToEdit) openModalForEdit(clientToEdit);
             }
             if (deleteBtn) {
@@ -402,8 +449,7 @@
                     try {
                         await deleteDoc(clientRef);
                         showNotification("Cliente excluído com sucesso!", "success");
-                        // Limpa a lista para forçar uma nova busca
-                        clientsListEl.innerHTML = '<p class="text-gray-500">Faça uma busca ou use os filtros para ver os clientes.</p>';
+                        initializeClientList(); // Recarrega a lista
                     } catch (error) {
                         console.error("Erro ao excluir cliente:", error);
                         showNotification("Erro ao excluir cliente.", "error");
@@ -425,10 +471,8 @@
 
             const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
             
-            // Validação de duplicados direto no banco
             const inputName = clientData.name.trim();
             const inputPhone = clientData.phone;
-
             const nameQuery = query(clientsRef, where("name", "==", inputName));
             const phoneQuery = query(clientsRef, where("phone", "==", inputPhone));
 
@@ -457,8 +501,7 @@
                     showNotification("Cliente cadastrado com sucesso!", "success");
                 }
                 modal.classList.add('hidden');
-                // Limpa a lista para forçar uma nova busca
-                clientsListEl.innerHTML = '<p class="text-gray-500">Faça uma busca ou use os filtros para ver os clientes.</p>';
+                initializeClientList(); // Recarrega a lista
             } catch (error) {
                 console.error("Erro ao salvar cliente: ", error);
                 showNotification("Erro ao salvar cliente.", "error");
@@ -477,13 +520,7 @@
 
         document.getElementById('raffle-btn').addEventListener('click', async () => {
             if (!currentUser) return;
-            // Para o sorteio, precisamos de todos os clientes. Carregamos se ainda não tivermos.
-            if (allClientsData.length === 0) {
-                 const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
-                 const querySnapshot = await getDocs(clientsRef);
-                 allClientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            }
-
+            
             const selectedMonths = Array.from(raffleMonthsSelect.selectedOptions).map(opt => parseInt(opt.value));
             if (selectedMonths.length === 0) {
                 showNotification("Por favor, selecione pelo menos um mês para o sorteio.", "info");
@@ -491,8 +528,7 @@
             }
 
             const currentYear = new Date().getFullYear();
-            const salesInPeriod = [];
-
+            
             try {
                 const yearStart = new Date(currentYear, 0, 1);
                 const yearEnd = new Date(currentYear, 11, 31, 23, 59, 59);
@@ -504,6 +540,7 @@
                 );
                 
                 const querySnapshot = await getDocs(q);
+                const salesInPeriod = [];
                 querySnapshot.forEach(doc => {
                     const sale = doc.data();
                     const saleMonth = sale.createdAt.toDate().getMonth();
