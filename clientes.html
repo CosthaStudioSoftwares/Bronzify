@@ -182,6 +182,15 @@
         let currentPage = 1;
         const CLIENTS_PER_PAGE = 5;
 
+        /**
+         * Normaliza uma string removendo acentos para busca.
+         * @param {string} str A string para normalizar.
+         * @returns {string} A string normalizada.
+         */
+        function normalizeString(str) {
+            if (typeof str !== 'string') return '';
+            return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        }
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -309,16 +318,21 @@
         const searchResultsContainer = document.getElementById('search-results');
 
         function filterClientList() {
-            const searchTerm = searchInput.value.trim().toLowerCase();
+            const searchTerm = searchInput.value.trim();
+            const normalizedSearchTerm = normalizeString(searchTerm.toLowerCase());
             searchResultsContainer.classList.add('hidden');
 
             if (!searchTerm) {
                 currentClientList = allClientsData;
             } else {
-                currentClientList = allClientsData.filter(client => 
-                    client.name.toLowerCase().includes(searchTerm) ||
-                    (client.phone && client.phone.replace(/\D/g, '').includes(searchTerm.replace(/\D/g, '')))
-                );
+                currentClientList = allClientsData.filter(client => {
+                    const normalizedClientName = normalizeString(client.name.toLowerCase());
+                    const clientPhoneNumber = client.phone ? client.phone.replace(/\D/g, '') : '';
+                    const searchPhoneNumber = searchTerm.replace(/\D/g, '');
+
+                    return normalizedClientName.includes(normalizedSearchTerm) ||
+                           (clientPhoneNumber && searchPhoneNumber && clientPhoneNumber.includes(searchPhoneNumber));
+                });
             }
             
             currentPage = 1;
@@ -328,7 +342,8 @@
         searchInput.addEventListener('input', () => {
             clearTimeout(searchTimeout);
             
-            const searchTerm = searchInput.value.trim().toLowerCase();
+            const searchTerm = searchInput.value.trim();
+            const normalizedSearchTerm = normalizeString(searchTerm.toLowerCase());
 
             if (searchTerm.length < 2) {
                 searchResultsContainer.classList.add('hidden');
@@ -340,10 +355,14 @@
                 return;
             }
 
-            const filteredClients = allClientsData.filter(client => 
-                client.name.toLowerCase().includes(searchTerm) ||
-                (client.phone && client.phone.replace(/\D/g, '').includes(searchTerm.replace(/\D/g, '')))
-            );
+            const filteredClients = allClientsData.filter(client => {
+                const normalizedClientName = normalizeString(client.name.toLowerCase());
+                const clientPhoneNumber = client.phone ? client.phone.replace(/\D/g, '') : '';
+                const searchPhoneNumber = searchTerm.replace(/\D/g, '');
+
+                return normalizedClientName.includes(normalizedSearchTerm) ||
+                       (clientPhoneNumber && searchPhoneNumber && clientPhoneNumber.includes(searchPhoneNumber));
+            });
 
             searchResultsContainer.innerHTML = '';
             if (filteredClients.length > 0) {
@@ -458,7 +477,7 @@
         };
 
         document.getElementById('add-client-btn').addEventListener('click', openModalForNew);
-        document.getElementById('cancel-btn').addEventListener('click', () => modal.classList.add('hidden'));
+        document.getElementById('cancel-btn').addEventListener('click', () => modal.classList.add('hidden');
         
         clientsListEl.addEventListener('click', async (e) => {
             const editBtn = e.target.closest('.edit-btn');
