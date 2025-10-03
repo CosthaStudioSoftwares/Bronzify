@@ -13,16 +13,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentPage = window.location.pathname.split('/').pop();
 
     const sidebarHTML = `
-        <!-- Sidebar para Desktop -->
         <aside class="w-64 bg-white shadow-lg flex-shrink-0 hidden lg:flex flex-col">
             <div class="p-6">
                 <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
             </div>
             <nav class="mt-6 px-4 flex-1">
                 <a href="./dashboard.html" class="sidebar-link ${currentPage === 'dashboard.html' ? 'active' : ''}"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+                <a href="./configuracoes.html" class="sidebar-link ${currentPage === 'configuracoes.html' ? 'active' : ''}"><i data-lucide="settings"></i> Configurações</a>
+                <a href="./estoque.html" class="sidebar-link ${currentPage === 'estoque.html' ? 'active' : ''}"><i data-lucide="archive"></i> Estoque</a>
+                <a href="./vendas.html" class="sidebar-link ${currentPage === 'vendas.html' ? 'active' : ''}"><i data-lucide="shopping-cart"></i> Vendas</a>
                 <a href="./clientes.html" class="sidebar-link ${currentPage === 'clientes.html' ? 'active' : ''}"><i data-lucide="users"></i> Clientes</a>
                 <a href="./caixa.html" class="sidebar-link ${currentPage === 'caixa.html' ? 'active' : ''}"><i data-lucide="dollar-sign"></i> Caixa</a>
-                <a href="./vendas.html" class="sidebar-link ${currentPage === 'vendas.html' ? 'active' : ''}"><i data-lucide="shopping-cart"></i> Vendas</a>
                 <a href="./ordem-chegada.html" class="sidebar-link ${currentPage === 'ordem-chegada.html' ? 'active' : ''}"><i data-lucide="list-ordered"></i> Ordem de Chegada</a>
                 <a href="./patio.html" class="sidebar-link ${currentPage === 'patio.html' ? 'active' : ''}"><i data-lucide="sun"></i> Pátio</a>
             </nav>
@@ -31,7 +32,6 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         </aside>
 
-        <!-- Sidebar para Mobile -->
         <div id="mobile-sidebar" class="fixed inset-0 z-40 flex lg:hidden sidebar-mobile">
             <aside class="w-64 bg-white shadow-lg flex-shrink-0 flex flex-col">
                 <div class="p-6 flex justify-between items-center">
@@ -42,16 +42,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                <nav class="mt-6 px-4 flex-1">
                     <a href="./dashboard.html" class="sidebar-link ${currentPage === 'dashboard.html' ? 'active' : ''}"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+                    <a href="./configuracoes.html" class="sidebar-link ${currentPage === 'configuracoes.html' ? 'active' : ''}"><i data-lucide="settings"></i> Configurações</a>
+                    <a href="./estoque.html" class="sidebar-link ${currentPage === 'estoque.html' ? 'active' : ''}"><i data-lucide="archive"></i> Estoque</a>
+                    <a href="./vendas.html" class="sidebar-link ${currentPage === 'vendas.html' ? 'active' : ''}"><i data-lucide="shopping-cart"></i> Vendas</a>
                     <a href="./clientes.html" class="sidebar-link ${currentPage === 'clientes.html' ? 'active' : ''}"><i data-lucide="users"></i> Clientes</a>
                     <a href="./caixa.html" class="sidebar-link ${currentPage === 'caixa.html' ? 'active' : ''}"><i data-lucide="dollar-sign"></i> Caixa</a>
-                    <a href="./vendas.html" class="sidebar-link ${currentPage === 'vendas.html' ? 'active' : ''}"><i data-lucide="shopping-cart"></i> Vendas</a>
                     <a href="./ordem-chegada.html" class="sidebar-link ${currentPage === 'ordem-chegada.html' ? 'active' : ''}"><i data-lucide="list-ordered"></i> Ordem de Chegada</a>
                     <a href="./patio.html" class="sidebar-link ${currentPage === 'patio.html' ? 'active' : ''}"><i data-lucide="sun"></i> Pátio</a>
                 </nav>
                 <div class="p-4">
-                     <button id="logout-btn-mobile" class="w-full flex items-center justify-center gap-2 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors duration-300">
-                        <i data-lucide="log-out"></i> Sair
-                    </button>
+                      <button id="logout-btn-mobile" class="w-full flex items-center justify-center gap-2 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors duration-300">
+                          <i data-lucide="log-out"></i> Sair
+                      </button>
                 </div>
             </aside>
             <div id="mobile-sidebar-overlay" class="flex-1 bg-black bg-opacity-50"></div>
