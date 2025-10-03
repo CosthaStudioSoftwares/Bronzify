@@ -181,7 +181,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, getDocs, doc, updateDoc, deleteDoc, where, Timestamp, orderBy, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, getDocs, doc, updateDoc, deleteDoc, where, Timestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -189,11 +189,10 @@
 
         let currentUser = null;
         const clientsListEl = document.getElementById('clients-list');
-        let allClientsData = []; // Armazena todos os clientes para busca e filtros client-side
-        let activeFilter = null; // 'birthday', 'package' ou null
+        let allClientsData = []; 
+        let activeFilter = null;
         let currentSearchTerm = '';
         
-        // --- NOVO: Estado da Paginação ---
         const CLIENTS_PER_PAGE = 5;
         let currentPage = 1;
         let totalPages = 1;
@@ -216,32 +215,28 @@
             try {
                 const querySnapshot = await getDocs(q);
                 allClientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                updateClientList(); // Exibe a primeira página
+                processClientListDisplay(); 
             } catch (error) {
                 console.error("Erro ao carregar clientes:", error);
                 clientsListEl.innerHTML = '<p class="text-red-500">Erro ao carregar clientes.</p>';
             }
         }
 
-        // --- FUNÇÃO CENTRAL PARA RENDERIZAR A LISTA ---
-        function updateClientList() {
+        function processClientListDisplay() {
             let clientsToDisplay = allClientsData;
 
-            // 1. Aplicar filtro de pesquisa
             if (currentSearchTerm) {
                 clientsToDisplay = allClientsData.filter(client => 
                     client.name.toLowerCase().includes(currentSearchTerm) ||
                     (client.phone && client.phone.replace(/\D/g, '').includes(currentSearchTerm.replace(/\D/g, '')))
                 );
-            } 
-            // 2. Aplicar filtros de botão (aniversário, pacote)
-            else if (activeFilter) {
+            } else if (activeFilter) {
                 if (activeFilter === 'birthday') {
                     const currentMonth = new Date().getMonth();
                     clientsToDisplay = allClientsData.filter(client => {
                         if (!client.birthdate) return false;
                         const birthDate = new Date(client.birthdate);
-                        birthDate.setDate(birthDate.getDate() + 1); // Correção de fuso
+                        birthDate.setDate(birthDate.getDate() + 1);
                         return birthDate.getMonth() === currentMonth;
                     });
                 } else if (activeFilter === 'package') {
@@ -251,7 +246,6 @@
                 }
             }
 
-            // 3. Lógica de Paginação
             totalPages = Math.ceil(clientsToDisplay.length / CLIENTS_PER_PAGE) || 1;
             if (currentPage > totalPages) currentPage = totalPages;
 
@@ -260,7 +254,7 @@
             const paginatedClients = clientsToDisplay.slice(startIndex, endIndex);
 
             renderClients(paginatedClients);
-            updatePaginationControls(clientsToDisplay.length);
+            updatePaginationUI(clientsToDisplay.length);
         }
 
         function renderClients(clientsToRender) {
@@ -272,7 +266,7 @@
             const currentMonth = new Date().getMonth();
             clientsToRender.forEach(client => {
                 const birthDate = client.birthdate ? new Date(client.birthdate) : null;
-                if(birthDate) birthDate.setDate(birthDate.getDate() + 1); // Correção de fuso
+                if(birthDate) birthDate.setDate(birthDate.getDate() + 1);
                 const isBirthdayMonth = birthDate ? birthDate.getMonth() === currentMonth : false;
                 const birthDateFormatted = birthDate ? birthDate.toLocaleDateString('pt-BR') : 'Não informada';
                 
@@ -310,16 +304,14 @@
             lucide.createIcons();
         }
 
-        // --- LÓGICA DOS CONTROLES DE PAGINAÇÃO ---
         const prevPageBtn = document.getElementById('prev-page-btn');
         const nextPageBtn = document.getElementById('next-page-btn');
         const pageIndicator = document.getElementById('page-indicator');
         const paginationControls = document.getElementById('pagination-controls');
 
-        function updatePaginationControls(totalItems) {
+        function updatePaginationUI(totalItems) {
             totalPages = Math.ceil(totalItems / CLIENTS_PER_PAGE) || 1;
-            
-            if (totalPages <= 1 || currentSearchTerm || activeFilter) {
+            if (totalPages <= 1) {
                 paginationControls.classList.add('hidden');
                 return;
             }
@@ -332,18 +324,17 @@
         prevPageBtn.addEventListener('click', () => {
             if (currentPage > 1) {
                 currentPage--;
-                updateClientList();
+                processClientListDisplay();
             }
         });
 
         nextPageBtn.addEventListener('click', () => {
             if (currentPage < totalPages) {
                 currentPage++;
-                updateClientList();
+                processClientListDisplay();
             }
         });
         
-        // --- LÓGICA DE PESQUISA E FILTROS (CLIENT-SIDE) ---
         const searchInput = document.getElementById('search-input');
         let searchTimeout;
 
@@ -351,9 +342,9 @@
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
                 currentSearchTerm = searchInput.value.trim().toLowerCase();
-                activeFilter = null; // Limpa filtro de botão ao pesquisar
-                currentPage = 1; // Reseta para a primeira página dos resultados
-                updateClientList();
+                activeFilter = null;
+                currentPage = 1;
+                processClientListDisplay();
             }, 300);
         });
 
@@ -362,7 +353,7 @@
             currentSearchTerm = '';
             searchInput.value = '';
             currentPage = 1;
-            updateClientList();
+            processClientListDisplay();
         });
 
         document.getElementById('package-filter-btn').addEventListener('click', () => {
@@ -370,7 +361,7 @@
             currentSearchTerm = '';
             searchInput.value = '';
             currentPage = 1;
-            updateClientList();
+            processClientListDisplay();
         });
 
         // --- LÓGICA DO MODAL (ADD/EDIT/DELETE) ---
@@ -383,13 +374,16 @@
         const clientBirthdateField = document.getElementById('client-birthdate');
         
         clientPhoneField.addEventListener('input', (e) => {
-            let value = e.target.value.replace(/\D/g, '');
-            value = value.substring(0, 11);
-            let formattedValue = '';
-            if (value.length > 0) { formattedValue = '(' + value.substring(0, 2); }
-            if (value.length > 2) { formattedValue += ') ' + value.substring(2, 7); }
-            if (value.length > 7) { formattedValue = `(${value.substring(0,2)}) ${value.substring(2,3)} ${value.substring(3,7)}-${value.substring(7,11)}`; }
-            e.target.value = formattedValue;
+            let value = e.target.value.replace(/\D/g, '').substring(0, 11);
+            if (value.length > 10) {
+                e.target.value = value.replace(/^(\d{2})(\d)(\d{4})(\d{4})$/, '($1) $2 $3-$4');
+            } else if (value.length > 6) {
+                e.target.value = value.replace(/^(\d{2})(\d{4})(\d{0,4})$/, '($1) $2-$3');
+            } else if (value.length > 2) {
+                e.target.value = value.replace(/^(\d{2})(\d*)/, '($1) $2');
+            } else {
+                e.target.value = value.replace(/^(\d*)/, '($1');
+            }
         });
 
         const openModalForNew = () => {
@@ -429,7 +423,7 @@
                     try {
                         await deleteDoc(clientRef);
                         showNotification("Cliente excluído com sucesso!", "success");
-                        await initializeClientsPage(); // Recarrega todos os clientes
+                        await initializeClientsPage();
                     } catch (error) {
                         console.error("Erro ao excluir cliente:", error);
                         showNotification("Erro ao excluir cliente.", "error");
@@ -477,7 +471,7 @@
                     showNotification("Cliente cadastrado com sucesso!", "success");
                 }
                 modal.classList.add('hidden');
-                await initializeClientsPage(); // Recarrega todos os clientes
+                await initializeClientsPage();
             } catch (error) {
                 console.error("Erro ao salvar cliente: ", error);
                 showNotification("Erro ao salvar cliente.", "error");
