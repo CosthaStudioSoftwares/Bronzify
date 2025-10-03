@@ -182,21 +182,22 @@
         let currentPage = 1;
         const CLIENTS_PER_PAGE = 5;
 
-        /**
-         * Normaliza uma string removendo acentos para busca.
-         * @param {string} str A string para normalizar.
-         * @returns {string} A string normalizada.
-         */
         function normalizeString(str) {
             if (typeof str !== 'string') return '';
             return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         }
 
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
-                initializeClientList();
-                document.body.classList.remove('opacity-0');
+                try {
+                    await initializeClientList();
+                    document.body.classList.remove('opacity-0');
+                } catch (e) {
+                    console.error("Falha crítica na inicialização:", e);
+                    document.body.innerHTML = `<div class="p-8 text-center text-red-500"><h1>Erro Crítico</h1><p>Ocorreu um erro grave ao carregar a página. Isso pode ser causado por um cliente sem nome cadastrado. Verifique os dados no banco ou contate o suporte.</p></div>`;
+                    document.body.classList.remove('opacity-0');
+                }
             } else {
                 window.location.href = 'index.html';
             }
@@ -207,18 +208,21 @@
             clientsListEl.innerHTML = '<p class="text-gray-500">A carregar clientes...</p>';
             
             const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
-            const q = query(clientsRef, orderBy("name"));
+            const q = query(clientsRef); // <-- ALTERAÇÃO: Remove o orderBy do servidor
             
-            try {
-                const querySnapshot = await getDocs(q);
-                allClientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                currentClientList = allClientsData;
-                currentPage = 1;
-                renderPaginatedClients();
-            } catch (error) {
-                console.error("Erro ao carregar lista de clientes:", error);
-                clientsListEl.innerHTML = '<p class="text-red-500">Erro ao carregar clientes.</p>';
-            }
+            const querySnapshot = await getDocs(q);
+            allClientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            // ALTERAÇÃO: Ordena os clientes no navegador (mais seguro)
+            allClientsData.sort((a, b) => {
+                const nameA = a.name || '';
+                const nameB = b.name || '';
+                return nameA.localeCompare(nameB, 'pt-BR', { sensitivity: 'base' });
+            });
+
+            currentClientList = allClientsData;
+            currentPage = 1;
+            renderPaginatedClients();
         }
         
         function renderPaginatedClients() {
@@ -326,14 +330,14 @@
                 currentClientList = allClientsData;
             } else {
                 currentClientList = allClientsData.filter(client => {
-                    const clientName = client.name || ''; // <-- CORREÇÃO APLICADA AQUI
+                    const clientName = client.name || '';
                     const normalizedClientName = normalizeString(clientName.toLowerCase());
                     
                     const clientPhoneNumber = client.phone ? client.phone.replace(/\D/g, '') : '';
                     const searchPhoneNumber = searchTerm.replace(/\D/g, '');
 
                     return normalizedClientName.includes(normalizedSearchTerm) ||
-                           (clientPhoneNumber && searchPhoneNumber && clientPhoneNumber.includes(searchPhoneNumber));
+                           (clientPhoneNumber && searchPhoneNumber.length > 0 && clientPhoneNumber.includes(searchPhoneNumber));
                 });
             }
             
@@ -350,22 +354,20 @@
             if (searchTerm.length < 2) {
                 searchResultsContainer.classList.add('hidden');
                 if (searchTerm.length === 0) {
-                    currentClientList = allClientsData;
-                    currentPage = 1;
-                    renderPaginatedClients();
+                    filterClientList();
                 }
                 return;
             }
 
             const filteredClients = allClientsData.filter(client => {
-                const clientName = client.name || ''; // <-- CORREÇÃO APLICADA AQUI
+                const clientName = client.name || '';
                 const normalizedClientName = normalizeString(clientName.toLowerCase());
 
                 const clientPhoneNumber = client.phone ? client.phone.replace(/\D/g, '') : '';
                 const searchPhoneNumber = searchTerm.replace(/\D/g, '');
 
                 return normalizedClientName.includes(normalizedSearchTerm) ||
-                       (clientPhoneNumber && searchPhoneNumber && clientPhoneNumber.includes(searchPhoneNumber));
+                       (clientPhoneNumber && searchPhoneNumber.length > 0 && clientPhoneNumber.includes(searchPhoneNumber));
             });
 
             searchResultsContainer.innerHTML = '';
