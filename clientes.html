@@ -194,10 +194,7 @@
                     document.body.classList.remove('opacity-0');
                 } catch (e) {
                     console.error("Falha crítica na inicialização:", e);
-                    const mainContent = document.querySelector('main');
-                    if(mainContent) {
-                         mainContent.innerHTML = `<div class="p-8 text-center text-red-500"><h1>Erro Crítico</h1><p>Ocorreu um erro grave ao carregar os clientes. Verifique o console de desenvolvedor (F12) para mais detalhes.</p><p class="mt-2 text-sm text-gray-600">Detalhe do erro: ${e.message}</p></div>`;
-                    }
+                    clientsListEl.innerHTML = `<p class="text-red-500">Ocorreu um erro grave ao carregar os clientes: ${e.message}</p>`;
                     document.body.classList.remove('opacity-0');
                 }
             } else {
@@ -224,7 +221,7 @@
         function renderPaginatedClients() {
             clientsListEl.innerHTML = '';
             const paginationControls = document.getElementById('pagination-controls');
-            paginationControls.innerHTML = '';
+            if (paginationControls) paginationControls.innerHTML = '';
 
             if (!currentClientList || currentClientList.length === 0) {
                 clientsListEl.innerHTML = '<p class="text-gray-500">Nenhum cliente encontrado.</p>';
@@ -239,7 +236,7 @@
 
             const totalPages = Math.ceil(currentClientList.length / CLIENTS_PER_PAGE);
 
-            if (totalPages > 1) {
+            if (totalPages > 1 && paginationControls) {
                 const prevButton = document.createElement('button');
                 prevButton.innerHTML = '<i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i> Voltar';
                 prevButton.className = 'px-4 py-2 text-gray-600 rounded-lg hover:bg-gray-100 flex items-center disabled:opacity-50 disabled:cursor-not-allowed';
@@ -273,74 +270,45 @@
             }
         }
 
-        // FUNÇÃO REESCRITA PARA USAR document.createElement (MAIS SEGURA)
         function renderClientItems(clients) {
             const currentMonth = new Date().getMonth() + 1;
             clients.forEach(client => {
-                const clientElement = document.createElement('div');
-                clientElement.className = 'client-item flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 rounded-lg gap-4';
-
-                const mainDiv = document.createElement('div');
-                const contentDiv = document.createElement('div');
-                contentDiv.className = 'flex items-center gap-3';
-
-                const iconContainer = document.createElement('div');
-                iconContainer.className = 'w-6 flex-shrink-0';
                 const clientBirthMonth = client.birthdate ? new Date(client.birthdate + 'T00:00:00').getMonth() + 1 : 0;
-                if (clientBirthMonth === currentMonth) {
-                    iconContainer.innerHTML = '<i data-lucide="cake" class="text-pink-500 flex-shrink-0"></i>';
-                }
-
-                const infoDiv = document.createElement('div');
-                const nameP = document.createElement('p');
-                nameP.className = 'font-semibold text-gray-700';
-                nameP.textContent = client.name || 'Nome não cadastrado';
-
-                const phoneP = document.createElement('p');
-                phoneP.className = 'text-sm text-gray-500';
-                phoneP.textContent = client.phone || 'Telefone não cadastrado';
-
+                const isBirthdayMonth = clientBirthMonth === currentMonth;
                 const birthDateFormatted = client.birthdate ? new Date(client.birthdate + 'T00:00:00').toLocaleDateString('pt-BR') : 'Não informada';
-                const birthP = document.createElement('p');
-                birthP.className = 'text-xs text-gray-400';
-                birthP.textContent = 'Nasc: ' + birthDateFormatted;
-
-                infoDiv.append(nameP, phoneP, birthP);
-                contentDiv.append(iconContainer, infoDiv);
-                mainDiv.appendChild(contentDiv);
-
+                
+                let packageInfoHtml = '';
                 if (client.packages) {
                     const activePackages = Object.entries(client.packages).filter(([_, count]) => count > 0);
                     if (activePackages.length > 0) {
-                        const packageDiv = document.createElement('div');
-                        packageDiv.className = 'mt-2 flex flex-wrap gap-1';
-                        packageDiv.innerHTML = activePackages.map(([name, count]) => 
-                            `<span class="text-xs bg-green-100 text-green-800 font-medium mr-2 px-2.5 py-0.5 rounded-full">${name}: ${count}</span>`
-                        ).join('');
-                        mainDiv.appendChild(packageDiv);
+                        packageInfoHtml = `<div class="mt-2 flex flex-wrap gap-1">` +
+                            activePackages.map(([name, count]) => 
+                                `<span class="text-xs bg-green-100 text-green-800 font-medium mr-2 px-2.5 py-0.5 rounded-full">${name}: ${count}</span>`
+                            ).join('') + `</div>`;
                     }
                 }
 
-                const actionsDiv = document.createElement('div');
-                actionsDiv.className = 'flex items-center gap-2 flex-shrink-0 self-end sm:self-center';
-
-                const editBtn = document.createElement('button');
-                editBtn.className = 'edit-btn p-2 text-gray-500 hover:text-blue-600';
-                editBtn.dataset.id = client.id;
-                editBtn.title = 'Editar Cliente';
-                editBtn.innerHTML = '<i data-lucide="file-pen-line" class="pointer-events-none"></i>';
-
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'delete-btn p-2 text-gray-500 hover:text-red-600';
-                deleteBtn.dataset.id = client.id; // APENAS O ID, SEM NOME
-                deleteBtn.title = 'Excluir Cliente';
-                deleteBtn.innerHTML = '<i data-lucide="trash-2" class="pointer-events-none"></i>';
+                const clientElement = document.createElement('div');
+                clientElement.className = 'client-item flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 rounded-lg gap-4';
                 
-                actionsDiv.append(editBtn, deleteBtn);
-                clientElement.append(mainDiv, actionsDiv);
+                clientElement.innerHTML = `
+                    <div>
+                        <div class="flex items-center gap-3">
+                            ${isBirthdayMonth ? '<i data-lucide="cake" class="text-pink-500 flex-shrink-0"></i>' : '<div class="w-6 flex-shrink-0"></div>'}
+                            <div>
+                                <p class="font-semibold text-gray-700">${client.name || 'Nome não cadastrado'}</p>
+                                <p class="text-sm text-gray-500">${client.phone || 'Telefone não cadastrado'}</p>
+                                <p class="text-xs text-gray-400">Nasc: ${birthDateFormatted}</p>
+                            </div>
+                        </div>
+                        ${packageInfoHtml}
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
+                        <button class="edit-btn p-2 text-gray-500 hover:text-blue-600" data-id="${client.id}" title="Editar Cliente"><i data-lucide="file-pen-line" class="pointer-events-none"></i></button>
+                        <button class="delete-btn p-2 text-gray-500 hover:text-red-600" data-id="${client.id}" title="Excluir Cliente"><i data-lucide="trash-2" class="pointer-events-none"></i></button>
+                    </div>`;
                 clientsListEl.appendChild(clientElement);
             });
-
             lucide.createIcons();
         }
 
@@ -505,7 +473,7 @@
             if (deleteBtn) {
                 const clientIdToDelete = deleteBtn.dataset.id;
                 const clientToDelete = allClientsData.find(c => c.id === clientIdToDelete);
-                const clientNameToDelete = clientToDelete ? clientToDelete.name : '';
+                const clientNameToDelete = clientToDelete ? (clientToDelete.name || '') : '';
 
                 const confirmationMessage = 'Você tem certeza que deseja excluir "' + clientNameToDelete + '"?';
                 const confirmed = await showConfirm(confirmationMessage);
