@@ -32,40 +32,82 @@
                 <div class="w-6 lg:hidden"></div>
             </header>
 
-            <div class="bg-white p-6 rounded-2xl shadow-md">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-2xl text-gray-800">Itens e Produtos do Caixa</h3>
-                    <button id="add-new-item-btn" class="bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center justify-center gap-2 flex-shrink-0">
-                        <i data-lucide="plus-circle"></i> <span>Adicionar Item</span>
-                    </button>
+            <div class="space-y-8">
+                <!-- Configurações do Caixa -->
+                <div class="bg-white p-6 rounded-2xl shadow-md">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl text-gray-800">Itens e Produtos do Caixa</h3>
+                        <button id="add-new-item-btn" class="bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center justify-center gap-2 flex-shrink-0">
+                            <i data-lucide="plus-circle"></i> <span>Adicionar Item</span>
+                        </button>
+                    </div>
+                    <div id="items-list-container" class="space-y-6">
+                        <div>
+                            <h4 class="font-semibold text-lg text-gray-700 border-b pb-2 mb-4">Tipos de Bronze</h4>
+                            <div id="bronze-items" class="space-y-3"></div>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-lg text-gray-700 border-b pb-2 mb-4">Consumo</h4>
+                            <div id="consumable-items" class="space-y-3"></div>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-lg text-gray-700 border-b pb-2 mb-4">Adicionais</h4>
+                            <div id="extra-items" class="space-y-3"></div>
+                        </div>
+                    </div>
                 </div>
-                <div id="items-list-container" class="space-y-6">
-                    <div>
-                        <h4 class="font-semibold text-lg text-gray-700 border-b pb-2 mb-4">Tipos de Bronze</h4>
-                        <div id="bronze-items" class="space-y-3"></div>
+
+                <!-- Configurações de Usuários -->
+                <div class="bg-white p-6 rounded-2xl shadow-md">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl text-gray-800">Usuários e Permissões</h3>
+                        <button id="add-user-btn" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center justify-center gap-2 flex-shrink-0">
+                            <i data-lucide="user-plus"></i> <span>Convidar Usuário</span>
+                        </button>
                     </div>
-                    <div>
-                        <h4 class="font-semibold text-lg text-gray-700 border-b pb-2 mb-4">Consumo</h4>
-                        <div id="consumable-items" class="space-y-3"></div>
-                    </div>
-                    <div>
-                        <h4 class="font-semibold text-lg text-gray-700 border-b pb-2 mb-4">Adicionais</h4>
-                        <div id="extra-items" class="space-y-3"></div>
+                    <div id="users-list-container" class="space-y-3">
+                        <!-- Lista de usuários será inserida aqui -->
                     </div>
                 </div>
             </div>
         </main>
     </div>
 
+    <!-- Modal de Itens do Caixa -->
     <div id="item-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
             <h3 id="item-modal-title" class="text-2xl text-gray-800 mb-6">Cadastrar Novo Item</h3>
             <form id="item-form">
                 <input type="hidden" id="item-id">
-                <div class="mb-4"><label for="item-name" class="block text-gray-600 mb-2">Nome do Item</label><input type="text" id="item-name" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required></div>
-                <div class="mb-4"><label for="item-price" class="block text-gray-600 mb-2">Valor</label><input type="text" id="item-price" placeholder="R$ 0,00" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required></div>
-                <div class="mb-6"><label for="item-category" class="block text-gray-600 mb-2">Categoria</label><select id="item-category" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required><option value="bronze">Tipo de Bronze</option><option value="consumable">Consumo</option><option value="extra">Adicional</option></select></div>
+                <div class="mb-4"><label for="item-name" class="block text-gray-600 mb-2">Nome do Item</label><input type="text" id="item-name" class="w-full px-4 py-2 border rounded-lg" required></div>
+                <div class="mb-4"><label for="item-price" class="block text-gray-600 mb-2">Valor</label><input type="text" id="item-price" placeholder="R$ 0,00" class="w-full px-4 py-2 border rounded-lg" required></div>
+                <div class="mb-6"><label for="item-category" class="block text-gray-600 mb-2">Categoria</label><select id="item-category" class="w-full px-4 py-2 border rounded-lg" required><option value="bronze">Tipo de Bronze</option><option value="consumable">Consumo</option><option value="extra">Adicional</option></select></div>
                 <div class="flex justify-end gap-4"><button type="button" id="cancel-item-btn" class="px-4 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Cancelar</button><button type="submit" class="px-6 py-2 bg-[#B76E79] text-white rounded-lg hover:opacity-90">Salvar Item</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Usuários -->
+    <div id="user-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-8">
+            <h3 id="user-modal-title" class="text-2xl text-gray-800 mb-6">Convidar Novo Usuário</h3>
+            <form id="user-form" class="space-y-4">
+                <input type="hidden" id="user-id">
+                <div>
+                    <label for="user-email" class="block text-gray-600 mb-2">E-mail do Usuário</label>
+                    <input type="email" id="user-email" class="w-full px-4 py-2 border rounded-lg" required>
+                    <p class="text-xs text-gray-500 mt-1">Importante: Adicione este e-mail na aba "Authentication" do seu painel Firebase antes de convidar.</p>
+                </div>
+                <div>
+                    <label class="block text-gray-600 mb-2">Permissões de Acesso</label>
+                    <div id="permissions-container" class="grid grid-cols-2 gap-2 p-4 border rounded-lg">
+                        <!-- Checkboxes de permissão serão inseridos aqui -->
+                    </div>
+                </div>
+                <div class="flex justify-end gap-4 pt-4">
+                    <button type="button" id="cancel-user-btn" class="px-6 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Salvar Permissões</button>
+                </div>
             </form>
         </div>
     </div>
@@ -77,8 +119,8 @@
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, query, orderBy, onSnapshot, getDocs, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -86,106 +128,45 @@
 
         let currentUser = null;
         let allProducts = [];
+        let allUsers = [];
+
+        const menuItems = [
+            { id: 'dashboard', name: 'Dashboard' }, { id: 'clientes', name: 'Clientes' },
+            { id: 'caixa', name: 'Caixa' }, { id: 'vendas', name: 'Vendas' },
+            { id: 'estoque', name: 'Estoque' }, { id: 'ordem-chegada', name: 'Ordem de Chegada' },
+            { id: 'patio', name: 'Pátio' }, { id: 'configuracoes', name: 'Configurações' }
+        ];
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
                 listenForProducts();
-            } else {
-                window.location.href = './index.html';
-            }
+                listenForUsers();
+            } else { window.location.href = './index.html'; }
         });
 
-        function listenForProducts() {
-            if (!currentUser) return;
-            const productsRef = collection(db, "businesses", currentUser.uid, "products");
-            const q = query(productsRef, orderBy("name"));
-
-            onSnapshot(q, (snapshot) => {
-                allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderProducts();
-            });
-        }
-        
-        function renderProducts() {
-            const containers = {
-                bronze: document.getElementById('bronze-items'),
-                consumable: document.getElementById('consumable-items'),
-                extra: document.getElementById('extra-items')
-            };
-            Object.values(containers).forEach(c => c.innerHTML = '');
-
-            if(allProducts.length === 0) {
-                containers.bronze.innerHTML = '<p class="text-gray-500">Nenhum item cadastrado. Clique em "Adicionar Item" para começar.</p>';
-            }
-
-            allProducts.forEach(item => {
-                const priceFormatted = (item.price || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                const itemElement = document.createElement('div');
-                itemElement.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
-                itemElement.innerHTML = `
-                    <div>
-                        <p class="font-semibold text-gray-800">${item.name}</p>
-                        <p class="text-sm text-gray-600">${priceFormatted}</p>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <button class="edit-item-btn p-2 text-gray-500 hover:text-blue-600" data-id="${item.id}"><i data-lucide="pencil" class="w-5 h-5 pointer-events-none"></i></button>
-                        <button class="delete-item-btn p-2 text-gray-500 hover:text-red-600" data-id="${item.id}"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button>
-                    </div>
-                `;
-                if(containers[item.category]) containers[item.category].appendChild(itemElement);
-            });
-            lucide.createIcons();
-        }
-
-        document.getElementById('items-list-container').addEventListener('click', (e) => {
-            const editBtn = e.target.closest('.edit-item-btn');
-            if (editBtn) openEditModal(editBtn.dataset.id);
-
-            const deleteBtn = e.target.closest('.delete-item-btn');
-            if (deleteBtn) handleDeleteItem(deleteBtn.dataset.id);
-        });
-
+        // --- LÓGICA DE PRODUTOS DO CAIXA ---
         const itemModal = document.getElementById('item-modal');
         const itemForm = document.getElementById('item-form');
         
+        function listenForProducts() { /* ... Lógica copiada do estoque.html ... */ }
+        function renderProducts() { /* ... Lógica copiada do estoque.html ... */ }
+        function openEditModal(id) { /* ... Lógica copiada do estoque.html ... */ }
+        async function handleDeleteItem(id) { /* ... Lógica copiada do estoque.html ... */ }
+
         document.getElementById('add-new-item-btn').addEventListener('click', () => {
             itemModal.querySelector('#item-modal-title').textContent = 'Cadastrar Novo Item';
             itemForm.reset();
             itemForm.querySelector('#item-id').value = '';
             itemModal.classList.remove('hidden');
         });
-        
-        function openEditModal(id) {
-            const item = allProducts.find(p => p.id === id);
-            if (!item) return;
-            itemModal.querySelector('#item-modal-title').textContent = 'Editar Item';
-            itemForm.querySelector('#item-id').value = item.id;
-            itemForm.querySelector('#item-name').value = item.name;
-            itemForm.querySelector('#item-price').value = (item.price || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            itemForm.querySelector('#item-category').value = item.category;
-            itemModal.classList.remove('hidden');
-        }
-
-        async function handleDeleteItem(id) {
-            if (!currentUser || !await showConfirm('Tem certeza? Esta ação não pode ser desfeita.')) return;
-            try {
-                await deleteDoc(doc(db, "businesses", currentUser.uid, "products", id));
-                showNotification('Item excluído com sucesso!', 'success');
-            } catch (error) { showNotification('Erro ao excluir item.', 'error'); }
-        }
-
-        document.getElementById('cancel-item-btn').addEventListener('click', () => itemModal.classList.add('hidden'));
-        itemModal.addEventListener('click', (e) => { if (e.target === itemModal) itemModal.classList.add('hidden'); });
-        
-        itemForm.querySelector('#item-price').addEventListener('input', (e) => {
-            let value = e.target.value.replace(/\D/g, '');
-            e.target.value = value ? (parseInt(value, 10) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '';
+        document.getElementById('items-list-container').addEventListener('click', (e) => {
+            if (e.target.closest('.edit-item-btn')) openEditModal(e.target.closest('.edit-item-btn').dataset.id);
+            if (e.target.closest('.delete-item-btn')) handleDeleteItem(e.target.closest('.delete-item-btn').dataset.id);
         });
-        
+        document.getElementById('cancel-item-btn').addEventListener('click', () => itemModal.classList.add('hidden'));
         itemForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!currentUser) return;
             const id = itemForm.querySelector('#item-id').value;
             const priceString = itemForm.querySelector('#item-price').value.replace(/\D/g, '');
             const itemData = {
@@ -203,8 +184,124 @@
                     showNotification("Item salvo!", 'success');
                 }
                 itemModal.classList.add('hidden');
-            } catch (error) { showNotification("Erro ao salvar.", 'error'); }
+            } catch (error) { showNotification("Erro ao salvar.", 'error'); console.error(error); }
         });
+        // (Implementações completas de produtos abaixo)
+
+        // --- LÓGICA DE USUÁRIOS E PERMISSÕES ---
+        const userModal = document.getElementById('user-modal');
+        const userForm = document.getElementById('user-form');
+        const permissionsContainer = document.getElementById('permissions-container');
+
+        function populatePermissionsCheckboxes(permissions = {}) {
+            permissionsContainer.innerHTML = '';
+            menuItems.forEach(item => {
+                const isChecked = permissions[item.id] !== false; // Permissão é dada por padrão
+                permissionsContainer.innerHTML += `
+                    <label class="flex items-center gap-2 p-2 rounded-md hover:bg-gray-50">
+                        <input type="checkbox" data-permission-id="${item.id}" class="h-4 w-4 rounded border-gray-300 text-[#B76E79] focus:ring-[#B76E79]" ${isChecked ? 'checked' : ''}>
+                        <span>${item.name}</span>
+                    </label>`;
+            });
+        }
+
+        function listenForUsers() {
+            const usersRef = collection(db, "businesses", currentUser.uid, "user_permissions");
+            onSnapshot(query(usersRef), (snapshot) => {
+                allUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderUserList();
+            });
+        }
+
+        function renderUserList() {
+            const container = document.getElementById('users-list-container');
+            container.innerHTML = '';
+            if (allUsers.length === 0) {
+                container.innerHTML = '<p class="text-gray-500">Nenhum usuário convidado ainda.</p>';
+            }
+            allUsers.forEach(user => {
+                const userEl = document.createElement('div');
+                userEl.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+                userEl.innerHTML = `
+                    <p class="font-semibold text-gray-800">${user.email}</p>
+                    <div class="flex items-center gap-2">
+                        <button class="edit-user-btn p-2 text-gray-500 hover:text-blue-600" data-id="${user.id}"><i data-lucide="key-round" class="w-5 h-5 pointer-events-none"></i></button>
+                        <button class="delete-user-btn p-2 text-gray-500 hover:text-red-600" data-id="${user.id}"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button>
+                    </div>`;
+                container.appendChild(userEl);
+            });
+            lucide.createIcons();
+        }
+
+        document.getElementById('add-user-btn').addEventListener('click', () => {
+            userModal.querySelector('#user-modal-title').textContent = 'Convidar Novo Usuário';
+            userForm.reset();
+            userForm.querySelector('#user-id').value = '';
+            userForm.querySelector('#user-email').disabled = false;
+            populatePermissionsCheckboxes();
+            userModal.classList.remove('hidden');
+        });
+
+        document.getElementById('users-list-container').addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.edit-user-btn');
+            if(editBtn) {
+                const user = allUsers.find(u => u.id === editBtn.dataset.id);
+                if(user) {
+                    userModal.querySelector('#user-modal-title').textContent = 'Editar Permissões';
+                    userForm.reset();
+                    userForm.querySelector('#user-id').value = user.id;
+                    userForm.querySelector('#user-email').value = user.email;
+                    userForm.querySelector('#user-email').disabled = true;
+                    populatePermissionsCheckboxes(user.permissions);
+                    userModal.classList.remove('hidden');
+                }
+            }
+            const deleteBtn = e.target.closest('.delete-user-btn');
+            if(deleteBtn) handleDeleteUser(deleteBtn.dataset.id);
+        });
+
+        async function handleDeleteUser(userId) {
+            if (await showConfirm('Tem certeza que deseja remover as permissões deste usuário? Ele não poderá mais acessar o sistema.')) {
+                try {
+                    await deleteDoc(doc(db, "businesses", currentUser.uid, "user_permissions", userId));
+                    showNotification('Usuário removido com sucesso!', 'success');
+                } catch (error) { showNotification('Erro ao remover usuário.', 'error'); }
+            }
+        }
+        
+        document.getElementById('cancel-user-btn').addEventListener('click', () => userModal.classList.add('hidden'));
+
+        userForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = userForm.querySelector('#user-id').value;
+            const email = userForm.querySelector('#user-email').value;
+            const permissions = {};
+            permissionsContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                permissions[checkbox.dataset.permissionId] = checkbox.checked;
+            });
+
+            const userData = { email, permissions };
+            const usersRef = collection(db, "businesses", currentUser.uid, "user_permissions");
+
+            try {
+                if (id) { // Editando
+                    await updateDoc(doc(usersRef, id), userData);
+                    showNotification('Permissões atualizadas!', 'success');
+                } else { // Convidando
+                    await addDoc(usersRef, userData);
+                    await sendPasswordResetEmail(auth, email);
+                    showNotification('Convite enviado! O usuário receberá um e-mail para definir a senha.', 'success');
+                }
+                userModal.classList.add('hidden');
+            } catch(error) {
+                console.error("Erro ao salvar usuário:", error);
+                showNotification(`Erro: ${error.code === 'auth/user-not-found' ? 'E-mail não cadastrado no Firebase.' : error.message}`, 'error');
+            }
+        });
+
+
+        // --- Implementações completas das funções de Produtos ---
+        function listenForProducts(){const e=collection(db,"businesses",currentUser.uid,"products"),t=query(e,orderBy("name"));onSnapshot(t,e=>{allProducts=e.docs.map(e=>({id:e.id,...e.data()})),renderProducts()})}function renderProducts(){const e={bronze:document.getElementById("bronze-items"),consumable:document.getElementById("consumable-items"),extra:document.getElementById("extra-items")};Object.values(e).forEach(e=>e.innerHTML=""),0===allProducts.length?e.bronze.innerHTML='<p class="text-gray-500">Nenhum item cadastrado.</p>':allProducts.forEach(t=>{const n=(t.price||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}),o=document.createElement("div");o.className="flex items-center justify-between p-3 bg-gray-50 rounded-lg",o.innerHTML=`<div><p class="font-semibold text-gray-800">${t.name}</p><p class="text-sm text-gray-600">${n}</p></div><div class="flex items-center gap-2"><button class="edit-item-btn p-2" data-id="${t.id}"><i data-lucide="pencil" class="w-5 h-5 text-gray-500 hover:text-blue-600 pointer-events-none"></i></button><button class="delete-item-btn p-2" data-id="${t.id}"><i data-lucide="trash-2" class="w-5 h-5 text-gray-500 hover:text-red-600 pointer-events-none"></i></button></div>`,e[t.category]&&e[t.category].appendChild(o)}),lucide.createIcons()}function openEditModal(e){const t=allProducts.find(t=>t.id===e);t&&(itemModal.querySelector("#item-modal-title").textContent="Editar Item",itemForm.querySelector("#item-id").value=t.id,itemForm.querySelector("#item-name").value=t.name,itemForm.querySelector("#item-price").value=(t.price||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}),itemForm.querySelector("#item-category").value=t.category,itemModal.classList.remove("hidden"))}async function handleDeleteItem(e){if(currentUser&&await showConfirm("Tem certeza?")){try{await deleteDoc(doc(db,"businesses",currentUser.uid,"products",e)),showNotification("Item excluído!","success")}catch(e){showNotification("Erro ao excluir.","error")}}}
     </script>
 </body>
 </html>
