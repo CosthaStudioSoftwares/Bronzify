@@ -39,7 +39,9 @@
             <header class="flex justify-between items-center mb-8">
                <button id="open-menu-btn" class="lg:hidden p-2 -ml-2"><i data-lucide="menu" class="w-6 h-6 text-gray-800"></i></button>
                <h2 class="text-3xl lg:text-4xl text-gray-800">Dashboard</h2>
-               <img src="https://placehold.co/40x40/FADADD/B76E79?text=B" alt="Avatar" class="rounded-full">
+               <div class="flex items-center gap-2 sm:gap-4">
+                   <img src="https://placehold.co/40x40/FADADD/B76E79?text=B" alt="Avatar" class="rounded-full">
+               </div>
             </header>
             <div class="bg-white p-4 rounded-2xl shadow-md mb-8 flex flex-wrap items-center justify-between gap-4">
                <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
@@ -67,15 +69,15 @@
                     </div>
                     <div class="bg-white p-6 rounded-2xl shadow-md">
                         <h3 id="revenue-title" class="text-lg font-semibold text-gray-500">Faturamento Mensal</h3>
-                        <p id="monthly-revenue" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">R$ 0,00</p>
+                        <p id="monthly-revenue" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">Carregando...</p>
                     </div>
                     <div class="bg-white p-6 rounded-2xl shadow-md">
                         <h3 class="text-lg font-semibold text-gray-500">Faturamento Diário</h3>
-                        <p id="daily-revenue" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">R$ 0,00</p>
+                        <p id="daily-revenue" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">Carregando...</p>
                     </div>
                     <div class="bg-white p-6 rounded-2xl shadow-md">
                         <h3 id="appointments-title" class="text-lg font-semibold text-gray-500">Atendimentos no Dia</h3>
-                        <p id="daily-appointments" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">0</p>
+                        <p id="daily-appointments" class="text-3xl sm:text-4xl font-bold text-[#B76E79] mt-2">Carregando...</p>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -91,9 +93,7 @@
             </div>
         </main>
         
-        <div id="payment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden"></div>
-        <div id="help-alert-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden"></div>
-    </div>
+        </div>
     
     <div id="payment-success-toast" class="toast-success fixed bottom-8 right-8 bg-green-500 text-white p-4 rounded-xl shadow-lg flex items-center gap-3 z-[100]">
         <i data-lucide="check-circle" class="w-6 h-6"></i>
@@ -107,14 +107,12 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, doc, getDoc, collection, onSnapshot, query, where, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
-
+        
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const functions = getFunctions(app, 'southamerica-east1');
 
         let dashboardDataCache = null;
         let currentUser = null;
@@ -140,7 +138,7 @@
                     updateSubscriptionCard(docSnap.data());
                     const expiresAtDate = docSnap.data().plan.expiresAt.toDate();
                     const diffDays = Math.ceil((expiresAtDate - new Date()) / (1000 * 60 * 60 * 24));
-                    if (diffDays <= 0) {
+                    if (diffDays <= 0 && window.location.pathname.includes('dashboard.html')) {
                         window.location.href = './assinatura.html';
                         return;
                     }
@@ -160,6 +158,14 @@
             const diffDays = Math.ceil((expiresAtDate - new Date()) / (1000 * 60 * 60 * 24));
             document.getElementById('subscription-days').textContent = `${diffDays} dia${diffDays !== 1 ? 's' : ''}`;
             document.getElementById('subscription-status-text').textContent = `Expira em ${expiresAtDate.toLocaleDateString('pt-BR')}.`;
+             const renewBtn = document.getElementById('renew-btn');
+            if (userData.plan.type === 'trial') {
+                document.getElementById('subscription-card-title').textContent = "Período de Teste";
+                renewBtn.querySelector('span').textContent = "Assinar Agora";
+            } else {
+                document.getElementById('subscription-card-title').textContent = "Assinatura Ativa";
+                renewBtn.querySelector('span').textContent = "Renovar Assinatura";
+            }
         }
 
         async function initializeDashboard() {
@@ -170,7 +176,6 @@
             for (let year = currentYear; year >= 2020; year--) yearSelect.add(new Option(year, year));
             monthSelect.value = new Date().getMonth();
             yearSelect.value = currentYear;
-            
             await fetchDashboardData();
         }
 
@@ -179,7 +184,7 @@
             const selectedMonth = parseInt(monthSelect.value);
             const selectedYear = parseInt(yearSelect.value);
             let startDate, endDate;
-            
+
             document.getElementById("revenue-title").textContent = selectedMonth === 12 ? "Faturamento Anual" : "Faturamento Mensal";
             document.getElementById("services-chart-title").textContent = selectedMonth === 12 ? "Serviços (Ano)" : "Serviços (Mês)";
             
@@ -262,7 +267,7 @@
         document.getElementById("renew-btn").addEventListener("click", () => window.location.href = './assinatura.html');
 
         document.getElementById("download-btn").addEventListener("click", () => {
-            if (!dashboardDataCache) return alert("Os dados ainda estão a carregar.");
+            if (!dashboardDataCache) { return alert("Aguarde o carregamento dos dados antes de baixar o PDF."); }
             const pdf = new jsPDF();
             const periodText = monthSelect.options[monthSelect.selectedIndex].text + " de " + yearSelect.value;
             pdf.setFontSize(18); pdf.text("Relatório de Faturamento - Bronzify", 14, 22);
@@ -287,7 +292,7 @@
         });
 
         document.getElementById("share-btn").addEventListener("click", async () => {
-            if (!dashboardDataCache) return alert("Os dados ainda estão a carregar.");
+            if (!dashboardDataCache) { return alert("Aguarde o carregamento dos dados antes de compartilhar."); }
             const periodText = monthSelect.options[monthSelect.selectedIndex].text + " de " + yearSelect.value;
             let shareText = `*Relatório Bronzify - ${periodText}*\n\n`;
             shareText += `*Faturamento:* ${dashboardDataCache.monthlyRevenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}\n`;
@@ -297,7 +302,9 @@
             if (navigator.share) {
                 try { await navigator.share({ title: `Relatório Bronzify - ${periodText}`, text: shareText }); }
                 catch (error) { console.error("Erro ao compartilhar:", error); }
-            } else { alert("Função de compartilhamento não suportada neste navegador."); }
+            } else {
+                alert("Função de compartilhamento não suportada neste navegador.");
+            }
         });
     </script>
 </body>
