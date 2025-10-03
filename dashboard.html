@@ -94,9 +94,6 @@
         </main>
     </div>
     
-    <div id="payment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden"></div>
-    <div id="help-alert-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden"></div>
-
     <div id="payment-success-toast" class="toast-success fixed bottom-8 right-8 bg-green-500 text-white p-4 rounded-xl shadow-lg flex items-center gap-3 z-[100]">
         <i data-lucide="check-circle" class="w-6 h-6"></i>
         <span>Pagamento confirmado! Sua assinatura foi renovada.</span>
@@ -110,13 +107,11 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, onSnapshot, query, where, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
-
+        import { getFirestore, doc, onSnapshot, query, where, getDocs, collection, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const functions = getFunctions(app, 'southamerica-east1');
 
         let dashboardDataCache = null;
         let currentUser = null;
@@ -188,7 +183,7 @@
             const selectedMonth = parseInt(monthSelect.value);
             const selectedYear = parseInt(yearSelect.value);
             let startDate, endDate;
-
+            
             document.getElementById("revenue-title").textContent = selectedMonth === 12 ? "Faturamento Anual" : "Faturamento Mensal";
             document.getElementById("services-chart-title").textContent = selectedMonth === 12 ? "Serviços (Ano)" : "Serviços (Mês)";
             
@@ -211,6 +206,7 @@
                 const [periodSnapshot, todaySnapshot] = await Promise.all([getDocs(periodQuery), getDocs(todayQuery)]);
                 
                 let monthlyRevenue = 0, dailyRevenue = 0;
+                // *** A CORREÇÃO ESTÁ AQUI ***
                 const serviceCounts = {}, periodPaymentTotals = {}, dailyPaymentTotals = {};
                 
                 periodSnapshot.forEach(doc => {
