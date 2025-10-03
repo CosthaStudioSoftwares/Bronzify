@@ -190,13 +190,13 @@
             if (user) {
                 currentUser = user;
                 try {
-                    await initializeClientList();
+                    await loadAndDisplayInitialData();
                     document.body.classList.remove('opacity-0');
                 } catch (e) {
                     console.error("Falha crítica na inicialização:", e);
                     const mainContent = document.querySelector('main');
                     if(mainContent) {
-                         mainContent.innerHTML = `<div class="p-8 text-center text-red-500"><h1>Erro Crítico</h1><p>Ocorreu um erro grave ao carregar os clientes. Isso pode ser causado por um cliente com dados inválidos (ex: sem nome) no banco de dados.</p><p class="mt-2 text-sm text-gray-600">Detalhe do erro: ${e.message}</p></div>`;
+                         mainContent.innerHTML = `<div class="p-8 text-center text-red-500"><h1>Erro Crítico</h1><p>Ocorreu um erro grave ao carregar os clientes. Verifique o console de desenvolvedor (F12) para mais detalhes.</p><p class="mt-2 text-sm text-gray-600">Detalhe do erro: ${e.message}</p></div>`;
                     }
                     document.body.classList.remove('opacity-0');
                 }
@@ -205,21 +205,16 @@
             }
         });
 
-        async function initializeClientList() {
+        async function loadAndDisplayInitialData() {
             if (!currentUser) return;
             clientsListEl.innerHTML = '<p class="text-gray-500">A carregar clientes...</p>';
             
             const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
-            const q = query(clientsRef);
+            const querySnapshot = await getDocs(query(clientsRef));
             
-            const querySnapshot = await getDocs(q);
             allClientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-            allClientsData.sort((a, b) => {
-                const nameA = a.name || '';
-                const nameB = b.name || '';
-                return nameA.localeCompare(nameB, 'pt-BR', { sensitivity: 'base' });
-            });
+            allClientsData.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' }));
 
             currentClientList = allClientsData;
             currentPage = 1;
@@ -231,7 +226,7 @@
             const paginationControls = document.getElementById('pagination-controls');
             paginationControls.innerHTML = '';
 
-            if (currentClientList.length === 0) {
+            if (!currentClientList || currentClientList.length === 0) {
                 clientsListEl.innerHTML = '<p class="text-gray-500">Nenhum cliente encontrado.</p>';
                 return;
             }
@@ -296,8 +291,6 @@
                     }
                 }
 
-                const safeClientName = (client.name || '').replace(/"/g, '&quot;');
-
                 const clientElement = document.createElement('div');
                 clientElement.className = 'client-item flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 rounded-lg gap-4';
                 clientElement.innerHTML = `
@@ -314,7 +307,7 @@
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
                         <button class="edit-btn p-2 text-gray-500 hover:text-blue-600" data-id="${client.id}" title="Editar Cliente"><i data-lucide="file-pen-line" class="pointer-events-none"></i></button>
-                        <button class="delete-btn p-2 text-gray-500 hover:text-red-600" data-id="${client.id}" data-name="${safeClientName}" title="Excluir Cliente"><i data-lucide="trash-2" class="pointer-events-none"></i></button>
+                        <button class="delete-btn p-2 text-gray-500 hover:text-red-600" data-id="${client.id}" title="Excluir Cliente"><i data-lucide="trash-2" class="pointer-events-none"></i></button>
                     </div>`;
                 clientsListEl.appendChild(clientElement);
             });
@@ -324,41 +317,38 @@
         const searchInput = document.getElementById('search-input');
         const searchResultsContainer = document.getElementById('search-results');
 
-        function filterClientList() {
+        function updateClientListFromSearch() {
             const searchTerm = searchInput.value.trim();
-            const normalizedSearchTerm = removeAccents(searchTerm.toLowerCase());
-            
             if (!searchTerm) {
                 currentClientList = allClientsData;
             } else {
+                const normalizedSearchTerm = removeAccents(searchTerm.toLowerCase());
                 currentClientList = allClientsData.filter(client => {
                     const clientName = client.name || '';
                     const normalizedClientName = removeAccents(clientName.toLowerCase());
-                    
                     const clientPhoneNumber = client.phone ? client.phone.replace(/\D/g, '') : '';
                     const searchPhoneNumber = searchTerm.replace(/\D/g, '');
-
                     return normalizedClientName.includes(normalizedSearchTerm) ||
                            (clientPhoneNumber && searchPhoneNumber.length > 0 && clientPhoneNumber.includes(searchPhoneNumber));
                 });
             }
-            
             currentPage = 1;
             renderPaginatedClients();
         }
 
         searchInput.addEventListener('input', () => {
             const searchTerm = searchInput.value.trim();
-            const normalizedSearchTerm = removeAccents(searchTerm.toLowerCase());
-
+            if (searchTerm.length === 0) {
+                searchResultsContainer.classList.add('hidden');
+                updateClientListFromSearch();
+                return;
+            }
             if (searchTerm.length < 2) {
                 searchResultsContainer.classList.add('hidden');
-                if (searchTerm.length === 0) {
-                    filterClientList();
-                }
                 return;
             }
 
+            const normalizedSearchTerm = removeAccents(searchTerm.toLowerCase());
             const filteredClients = allClientsData.filter(client => {
                 const clientName = client.name || '';
                 const normalizedClientName = removeAccents(clientName.toLowerCase());
@@ -377,7 +367,7 @@
                     item.onclick = () => {
                         searchInput.value = client.name;
                         searchResultsContainer.classList.add('hidden');
-                        filterClientList(); // Filtra a lista principal com o cliente selecionado
+                        updateClientListFromSearch();
                     };
                     searchResultsContainer.appendChild(item);
                 });
@@ -396,18 +386,16 @@
         function applyFilter(filterType) {
              if (filterType === 'birthday') {
                 const currentMonth = new Date().getMonth() + 1;
-                const birthdayClients = allClientsData.filter(client => {
+                currentClientList = allClientsData.filter(client => {
                     if (!client.birthdate) return false;
                     const birthMonth = new Date(client.birthdate + 'T00:00:00').getMonth() + 1;
                     return birthMonth === currentMonth;
                 });
-                currentClientList = birthdayClients;
              } else if (filterType === 'package') {
-                const packageClients = allClientsData.filter(client => {
+                currentClientList = allClientsData.filter(client => {
                     if (!client.packages) return false;
                     return Object.values(client.packages).some(count => count > 0);
                 });
-                currentClientList = packageClients;
              }
              currentPage = 1;
              renderPaginatedClients();
@@ -487,17 +475,19 @@
                 if (clientToEdit) openModalForEdit(clientToEdit);
             }
             if (deleteBtn) {
-                const clientNameToDelete = deleteBtn.dataset.name;
+                const clientIdToDelete = deleteBtn.dataset.id;
+                const clientToDelete = allClientsData.find(c => c.id === clientIdToDelete);
+                const clientNameToDelete = clientToDelete ? clientToDelete.name : '';
+
                 const confirmationMessage = 'Você tem certeza que deseja excluir "' + clientNameToDelete + '"?';
                 const confirmed = await showConfirm(confirmationMessage);
                 
                 if(confirmed) {
-                    const clientIdToDelete = deleteBtn.dataset.id;
                     const clientRef = doc(db, "businesses", currentUser.uid, "clients", clientIdToDelete);
                     try {
                         await deleteDoc(clientRef);
                         showNotification("Cliente excluído com sucesso!", "success");
-                        initializeClientList();
+                        loadAndDisplayInitialData();
                     } catch (error) {
                         console.error("Erro ao excluir cliente:", error);
                         showNotification("Erro ao excluir cliente.", "error");
@@ -510,11 +500,7 @@
             e.preventDefault();
             if (!currentUser) return;
             const clientId = clientIdField.value;
-            const clientData = {
-                name: clientNameField.value,
-                phone: clientPhoneField.value,
-                birthdate: clientBirthdateField.value,
-            };
+            const clientData = { name: clientNameField.value, phone: clientPhoneField.value, birthdate: clientBirthdateField.value };
             const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
             const inputName = clientData.name.trim();
             const inputPhone = clientData.phone;
@@ -524,17 +510,11 @@
                 const [nameSnapshot, phoneSnapshot] = await Promise.all([getDocs(nameQuery), getDocs(phoneQuery)]);
                 let nameExists = !nameSnapshot.empty && nameSnapshot.docs[0].id !== clientId;
                 let phoneExists = !phoneSnapshot.empty && phoneSnapshot.docs[0].id !== clientId;
-                if (nameExists) {
-                    showNotification('Erro: Já existe um cliente com este nome.', 'error');
-                    return;
-                }
-                if (phoneExists) {
-                    showNotification('Erro: Já existe um cliente com este telefone.', 'error');
-                    return;
-                }
+                if (nameExists) { showNotification('Erro: Já existe um cliente com este nome.', 'error'); return; }
+                if (phoneExists) { showNotification('Erro: Já existe um cliente com este telefone.', 'error'); return; }
+
                 if (clientId) {
-                    const clientRef = doc(clientsRef, clientId);
-                    await updateDoc(clientRef, clientData);
+                    await updateDoc(doc(clientsRef, clientId), clientData);
                     showNotification("Cliente atualizado com sucesso!", "success");
                 } else {
                     clientData.createdAt = new Date();
@@ -542,7 +522,7 @@
                     showNotification("Cliente cadastrado com sucesso!", "success");
                 }
                 modal.classList.add('hidden');
-                initializeClientList();
+                loadAndDisplayInitialData();
             } catch (error) {
                 console.error("Erro ao salvar cliente: ", error);
                 showNotification("Erro ao salvar cliente.", "error");
