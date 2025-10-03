@@ -92,9 +92,11 @@
                 </div>
             </div>
         </main>
-        
-        </div>
+    </div>
     
+    <div id="payment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden"></div>
+    <div id="help-alert-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden"></div>
+
     <div id="payment-success-toast" class="toast-success fixed bottom-8 right-8 bg-green-500 text-white p-4 rounded-xl shadow-lg flex items-center gap-3 z-[100]">
         <i data-lucide="check-circle" class="w-6 h-6"></i>
         <span>Pagamento confirmado! Sua assinatura foi renovada.</span>
@@ -109,10 +111,12 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, doc, getDoc, collection, onSnapshot, query, where, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        
+        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const functions = getFunctions(app, 'southamerica-east1');
 
         let dashboardDataCache = null;
         let currentUser = null;
@@ -137,7 +141,7 @@
                 if (docSnap.exists() && docSnap.data().plan?.expiresAt) {
                     updateSubscriptionCard(docSnap.data());
                     const expiresAtDate = docSnap.data().plan.expiresAt.toDate();
-                    const diffDays = Math.ceil((expiresAtDate - new Date()) / (1000 * 60 * 60 * 24));
+                    const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
                     if (diffDays <= 0 && window.location.pathname.includes('dashboard.html')) {
                         window.location.href = './assinatura.html';
                         return;
@@ -155,7 +159,7 @@
 
         function updateSubscriptionCard(userData) {
             const expiresAtDate = userData.plan.expiresAt.toDate();
-            const diffDays = Math.ceil((expiresAtDate - new Date()) / (1000 * 60 * 60 * 24));
+            const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
             document.getElementById('subscription-days').textContent = `${diffDays} dia${diffDays !== 1 ? 's' : ''}`;
             document.getElementById('subscription-status-text').textContent = `Expira em ${expiresAtDate.toLocaleDateString('pt-BR')}.`;
              const renewBtn = document.getElementById('renew-btn');
