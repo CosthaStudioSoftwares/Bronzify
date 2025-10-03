@@ -46,13 +46,14 @@
                     <i data-lucide="user-plus"></i> <span>Cadastrar Cliente</span>
                 </button>
             </header>
+
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div class="lg:col-span-2 space-y-8">
                     <div class="bg-white p-6 rounded-2xl shadow-md">
                         <h3 class="text-2xl text-gray-800 mb-4">Pesquisar Clientes</h3>
                         <div class="flex flex-col gap-4">
                             <div class="relative flex-grow">
-                                <input type="text" id="search-input" placeholder="Digite o nome ou telefone do cliente..." class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]">
+                                <input type="text" id="search-input" placeholder="Digite nome ou telefone para filtrar a lista..." class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]">
                                 <div id="search-results" class="absolute z-10 w-full bg-white border rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
                             </div>
                             <div class="flex flex-col sm:flex-row gap-4">
@@ -66,6 +67,7 @@
                         </div>
                         <p class="text-sm text-gray-500 mt-2">Clique novamente em um filtro para limpar e ver todos os clientes.</p>
                     </div>
+
                     <div class="bg-white p-6 rounded-2xl shadow-md">
                         <h3 class="text-2xl text-gray-800 mb-4">Lista de Clientes</h3>
                         <div id="clients-list" class="space-y-4"></div>
@@ -127,6 +129,8 @@
 
         let currentUser = null;
         const clientsListEl = document.getElementById('clients-list');
+        const searchInput = document.getElementById('search-input');
+        const searchResultsContainer = document.getElementById('search-results');
         
         let allClientsData = []; 
         let currentClientList = [];
@@ -137,57 +141,57 @@
         let currentPage = 1;
         const CLIENTS_PER_PAGE = 5;
 
+        // Função principal que é chamada quando o usuário está logado
+        async function initializePage() {
+            try {
+                await loadAllClients();
+                currentClientList = [...allClientsData]; // Inicia com a lista completa
+                renderPaginatedClients();
+                document.body.classList.remove('opacity-0');
+            } catch (e) {
+                console.error("Falha crítica na inicialização:", e);
+                clientsListEl.innerHTML = `<p class="text-red-500">Ocorreu um erro grave: ${e.message}</p>`;
+                document.body.classList.remove('opacity-0');
+            }
+        }
+
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
-                try {
-                    await loadAndDisplayInitialData();
-                    document.body.classList.remove('opacity-0');
-                } catch (e) {
-                    console.error("Falha crítica na inicialização:", e);
-                    clientsListEl.innerHTML = `<p class="text-red-500">Ocorreu um erro grave: ${e.message}</p>`;
-                    document.body.classList.remove('opacity-0');
-                }
+                await initializePage();
             } else {
                 window.location.href = 'index.html';
             }
         });
 
-        async function loadAndDisplayInitialData() {
+        // 1. Carrega todos os clientes e ordena
+        async function loadAllClients() {
             if (!currentUser) return;
-            clientsListEl.innerHTML = '<p class="text-gray-500">A carregar clientes...</p>';
-            
             const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
             const querySnapshot = await getDocs(query(clientsRef));
-            
             allClientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             allClientsData.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' }));
-
-            currentClientList = allClientsData;
-            currentPage = 1;
-            renderPaginatedClients();
         }
         
+        // 2. Renderiza a página atual da lista
         function renderPaginatedClients() {
             const paginationControls = document.getElementById('pagination-controls');
-            if (paginationControls) paginationControls.innerHTML = '';
+            paginationControls.innerHTML = '';
 
             const startIndex = (currentPage - 1) * CLIENTS_PER_PAGE;
             const endIndex = startIndex + CLIENTS_PER_PAGE;
             const paginatedClients = currentClientList.slice(startIndex, endIndex);
 
-            renderClientItems(paginatedClients);
+            renderClientItems(paginatedClients); // Usa a função de renderização
 
             const totalPages = Math.ceil(currentClientList.length / CLIENTS_PER_PAGE);
 
-            if (totalPages > 1 && paginationControls) {
+            if (totalPages > 1) {
                 const prevButton = document.createElement('button');
                 prevButton.innerHTML = '<i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i> Voltar';
                 prevButton.className = 'px-4 py-2 text-gray-600 rounded-lg hover:bg-gray-100 flex items-center disabled:opacity-50 disabled:cursor-not-allowed';
                 prevButton.disabled = currentPage === 1;
-                prevButton.onclick = () => {
-                    if (currentPage > 1) { currentPage--; renderPaginatedClients(); }
-                };
+                prevButton.onclick = () => { currentPage--; renderPaginatedClients(); };
 
                 const pageInfo = document.createElement('span');
                 pageInfo.className = 'text-sm text-gray-500';
@@ -197,15 +201,14 @@
                 nextButton.innerHTML = 'Ver mais <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>';
                 nextButton.className = 'px-4 py-2 text-gray-600 rounded-lg hover:bg-gray-100 flex items-center disabled:opacity-50 disabled:cursor-not-allowed';
                 nextButton.disabled = currentPage >= totalPages;
-                nextButton.onclick = () => {
-                    if (currentPage < totalPages) { currentPage++; renderPaginatedClients(); }
-                };
+                nextButton.onclick = () => { currentPage++; renderPaginatedClients(); };
                 
                 paginationControls.append(prevButton, pageInfo, nextButton);
                 lucide.createIcons();
             }
         }
         
+        // 3. Renderiza os itens individuais (baseado no seu código original)
         function renderClientItems(clientsToRender) {
             clientsListEl.innerHTML = '';
             if (clientsToRender.length === 0) {
@@ -217,7 +220,6 @@
                 const clientBirthMonth = client.birthdate ? new Date(client.birthdate + 'T00:00:00').getMonth() + 1 : 0;
                 const isBirthdayMonth = clientBirthMonth === currentMonth;
                 const birthDateFormatted = client.birthdate ? new Date(client.birthdate + 'T00:00:00').toLocaleDateString('pt-BR') : 'Não informada';
-                
                 let packageInfoHtml = '';
                 if (client.packages) {
                     const activePackages = Object.entries(client.packages).filter(([name, count]) => count > 0);
@@ -227,7 +229,6 @@
                         ).join('')}</div>`;
                     }
                 }
-
                 const clientElement = document.createElement('div');
                 clientElement.className = 'client-item flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 rounded-lg gap-4';
                 clientElement.innerHTML = `
@@ -251,14 +252,11 @@
             lucide.createIcons();
         }
 
-        const searchInput = document.getElementById('search-input');
-        const searchResultsContainer = document.getElementById('search-results');
-
-        // LÓGICA DE BUSCA E SUGESTÃO (COPIADA DO caixa.html e adaptada)
+        // 4. Lógica de busca (adaptada do caixa.html)
         searchInput.addEventListener('input', (e) => {
             const searchTerm = e.target.value.trim().toLowerCase();
             
-            // Atualiza a lista principal em tempo real
+            // Filtra a lista principal em tempo real
             if (searchTerm === '') {
                 currentClientList = allClientsData;
             } else {
@@ -270,39 +268,41 @@
             currentPage = 1;
             renderPaginatedClients();
 
-            // Lógica para as sugestões (previsão)
+            // Mostra a lista de sugestões
             if (searchTerm.length < 2) {
                 searchResultsContainer.classList.add('hidden');
                 return;
             }
-
             searchResultsContainer.innerHTML = '';
-            if (currentClientList.length === 0) {
-                searchResultsContainer.innerHTML = '<div class="p-3 text-gray-500">Nenhum cliente encontrado.</div>';
-            } else {
-                currentClientList.slice(0, 5).forEach(client => {
+            const resultsToShow = currentClientList.slice(0, 5);
+
+            if (resultsToShow.length > 0) {
+                resultsToShow.forEach(client => {
                     const item = document.createElement('div');
                     item.className = 'p-3 hover:bg-gray-100 cursor-pointer';
                     item.textContent = `${client.name} - ${client.phone}`;
                     item.onclick = () => {
                         searchInput.value = client.name;
                         searchResultsContainer.classList.add('hidden');
-                        currentClientList = [client]; // Mostra apenas o cliente clicado
+                        currentClientList = [client];
                         currentPage = 1;
                         renderPaginatedClients();
                     };
                     searchResultsContainer.appendChild(item);
                 });
+                searchResultsContainer.classList.remove('hidden');
+            } else {
+                searchResultsContainer.classList.add('hidden');
             }
-            searchResultsContainer.classList.remove('hidden');
         });
-        
+
         document.addEventListener('click', (e) => {
             if (searchResultsContainer && !searchResultsContainer.contains(e.target) && e.target !== searchInput) {
                 searchResultsContainer.classList.add('hidden');
             }
         });
         
+        // --- Lógica dos Filtros e Modal (mantida e adaptada) ---
         function applyFilter(filterType) {
              if (filterType === 'birthday') {
                 const currentMonth = new Date().getMonth() + 1;
@@ -313,82 +313,43 @@
              currentPage = 1;
              renderPaginatedClients();
         }
-
         document.getElementById('birthday-filter-btn').addEventListener('click', () => {
-            isPackageFilterActive = false;
-            isBirthdayFilterActive = !isBirthdayFilterActive;
-            searchInput.value = '';
-            if (isBirthdayFilterActive) { applyFilter('birthday'); } 
-            else { loadAndDisplayInitialData(); }
+            isPackageFilterActive = false; isBirthdayFilterActive = !isBirthdayFilterActive; searchInput.value = '';
+            if (isBirthdayFilterActive) { applyFilter('birthday'); } else { currentClientList = allClientsData; currentPage = 1; renderPaginatedClients(); }
         });
-
         document.getElementById('package-filter-btn').addEventListener('click', () => {
-            isBirthdayFilterActive = false;
-            isPackageFilterActive = !isPackageFilterActive;
-            searchInput.value = '';
-            if (isPackageFilterActive) { applyFilter('package'); } 
-            else { loadAndDisplayInitialData(); }
+            isBirthdayFilterActive = false; isPackageFilterActive = !isPackageFilterActive; searchInput.value = '';
+            if (isPackageFilterActive) { applyFilter('package'); } else { currentClientList = allClientsData; currentPage = 1; renderPaginatedClients(); }
         });
-
-        const modal = document.getElementById('client-modal');
-        const modalTitle = document.getElementById('modal-title');
-        const clientForm = document.getElementById('client-form');
-        const clientIdField = document.getElementById('client-id');
-        const clientNameField = document.getElementById('client-name');
-        const clientPhoneField = document.getElementById('client-phone');
-        const clientBirthdateField = document.getElementById('client-birthdate');
-        
+        const modal = document.getElementById('client-modal'), modalTitle = document.getElementById('modal-title'), clientForm = document.getElementById('client-form');
+        const clientIdField = document.getElementById('client-id'), clientNameField = document.getElementById('client-name'), clientPhoneField = document.getElementById('client-phone'), clientBirthdateField = document.getElementById('client-birthdate');
         clientPhoneField.addEventListener('input', (e) => {
-            let value = e.target.value.replace(/\D/g, '').substring(0, 11);
-            let formattedValue = '';
-            if (value.length > 0) { formattedValue = '(' + value.substring(0, 2); }
-            if (value.length > 2) { formattedValue += ') ' + value.substring(2, 3); }
-            if (value.length > 3) { formattedValue += ' ' + value.substring(3, 7); }
-            if (value.length > 7) { formattedValue += '-' + value.substring(7, 11); }
-            e.target.value = formattedValue;
+            let v = e.target.value.replace(/\D/g, '').substring(0, 11);
+            e.target.value = v.replace(/^(\d{2})(\d)(\d{4})(\d{4})$/, '($1) $2 $3-$4');
         });
-
-        const openModalForNew = () => {
-            modalTitle.textContent = 'Cadastrar Nova Cliente';
-            clientForm.reset(); clientIdField.value = ''; modal.classList.remove('hidden');
-        };
-
-        const openModalForEdit = (client) => {
-            modalTitle.textContent = 'Editar Cliente';
-            clientForm.reset();
-            clientIdField.value = client.id;
-            clientNameField.value = client.name;
-            clientPhoneField.value = client.phone;
-            clientBirthdateField.value = client.birthdate;
-            modal.classList.remove('hidden');
-        };
-
+        const openModalForNew = () => { modalTitle.textContent = 'Cadastrar Nova Cliente'; clientForm.reset(); clientIdField.value = ''; modal.classList.remove('hidden'); };
+        const openModalForEdit = (client) => { modalTitle.textContent = 'Editar Cliente'; clientForm.reset(); clientIdField.value = client.id; clientNameField.value = client.name; clientPhoneField.value = client.phone; clientBirthdateField.value = client.birthdate; modal.classList.remove('hidden'); };
         document.getElementById('add-client-btn').addEventListener('click', openModalForNew);
-        document.getElementById('cancel-btn').addEventListener('click', () => modal.classList.add('hidden');
+        document.getElementById('cancel-btn').addEventListener('click', () => modal.classList.add('hidden'));
         
         clientsListEl.addEventListener('click', async (e) => {
             const editBtn = e.target.closest('.edit-btn');
             const deleteBtn = e.target.closest('.delete-btn');
             if (editBtn) {
-                const clientId = editBtn.dataset.id;
-                const clientToEdit = allClientsData.find(c => c.id === clientId);
+                const clientToEdit = allClientsData.find(c => c.id === editBtn.dataset.id);
                 if (clientToEdit) openModalForEdit(clientToEdit);
             }
             if (deleteBtn) {
                 const clientIdToDelete = deleteBtn.dataset.id;
                 const clientToDelete = allClientsData.find(c => c.id === clientIdToDelete);
                 const clientNameToDelete = clientToDelete ? (clientToDelete.name || '') : '';
-                
                 const confirmed = await showConfirm('Você tem certeza que deseja excluir "' + clientNameToDelete + '"?');
                 if (confirmed) {
                     try {
                         await deleteDoc(doc(db, "businesses", currentUser.uid, "clients", clientIdToDelete));
                         showNotification("Cliente excluído com sucesso!", "success");
-                        loadAndDisplayInitialData();
-                    } catch (error) {
-                        console.error("Erro ao excluir cliente:", error);
-                        showNotification("Erro ao excluir cliente.", "error");
-                    }
+                        initializePage();
+                    } catch (error) { console.error("Erro ao excluir cliente:", error); showNotification("Erro ao excluir cliente.", "error"); }
                 }
             }
         });
@@ -399,16 +360,12 @@
             const clientId = clientIdField.value;
             const clientData = { name: clientNameField.value, phone: clientPhoneField.value, birthdate: clientBirthdateField.value };
             const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
-            const inputName = clientData.name.trim();
-            const inputPhone = clientData.phone;
-            const nameQuery = query(clientsRef, where("name", "==", inputName));
-            const phoneQuery = query(clientsRef, where("phone", "==", inputPhone));
+            const nameQuery = query(clientsRef, where("name", "==", clientData.name.trim()));
+            const phoneQuery = query(clientsRef, where("phone", "==", clientData.phone));
             try {
                 const [nameSnapshot, phoneSnapshot] = await Promise.all([getDocs(nameQuery), getDocs(phoneQuery)]);
-                let nameExists = !nameSnapshot.empty && nameSnapshot.docs[0].id !== clientId;
-                let phoneExists = !phoneSnapshot.empty && phoneSnapshot.docs[0].id !== clientId;
-                if (nameExists) { showNotification('Erro: Já existe um cliente com este nome.', 'error'); return; }
-                if (phoneExists) { showNotification('Erro: Já existe um cliente com este telefone.', 'error'); return; }
+                if (!nameSnapshot.empty && nameSnapshot.docs[0].id !== clientId) { showNotification('Erro: Já existe um cliente com este nome.', 'error'); return; }
+                if (!phoneSnapshot.empty && phoneSnapshot.docs[0].id !== clientId) { showNotification('Erro: Já existe um cliente com este telefone.', 'error'); return; }
                 if (clientId) {
                     await updateDoc(doc(clientsRef, clientId), clientData);
                     showNotification("Cliente atualizado com sucesso!", "success");
@@ -418,52 +375,29 @@
                     showNotification("Cliente cadastrado com sucesso!", "success");
                 }
                 modal.classList.add('hidden');
-                loadAndDisplayInitialData();
-            } catch (error) {
-                console.error("Erro ao salvar cliente: ", error);
-                showNotification("Erro ao salvar cliente.", "error");
-            }
+                initializePage();
+            } catch (error) { console.error("Erro ao salvar cliente: ", error); showNotification("Erro ao salvar cliente.", "error"); }
         });
 
-        const raffleMonthsSelect = document.getElementById('raffle-months');
-        const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-        months.forEach((month, index) => {
-            raffleMonthsSelect.add(new Option(month, index));
-        });
-
+        const raffleMonthsSelect = document.getElementById('raffle-months'), months = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+        months.forEach((month, index) => { raffleMonthsSelect.add(new Option(month, index)); });
         const winnerModal = document.getElementById('winner-modal');
         document.getElementById('close-winner-modal').addEventListener('click', () => winnerModal.classList.add('hidden'));
-
         document.getElementById('raffle-btn').addEventListener('click', async () => {
             if (!currentUser) return;
-            if (allClientsData.length === 0) {
-               const querySnapshot = await getDocs(collection(db, "businesses", currentUser.uid, "clients"));
-               allClientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            }
             const selectedMonths = Array.from(raffleMonthsSelect.selectedOptions).map(opt => parseInt(opt.value));
-            if (selectedMonths.length === 0) {
-                showNotification("Por favor, selecione pelo menos um mês para o sorteio.", "info");
-                return;
-            }
+            if (selectedMonths.length === 0) { showNotification("Selecione um mês para o sorteio.", "info"); return; }
             const currentYear = new Date().getFullYear();
             try {
-                const yearStart = new Date(currentYear, 0, 1);
-                const yearEnd = new Date(currentYear, 11, 31, 23, 59, 59);
                 const salesRef = collection(db, "businesses", currentUser.uid, "sales");
-                const q = query(salesRef, where("createdAt", ">=", Timestamp.fromDate(yearStart)), where("createdAt", "<=", Timestamp.fromDate(yearEnd)));
-                const querySnapshot = await getDocs(q);
+                const q = query(salesRef, where("createdAt", ">=", new Date(currentYear, 0, 1)), where("createdAt", "<=", new Date(currentYear, 11, 31, 23, 59, 59)));
+                const salesSnapshot = await getDocs(q);
                 const salesInPeriod = [];
-                querySnapshot.forEach(doc => {
+                salesSnapshot.forEach(doc => {
                     const sale = doc.data();
-                    const saleMonth = sale.createdAt.toDate().getMonth();
-                    if (selectedMonths.includes(saleMonth) && sale.clientId) {
-                        salesInPeriod.push(sale);
-                    }
+                    if (selectedMonths.includes(sale.createdAt.toDate().getMonth()) && sale.clientId) { salesInPeriod.push(sale); }
                 });
-                if (salesInPeriod.length === 0) {
-                    showNotification("Nenhum cliente elegível encontrado para os meses selecionados.", "info");
-                    return;
-                }
+                if (salesInPeriod.length === 0) { showNotification("Nenhum cliente elegível encontrado.", "info"); return; }
                 const winningSale = salesInPeriod[Math.floor(Math.random() * salesInPeriod.length)];
                 const winnerInfo = allClientsData.find(c => c.id === winningSale.clientId);
                 if (winnerInfo) {
@@ -472,23 +406,14 @@
                     document.getElementById('winner-date').textContent = `Compra em: ${winningSale.createdAt.toDate().toLocaleDateString('pt-BR')}`;
                     winnerModal.classList.remove('hidden');
                     lucide.createIcons();
-                } else {
-                    showNotification("Cliente sorteado não encontrado no cadastro.", "error");
-                }
-            } catch (error) {
-                console.error("Erro ao realizar sorteio: ", error);
-                showNotification("Ocorreu um erro ao buscar os dados para o sorteio.", "error");
-            }
+                } else { showNotification("Cliente sorteado não encontrado no cadastro.", "error"); }
+            } catch (error) { console.error("Erro ao realizar sorteio: ", error); showNotification("Erro ao buscar dados.", "error"); }
         });
     </script>
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').then(registration => {
-            console.log('Service Worker registrado com sucesso:', registration);
-          }).catch(error => {
-            console.log('Falha ao registrar Service Worker:', error);
-          });
+          navigator.serviceWorker.register('/sw.js').then(r => console.log('SW ok')).catch(e => console.log('SW Falhou:', e));
         });
       }
     </script>
