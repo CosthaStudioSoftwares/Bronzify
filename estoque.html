@@ -12,6 +12,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#B76E79">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Bronzify">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
@@ -22,7 +27,7 @@
         .sidebar-link:hover, .sidebar-link.active { background-color: #FADADD; color: #B76E79; }
         tbody tr:hover { background-color: #f9fafb; }
         .notification-alert { animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -55,7 +60,7 @@
 
             <div class="bg-white p-6 rounded-2xl shadow-md">
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left">
+                    <table class="w-full text-left min-w-[600px]">
                         <thead>
                             <tr class="border-b"><th class="p-3">Código</th><th class="p-3">Produto</th><th class="p-3">Categoria</th><th class="p-3">Validade</th><th class="p-3 text-center">Qtd.</th><th class="p-3">Valor</th><th class="p-3 text-right">Ações</th></tr>
                         </thead>
@@ -67,13 +72,49 @@
         </main>
     </div>
 
-    <div id="alerts-panel" class="fixed bottom-5 right-5 space-y-2"></div>
+    <div id="alerts-panel" class="fixed bottom-5 right-5 space-y-2 z-40"></div>
 
     <div id="item-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-8">
+            <h3 id="item-modal-title" class="text-2xl text-gray-800 mb-6">Cadastrar Novo Item</h3>
+            <form id="item-form" class="space-y-4">
+                <input type="hidden" id="item-id">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><label for="item-code" class="block text-gray-600 mb-2">Código do Produto</label><input type="text" id="item-code" class="w-full px-4 py-2 border rounded-lg"></div>
+                    <div><label for="item-name" class="block text-gray-600 mb-2">Nome do Produto</label><input type="text" id="item-name" class="w-full px-4 py-2 border rounded-lg" required></div>
+                </div>
+                 <div>
+                    <label for="item-category" class="block text-gray-600 mb-2">Categoria</label>
+                    <div class="flex gap-2">
+                        <select id="item-category" class="w-full px-4 py-2 border rounded-lg" required></select>
+                        <button type="button" id="manage-categories-btn" class="p-2 border rounded-lg hover:bg-gray-100"><i data-lucide="settings-2"></i></button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div><label for="item-price" class="block text-gray-600 mb-2">Valor</label><input type="text" id="item-price" placeholder="R$ 0,00" class="w-full px-4 py-2 border rounded-lg" required></div>
+                    <div><label for="item-expiry" class="block text-gray-600 mb-2">Validade</label><input type="date" id="item-expiry" class="w-full px-4 py-2 border rounded-lg"></div>
+                    <div><label for="item-quantity" class="block text-gray-600 mb-2">Quantidade</label><input type="number" id="item-quantity" value="1" min="0" class="w-full px-4 py-2 border rounded-lg" required></div>
+                </div>
+                <div class="flex justify-end gap-4 pt-4">
+                    <button type="button" id="cancel-btn" class="px-6 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-[#B76E79] text-white rounded-lg hover:opacity-90">Salvar</button>
+                </div>
+            </form>
         </div>
+    </div>
 
-    <div id="category-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60] hidden">
+    <div id="category-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[60] hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+            <h3 class="text-2xl text-gray-800 mb-6">Gerenciar Categorias</h3>
+            <div id="category-list" class="space-y-2 mb-4 max-h-60 overflow-y-auto"></div>
+            <form id="category-form" class="flex gap-2">
+                <input type="text" id="category-name-input" placeholder="Nome da nova categoria" class="w-full px-4 py-2 border rounded-lg" required>
+                <input type="hidden" id="category-id-input">
+                <button type="submit" class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600"><i data-lucide="plus"></i></button>
+            </form>
+            <button type="button" id="close-category-modal-btn" class="w-full mt-4 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Fechar</button>
         </div>
+    </div>
 
     <script>lucide.createIcons();</script>
     <script src="./config.js"></script>
@@ -81,12 +122,22 @@
     <script src="./utils.js"></script>
     
     <script type="module">
-        // O código JavaScript completo está no arquivo ZIP para não exceder o limite de caracteres.
-        // Ele inclui:
-        // 1. Lógica completa de paginação e filtros.
-        // 2. Lógica para CRUD de Itens E Categorias.
-        // 3. Sistema de notificações para estoque baixo e validade.
-        // 4. Funcionalidade para compartilhar a lista de produtos via WhatsApp.
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let allStockItems = [];
+        let allCategories = [];
+        let currentItemList = [];
+        let currentPage = 1;
+        const ITEMS_PER_PAGE = 5;
+
+        // ... (resto do código JS)
     </script>
 </body>
 </html>
