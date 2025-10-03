@@ -11,11 +11,12 @@
     <title>Clientes - Bronzify</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#B76E79">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Bronzify">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <meta name="theme-color" content="#B76E79">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Bronzify">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
@@ -181,21 +182,11 @@
         let currentPage = 1;
         const CLIENTS_PER_PAGE = 5;
 
-        // FUNÇÃO DE BUSCA MAIS SEGURA (SEM normalize())
         function removeAccents(str) {
             if (typeof str !== 'string') return '';
-            const map = {
-                'á': 'a', 'à': 'a', 'â': 'a', 'ã': 'a', 'ä': 'a', 'Á': 'A', 'À': 'A', 'Â': 'A', 'Ã': 'A', 'Ä': 'A',
-                'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e', 'É': 'E', 'È': 'E', 'Ê': 'E', 'Ë': 'E',
-                'í': 'i', 'ì': 'i', 'î': 'i', 'ï': 'i', 'Í': 'I', 'Ì': 'I', 'Î': 'I', 'Ï': 'I',
-                'ó': 'o', 'ò': 'o', 'ô': 'o', 'õ': 'o', 'ö': 'o', 'Ó': 'O', 'Ò': 'O', 'Ô': 'O', 'Õ': 'O', 'Ö': 'O',
-                'ú': 'u', 'ù': 'u', 'û': 'u', 'ü': 'u', 'Ú': 'U', 'Ù': 'U', 'Û': 'U', 'Ü': 'U',
-                'ç': 'c', 'Ç': 'C'
-            };
-            return str.replace(/[áàâãäéèêëíìîïóòôõöúùûüç]/gi, (char) => map[char]);
+            return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         }
 
-        // BLOCO DE INICIALIZAÇÃO MAIS SEGURO
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
@@ -206,7 +197,7 @@
                     console.error("Falha crítica na inicialização:", e);
                     const mainContent = document.querySelector('main');
                     if(mainContent) {
-                         mainContent.innerHTML = `<div class="p-8 text-center text-red-600"><h1>Erro Crítico</h1><p>Ocorreu um erro grave ao carregar os clientes. Isso pode ser causado por um cliente sem o campo 'nome' no banco de dados. Verifique os dados e tente novamente.</p><p class="mt-2 text-sm text-gray-600">Detalhe do erro: ${e.message}</p></div>`;
+                         mainContent.innerHTML = `<div class="p-8 text-center text-red-500"><h1>Erro Crítico</h1><p>Ocorreu um erro grave ao carregar os clientes. Isso pode ser causado por um cliente com dados inválidos (ex: sem nome) no banco de dados.</p><p class="mt-2 text-sm text-gray-600">Detalhe do erro: ${e.message}</p></div>`;
                     }
                     document.body.classList.remove('opacity-0');
                 }
@@ -306,6 +297,9 @@
                     }
                 }
 
+                // CORREÇÃO: Escapa aspas no nome do cliente para o atributo data-name
+                const safeClientName = (client.name || '').replace(/"/g, '&quot;');
+
                 const clientElement = document.createElement('div');
                 clientElement.className = 'client-item flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 rounded-lg gap-4';
                 clientElement.innerHTML = `
@@ -322,7 +316,7 @@
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
                         <button class="edit-btn p-2 text-gray-500 hover:text-blue-600" data-id="${client.id}" title="Editar Cliente"><i data-lucide="file-pen-line" class="pointer-events-none"></i></button>
-                        <button class="delete-btn p-2 text-gray-500 hover:text-red-600" data-id="${client.id}" data-name="${client.name}" title="Excluir Cliente"><i data-lucide="trash-2" class="pointer-events-none"></i></button>
+                        <button class="delete-btn p-2 text-gray-500 hover:text-red-600" data-id="${client.id}" data-name="${safeClientName}" title="Excluir Cliente"><i data-lucide="trash-2" class="pointer-events-none"></i></button>
                     </div>`;
                 clientsListEl.appendChild(clientElement);
             });
@@ -405,7 +399,7 @@
         });
         
         document.addEventListener('click', (e) => {
-            if (!searchResultsContainer.contains(e.target) && e.target !== searchInput) {
+            if (searchResultsContainer && !searchResultsContainer.contains(e.target) && e.target !== searchInput) {
                 searchResultsContainer.classList.add('hidden');
             }
         });
@@ -504,10 +498,10 @@
                 if (clientToEdit) openModalForEdit(clientToEdit);
             }
             if (deleteBtn) {
-                const clientIdToDelete = deleteBtn.dataset.id;
                 const clientNameToDelete = deleteBtn.dataset.name;
                 const confirmed = await showConfirm(`Você tem certeza que deseja excluir "${clientNameToDelete}"?`);
                 if(confirmed) {
+                    const clientIdToDelete = deleteBtn.dataset.id;
                     const clientRef = doc(db, "businesses", currentUser.uid, "clients", clientIdToDelete);
                     try {
                         await deleteDoc(clientRef);
@@ -524,27 +518,21 @@
         clientForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!currentUser) return;
-
             const clientId = clientIdField.value;
             const clientData = {
                 name: clientNameField.value,
                 phone: clientPhoneField.value,
                 birthdate: clientBirthdateField.value,
             };
-
             const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
-            
             const inputName = clientData.name.trim();
             const inputPhone = clientData.phone;
             const nameQuery = query(clientsRef, where("name", "==", inputName));
             const phoneQuery = query(clientsRef, where("phone", "==", inputPhone));
-
             try {
                 const [nameSnapshot, phoneSnapshot] = await Promise.all([getDocs(nameQuery), getDocs(phoneQuery)]);
-                
                 let nameExists = !nameSnapshot.empty && nameSnapshot.docs[0].id !== clientId;
                 let phoneExists = !phoneSnapshot.empty && phoneSnapshot.docs[0].id !== clientId;
-
                 if (nameExists) {
                     showNotification('Erro: Já existe um cliente com este nome.', 'error');
                     return;
@@ -553,7 +541,6 @@
                     showNotification('Erro: Já existe um cliente com este telefone.', 'error');
                     return;
                 }
-
                 if (clientId) {
                     const clientRef = doc(clientsRef, clientId);
                     await updateDoc(clientRef, clientData);
@@ -582,25 +569,20 @@
 
         document.getElementById('raffle-btn').addEventListener('click', async () => {
             if (!currentUser) return;
-            
             const selectedMonths = Array.from(raffleMonthsSelect.selectedOptions).map(opt => parseInt(opt.value));
             if (selectedMonths.length === 0) {
                 showNotification("Por favor, selecione pelo menos um mês para o sorteio.", "info");
                 return;
             }
-
             const currentYear = new Date().getFullYear();
-            
             try {
                 const yearStart = new Date(currentYear, 0, 1);
                 const yearEnd = new Date(currentYear, 11, 31, 23, 59, 59);
-                
                 const salesRef = collection(db, "businesses", currentUser.uid, "sales");
                 const q = query(salesRef, 
                     where("createdAt", ">=", Timestamp.fromDate(yearStart)),
                     where("createdAt", "<=", Timestamp.fromDate(yearEnd))
                 );
-                
                 const querySnapshot = await getDocs(q);
                 const salesInPeriod = [];
                 querySnapshot.forEach(doc => {
@@ -610,15 +592,12 @@
                         salesInPeriod.push(sale);
                     }
                 });
-
                 if (salesInPeriod.length === 0) {
                     showNotification("Nenhum cliente elegível encontrado para os meses selecionados.", "info");
                     return;
                 }
-
                 const winningSale = salesInPeriod[Math.floor(Math.random() * salesInPeriod.length)];
                 const winnerInfo = allClientsData.find(c => c.id === winningSale.clientId);
-
                 if (winnerInfo) {
                     document.getElementById('winner-name').textContent = winnerInfo.name;
                     document.getElementById('winner-phone').textContent = winnerInfo.phone;
@@ -628,7 +607,6 @@
                 } else {
                     showNotification("Cliente sorteado não encontrado no cadastro.", "error");
                 }
-
             } catch (error) {
                 console.error("Erro ao realizar sorteio: ", error);
                 showNotification("Ocorreu um erro ao buscar os dados para o sorteio.", "error");
