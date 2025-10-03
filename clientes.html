@@ -94,7 +94,7 @@
                                 </button>
                             </div>
                         </div>
-                        <p class="text-sm text-gray-500 mt-2">Clique novamente em um filtro para limpar e ver todos os clientes.</p>
+                        <p class="text-sm text-gray-500 mt-2">Deixe a busca vazia para ver todos os clientes cadastrados.</p>
                     </div>
 
                     <!-- Lista de Clientes -->
@@ -104,8 +104,8 @@
                             <!-- Clientes serão renderizados aqui -->
                         </div>
                         <!-- Controles de Paginação -->
-                        <div id="pagination-controls" class="mt-6 flex justify-between items-center">
-                            <button id="prev-page-btn" class="px-4 py-2 text-gray-600 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2" disabled>
+                        <div id="pagination-controls" class="mt-6 flex justify-between items-center hidden">
+                            <button id="prev-page-btn" class="px-4 py-2 text-gray-600 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
                                 <i data-lucide="arrow-left" class="w-4 h-4"></i> Voltar
                             </button>
                             <span id="page-indicator" class="text-gray-600 font-medium"></span>
@@ -223,7 +223,7 @@
             }
         }
 
-        // --- NOVA FUNÇÃO CENTRAL PARA RENDERIZAR A LISTA ---
+        // --- FUNÇÃO CENTRAL PARA RENDERIZAR A LISTA ---
         function updateClientList() {
             let clientsToDisplay = allClientsData;
 
@@ -233,16 +233,15 @@
                     client.name.toLowerCase().includes(currentSearchTerm) ||
                     (client.phone && client.phone.replace(/\D/g, '').includes(currentSearchTerm.replace(/\D/g, '')))
                 );
-            }
+            } 
             // 2. Aplicar filtros de botão (aniversário, pacote)
             else if (activeFilter) {
                 if (activeFilter === 'birthday') {
                     const currentMonth = new Date().getMonth();
                     clientsToDisplay = allClientsData.filter(client => {
                         if (!client.birthdate) return false;
-                        // Adiciona +1 ao dia para corrigir fuso horário
                         const birthDate = new Date(client.birthdate);
-                        birthDate.setDate(birthDate.getDate() + 1);
+                        birthDate.setDate(birthDate.getDate() + 1); // Correção de fuso
                         return birthDate.getMonth() === currentMonth;
                     });
                 } else if (activeFilter === 'package') {
@@ -252,20 +251,16 @@
                 }
             }
 
-            // 3. Lógica de Paginação (só se não houver busca ou filtro)
-            const paginationControls = document.getElementById('pagination-controls');
-            if (currentSearchTerm || activeFilter) {
-                paginationControls.classList.add('hidden');
-                renderClients(clientsToDisplay);
-            } else {
-                paginationControls.classList.remove('hidden');
-                totalPages = Math.ceil(clientsToDisplay.length / CLIENTS_PER_PAGE);
-                const startIndex = (currentPage - 1) * CLIENTS_PER_PAGE;
-                const endIndex = startIndex + CLIENTS_PER_PAGE;
-                const paginatedClients = clientsToDisplay.slice(startIndex, endIndex);
-                renderClients(paginatedClients);
-                updatePaginationControls(clientsToDisplay.length);
-            }
+            // 3. Lógica de Paginação
+            totalPages = Math.ceil(clientsToDisplay.length / CLIENTS_PER_PAGE) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+
+            const startIndex = (currentPage - 1) * CLIENTS_PER_PAGE;
+            const endIndex = startIndex + CLIENTS_PER_PAGE;
+            const paginatedClients = clientsToDisplay.slice(startIndex, endIndex);
+
+            renderClients(paginatedClients);
+            updatePaginationControls(clientsToDisplay.length);
         }
 
         function renderClients(clientsToRender) {
@@ -319,14 +314,16 @@
         const prevPageBtn = document.getElementById('prev-page-btn');
         const nextPageBtn = document.getElementById('next-page-btn');
         const pageIndicator = document.getElementById('page-indicator');
+        const paginationControls = document.getElementById('pagination-controls');
 
         function updatePaginationControls(totalItems) {
-            totalPages = Math.ceil(totalItems / CLIENTS_PER_PAGE);
-            if (totalPages <= 1) {
-                document.getElementById('pagination-controls').classList.add('hidden');
+            totalPages = Math.ceil(totalItems / CLIENTS_PER_PAGE) || 1;
+            
+            if (totalPages <= 1 || currentSearchTerm || activeFilter) {
+                paginationControls.classList.add('hidden');
                 return;
             }
-            document.getElementById('pagination-controls').classList.remove('hidden');
+            paginationControls.classList.remove('hidden');
             pageIndicator.textContent = `Página ${currentPage} de ${totalPages}`;
             prevPageBtn.disabled = currentPage === 1;
             nextPageBtn.disabled = currentPage === totalPages;
@@ -565,3 +562,4 @@
 </script>
 </body>
 </html>
+
