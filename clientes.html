@@ -298,8 +298,8 @@
                         <div class="flex items-center gap-3">
                             ${isBirthdayMonth ? '<i data-lucide="cake" class="text-pink-500 flex-shrink-0"></i>' : '<div class="w-6 flex-shrink-0"></div>'}
                             <div>
-                                <p class="font-semibold text-gray-700">${client.name}</p>
-                                <p class="text-sm text-gray-500">${client.phone}</p>
+                                <p class="font-semibold text-gray-700">${client.name || 'Nome não cadastrado'}</p>
+                                <p class="text-sm text-gray-500">${client.phone || 'Telefone não cadastrado'}</p>
                                 <p class="text-xs text-gray-400">Nasc: ${birthDateFormatted}</p>
                             </div>
                         </div>
@@ -326,7 +326,9 @@
                 currentClientList = allClientsData;
             } else {
                 currentClientList = allClientsData.filter(client => {
-                    const normalizedClientName = normalizeString(client.name.toLowerCase());
+                    const clientName = client.name || ''; // <-- CORREÇÃO APLICADA AQUI
+                    const normalizedClientName = normalizeString(clientName.toLowerCase());
+                    
                     const clientPhoneNumber = client.phone ? client.phone.replace(/\D/g, '') : '';
                     const searchPhoneNumber = searchTerm.replace(/\D/g, '');
 
@@ -356,7 +358,9 @@
             }
 
             const filteredClients = allClientsData.filter(client => {
-                const normalizedClientName = normalizeString(client.name.toLowerCase());
+                const clientName = client.name || ''; // <-- CORREÇÃO APLICADA AQUI
+                const normalizedClientName = normalizeString(clientName.toLowerCase());
+
                 const clientPhoneNumber = client.phone ? client.phone.replace(/\D/g, '') : '';
                 const searchPhoneNumber = searchTerm.replace(/\D/g, '');
 
@@ -369,7 +373,7 @@
                 filteredClients.slice(0, 5).forEach(client => {
                     const item = document.createElement('div');
                     item.className = 'p-3 hover:bg-gray-100 cursor-pointer';
-                    item.textContent = `${client.name} - ${client.phone}`;
+                    item.textContent = `${client.name || ''} - ${client.phone || ''}`;
                     item.onclick = () => {
                         searchInput.value = client.name;
                         searchResultsContainer.classList.add('hidden');
