@@ -46,7 +46,6 @@
         }
         .modal-backdrop { transition: opacity 0.3s ease; }
         .modal-content { transition: transform 0.3s ease; }
-        /* Estilos para a barra lateral móvel */
         .sidebar-mobile {
             transform: translateX(-100%);
             transition: transform 0.3s ease-in-out;
@@ -182,11 +181,21 @@
         let currentPage = 1;
         const CLIENTS_PER_PAGE = 5;
 
-        function normalizeString(str) {
+        // FUNÇÃO DE BUSCA MAIS SEGURA (SEM normalize())
+        function removeAccents(str) {
             if (typeof str !== 'string') return '';
-            return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const map = {
+                'á': 'a', 'à': 'a', 'â': 'a', 'ã': 'a', 'ä': 'a', 'Á': 'A', 'À': 'A', 'Â': 'A', 'Ã': 'A', 'Ä': 'A',
+                'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e', 'É': 'E', 'È': 'E', 'Ê': 'E', 'Ë': 'E',
+                'í': 'i', 'ì': 'i', 'î': 'i', 'ï': 'i', 'Í': 'I', 'Ì': 'I', 'Î': 'I', 'Ï': 'I',
+                'ó': 'o', 'ò': 'o', 'ô': 'o', 'õ': 'o', 'ö': 'o', 'Ó': 'O', 'Ò': 'O', 'Ô': 'O', 'Õ': 'O', 'Ö': 'O',
+                'ú': 'u', 'ù': 'u', 'û': 'u', 'ü': 'u', 'Ú': 'U', 'Ù': 'U', 'Û': 'U', 'Ü': 'U',
+                'ç': 'c', 'Ç': 'C'
+            };
+            return str.replace(/[áàâãäéèêëíìîïóòôõöúùûüç]/gi, (char) => map[char]);
         }
 
+        // BLOCO DE INICIALIZAÇÃO MAIS SEGURO
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
@@ -195,7 +204,10 @@
                     document.body.classList.remove('opacity-0');
                 } catch (e) {
                     console.error("Falha crítica na inicialização:", e);
-                    document.body.innerHTML = `<div class="p-8 text-center text-red-500"><h1>Erro Crítico</h1><p>Ocorreu um erro grave ao carregar a página. Isso pode ser causado por um cliente sem nome cadastrado. Verifique os dados no banco ou contate o suporte.</p></div>`;
+                    const mainContent = document.querySelector('main');
+                    if(mainContent) {
+                         mainContent.innerHTML = `<div class="p-8 text-center text-red-600"><h1>Erro Crítico</h1><p>Ocorreu um erro grave ao carregar os clientes. Isso pode ser causado por um cliente sem o campo 'nome' no banco de dados. Verifique os dados e tente novamente.</p><p class="mt-2 text-sm text-gray-600">Detalhe do erro: ${e.message}</p></div>`;
+                    }
                     document.body.classList.remove('opacity-0');
                 }
             } else {
@@ -208,12 +220,11 @@
             clientsListEl.innerHTML = '<p class="text-gray-500">A carregar clientes...</p>';
             
             const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
-            const q = query(clientsRef); // <-- ALTERAÇÃO: Remove o orderBy do servidor
+            const q = query(clientsRef);
             
             const querySnapshot = await getDocs(q);
             allClientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-            // ALTERAÇÃO: Ordena os clientes no navegador (mais seguro)
             allClientsData.sort((a, b) => {
                 const nameA = a.name || '';
                 const nameB = b.name || '';
@@ -323,7 +334,7 @@
 
         function filterClientList() {
             const searchTerm = searchInput.value.trim();
-            const normalizedSearchTerm = normalizeString(searchTerm.toLowerCase());
+            const normalizedSearchTerm = removeAccents(searchTerm.toLowerCase());
             searchResultsContainer.classList.add('hidden');
 
             if (!searchTerm) {
@@ -331,7 +342,7 @@
             } else {
                 currentClientList = allClientsData.filter(client => {
                     const clientName = client.name || '';
-                    const normalizedClientName = normalizeString(clientName.toLowerCase());
+                    const normalizedClientName = removeAccents(clientName.toLowerCase());
                     
                     const clientPhoneNumber = client.phone ? client.phone.replace(/\D/g, '') : '';
                     const searchPhoneNumber = searchTerm.replace(/\D/g, '');
@@ -349,7 +360,7 @@
             clearTimeout(searchTimeout);
             
             const searchTerm = searchInput.value.trim();
-            const normalizedSearchTerm = normalizeString(searchTerm.toLowerCase());
+            const normalizedSearchTerm = removeAccents(searchTerm.toLowerCase());
 
             if (searchTerm.length < 2) {
                 searchResultsContainer.classList.add('hidden');
@@ -361,7 +372,7 @@
 
             const filteredClients = allClientsData.filter(client => {
                 const clientName = client.name || '';
-                const normalizedClientName = normalizeString(clientName.toLowerCase());
+                const normalizedClientName = removeAccents(clientName.toLowerCase());
 
                 const clientPhoneNumber = client.phone ? client.phone.replace(/\D/g, '') : '';
                 const searchPhoneNumber = searchTerm.replace(/\D/g, '');
@@ -445,7 +456,6 @@
             }
         });
 
-        // --- LÓGICA DO MODAL (ADD/EDIT/DELETE) ---
         const modal = document.getElementById('client-modal');
         const modalTitle = document.getElementById('modal-title');
         const clientForm = document.getElementById('client-form');
@@ -561,7 +571,6 @@
             }
         });
 
-        // --- LÓGICA DO SORTEIO ---
         const raffleMonthsSelect = document.getElementById('raffle-months');
         const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
         months.forEach((month, index) => {
