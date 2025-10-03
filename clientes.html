@@ -96,9 +96,9 @@
                     <div class="bg-white p-6 rounded-2xl shadow-md">
                         <h3 class="text-2xl text-gray-800 mb-4">Lista de Clientes</h3>
                         <div id="clients-list" class="space-y-4">
-                            </div>
+                        </div>
                         <div id="pagination-controls" class="mt-6 flex justify-between items-center">
-                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -163,7 +163,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, getDocs, doc, updateDoc, deleteDoc, where, Timestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, getDocs, doc, updateDoc, deleteDoc, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -273,44 +273,74 @@
             }
         }
 
+        // FUNÇÃO REESCRITA PARA USAR document.createElement (MAIS SEGURA)
         function renderClientItems(clients) {
             const currentMonth = new Date().getMonth() + 1;
             clients.forEach(client => {
+                const clientElement = document.createElement('div');
+                clientElement.className = 'client-item flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 rounded-lg gap-4';
+
+                const mainDiv = document.createElement('div');
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'flex items-center gap-3';
+
+                const iconContainer = document.createElement('div');
+                iconContainer.className = 'w-6 flex-shrink-0';
                 const clientBirthMonth = client.birthdate ? new Date(client.birthdate + 'T00:00:00').getMonth() + 1 : 0;
-                const isBirthdayMonth = clientBirthMonth === currentMonth;
+                if (clientBirthMonth === currentMonth) {
+                    iconContainer.innerHTML = '<i data-lucide="cake" class="text-pink-500 flex-shrink-0"></i>';
+                }
+
+                const infoDiv = document.createElement('div');
+                const nameP = document.createElement('p');
+                nameP.className = 'font-semibold text-gray-700';
+                nameP.textContent = client.name || 'Nome não cadastrado';
+
+                const phoneP = document.createElement('p');
+                phoneP.className = 'text-sm text-gray-500';
+                phoneP.textContent = client.phone || 'Telefone não cadastrado';
+
                 const birthDateFormatted = client.birthdate ? new Date(client.birthdate + 'T00:00:00').toLocaleDateString('pt-BR') : 'Não informada';
-                
-                let packageInfoHtml = '';
+                const birthP = document.createElement('p');
+                birthP.className = 'text-xs text-gray-400';
+                birthP.textContent = 'Nasc: ' + birthDateFormatted;
+
+                infoDiv.append(nameP, phoneP, birthP);
+                contentDiv.append(iconContainer, infoDiv);
+                mainDiv.appendChild(contentDiv);
+
                 if (client.packages) {
-                    const activePackages = Object.entries(client.packages).filter(([name, count]) => count > 0);
+                    const activePackages = Object.entries(client.packages).filter(([_, count]) => count > 0);
                     if (activePackages.length > 0) {
-                        const packageBadges = activePackages.map(([name, count]) => 
+                        const packageDiv = document.createElement('div');
+                        packageDiv.className = 'mt-2 flex flex-wrap gap-1';
+                        packageDiv.innerHTML = activePackages.map(([name, count]) => 
                             `<span class="text-xs bg-green-100 text-green-800 font-medium mr-2 px-2.5 py-0.5 rounded-full">${name}: ${count}</span>`
                         ).join('');
-                        packageInfoHtml = `<div class="mt-2 flex flex-wrap gap-1">${packageBadges}</div>`;
+                        mainDiv.appendChild(packageDiv);
                     }
                 }
 
-                const clientElement = document.createElement('div');
-                clientElement.className = 'client-item flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 rounded-lg gap-4';
-                clientElement.innerHTML = `
-                    <div>
-                        <div class="flex items-center gap-3">
-                            ${isBirthdayMonth ? '<i data-lucide="cake" class="text-pink-500 flex-shrink-0"></i>' : '<div class="w-6 flex-shrink-0"></div>'}
-                            <div>
-                                <p class="font-semibold text-gray-700">${client.name || 'Nome não cadastrado'}</p>
-                                <p class="text-sm text-gray-500">${client.phone || 'Telefone não cadastrado'}</p>
-                                <p class="text-xs text-gray-400">Nasc: ${birthDateFormatted}</p>
-                            </div>
-                        </div>
-                        ${packageInfoHtml}
-                    </div>
-                    <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
-                        <button class="edit-btn p-2 text-gray-500 hover:text-blue-600" data-id="${client.id}" title="Editar Cliente"><i data-lucide="file-pen-line" class="pointer-events-none"></i></button>
-                        <button class="delete-btn p-2 text-gray-500 hover:text-red-600" data-id="${client.id}" title="Excluir Cliente"><i data-lucide="trash-2" class="pointer-events-none"></i></button>
-                    </div>`;
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'flex items-center gap-2 flex-shrink-0 self-end sm:self-center';
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'edit-btn p-2 text-gray-500 hover:text-blue-600';
+                editBtn.dataset.id = client.id;
+                editBtn.title = 'Editar Cliente';
+                editBtn.innerHTML = '<i data-lucide="file-pen-line" class="pointer-events-none"></i>';
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn p-2 text-gray-500 hover:text-red-600';
+                deleteBtn.dataset.id = client.id; // APENAS O ID, SEM NOME
+                deleteBtn.title = 'Excluir Cliente';
+                deleteBtn.innerHTML = '<i data-lucide="trash-2" class="pointer-events-none"></i>';
+                
+                actionsDiv.append(editBtn, deleteBtn);
+                clientElement.append(mainDiv, actionsDiv);
                 clientsListEl.appendChild(clientElement);
             });
+
             lucide.createIcons();
         }
 
@@ -347,7 +377,6 @@
                 searchResultsContainer.classList.add('hidden');
                 return;
             }
-
             const normalizedSearchTerm = removeAccents(searchTerm.toLowerCase());
             const filteredClients = allClientsData.filter(client => {
                 const clientName = client.name || '';
@@ -357,7 +386,6 @@
                 return normalizedClientName.includes(normalizedSearchTerm) ||
                        (clientPhoneNumber && searchPhoneNumber.length > 0 && clientPhoneNumber.includes(searchPhoneNumber));
             });
-
             searchResultsContainer.innerHTML = '';
             if (filteredClients.length > 0) {
                 filteredClients.slice(0, 5).forEach(client => {
