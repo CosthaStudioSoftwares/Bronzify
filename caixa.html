@@ -163,7 +163,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, query, orderBy, onSnapshot, getDocs, where, Timestamp, increment, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, query, orderBy, onSnapshot, getDocs, where, Timestamp, increment, writeBatch, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -224,7 +224,7 @@
                 case 'client-search':
                     container = ui.searchResults;
                     if (searchTerm.length < 2) { container.classList.add('hidden'); return; }
-                    results = allClients.filter(c => c.name.toLowerCase().includes(searchTerm) || (c.phone && c.phone.includes(searchTerm)));
+                    results = allClients.filter(c => (c.name || '').toLowerCase().includes(searchTerm) || (c.phone && c.phone.includes(searchTerm)));
                     break;
                 case 'bronze-search':
                     container = ui.bronzeSearchResults;
@@ -274,11 +274,9 @@
                     if (remainingSessions > 0) {
                         const usePackage = await showConfirm(`Esta cliente tem ${remainingSessions} sessão(ões) de ${item.name}. Deseja usar uma agora?`, 'Usar Pacote?', 'Sim, Usar');
                         if(usePackage) {
-                            const uniqueId = `${item.id}-usage-${Date.now()}`; // ID único para cada uso
+                            const uniqueId = `${item.id}-usage-${Date.now()}`;
                             selectedItems.set(uniqueId, { id: item.id, name: `${item.name} (Uso de Pacote)`, price: 0, quantity: 1, isPackage: false, isPackageUsage: true, type: 'bronze' });
-                            renderSelectedItems();
-                            calculateTotal();
-                            return;
+                            renderSelectedItems(); calculateTotal(); return;
                         }
                     }
                 }
@@ -293,8 +291,7 @@
                 selectedItems.set(uniqueId, { id: item.id, name: isPackage ? `${item.name} (Pacote)` : item.name, price: isPackage ? item.price * 3 : item.price, quantity: 1, isPackage, type, isPackageUsage: false });
             }
             
-            renderSelectedItems();
-            calculateTotal();
+            renderSelectedItems(); calculateTotal();
             [ui.bronzeSearch, ui.consumableSearch, ui.stockSearch, ui.extraSearch].forEach(input => input.value = '');
             document.querySelectorAll('[id$="-search-results"]').forEach(c => c.classList.add('hidden'));
         }
@@ -349,11 +346,8 @@
             
             let discount = 0;
             const discountValue = parseFloat(ui.discountInput.value.replace(/[^0-9,]/g, '').replace(',', '.')) || 0;
-            if (discountType === 'value') {
-                discount = discountValue;
-            } else {
-                discount = subtotal * (discountValue / 100);
-            }
+            if (discountType === 'value') { discount = discountValue; } 
+            else { discount = subtotal * (discountValue / 100); }
             
             ui.discountApplied.textContent = `- ${discount.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}`;
             ui.total.textContent = (subtotal - discount).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
@@ -374,6 +368,7 @@
             }
             lucide.createIcons();
         }
+
         function listenForIncomingOrders() {
             const ordersRef = collection(db, "businesses", currentUser.uid, "incoming_orders");
             const q = query(ordersRef, where("status", "==", "pending"));
@@ -389,6 +384,7 @@
                 }
             });
         }
+        
         document.getElementById('incoming-orders-btn').addEventListener('click', () => {
             const modal = document.getElementById('incoming-orders-modal');
             const listEl = document.getElementById('incoming-orders-list');
@@ -418,10 +414,11 @@
                     ui.clientSearch.value = order.customerName;
                     
                     order.items.forEach(item => {
-                        const fullItem = allStockItems.find(si => si.name === item.name) || allProducts.find(p => p.name === item.name);
+                        const fullItem = allStockItems.find(si => si.name === item.name) || allProducts.find(p => p.name === item.name) || allProducts.find(p => `${p.name} (Pacote)` === item.name);
                         if(fullItem) {
-                            const uniqueId = item.name.includes('(Pacote)') ? `${fullItem.id}-package` : fullItem.id;
-                            selectedItems.set(uniqueId, { ...fullItem, name: item.name, quantity: item.quantity, price: item.price, type: fullItem.type || fullItem.category, isPackage: item.name.includes('(Pacote)') });
+                            const isPackage = item.name.includes('(Pacote)');
+                            const uniqueId = isPackage ? `${fullItem.id}-package` : fullItem.id;
+                            selectedItems.set(uniqueId, { ...fullItem, name: item.name, quantity: item.quantity, price: item.price, type: fullItem.type || fullItem.category, isPackage });
                         }
                     });
 
@@ -444,10 +441,10 @@
         document.getElementById('save-sale-btn').addEventListener('click', async () => {
             const totalValue = parseFloat(ui.total.textContent.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
             if (totalValue <= 0 && !Array.from(selectedItems.values()).some(i => i.isPackageUsage)) {
-                showNotification('O valor da venda não pode ser zero.', 'info');
-                return;
+                showNotification('O valor da venda não pode ser zero.', 'info'); return;
             }
             const saleItems = Array.from(selectedItems.values());
+            const password = await getNextPassword();
             const salePayload = {
                 clientName: selectedClient ? selectedClient.name : ui.clientSearch.value || "Cliente Avulso",
                 clientId: selectedClient ? selectedClient.id : null,
@@ -455,7 +452,7 @@
                 discount: parseFloat(ui.discountApplied.textContent.replace(/[^\d,]/g, '').replace(',', '.')) || 0,
                 paymentMethod: document.getElementById('payment-method').value,
                 items: saleItems.map(i => ({ name: i.name, price: i.price, quantity: i.quantity, isPackage: i.isPackage, isPackageUsage: i.isPackageUsage, type: i.type, id: i.id })),
-                createdAt: Timestamp.now(), status: 'waiting'
+                createdAt: Timestamp.now(), status: 'waiting', password: password
             };
             try {
                 const batch = writeBatch(db);
@@ -470,8 +467,11 @@
                 }
                 saleItems.forEach(item => {
                     if (item.type === 'stock') {
-                        const stockItemRef = doc(db, "businesses", currentUser.uid, "stock_items", item.id);
-                        batch.update(stockItemRef, { quantity: increment(-item.quantity) });
+                        const stockItem = allStockItems.find(si => si.id === item.id);
+                        if(stockItem && stockItem.quantity >= item.quantity) {
+                            const stockItemRef = doc(db, "businesses", currentUser.uid, "stock_items", item.id);
+                            batch.update(stockItemRef, { quantity: increment(-item.quantity) });
+                        }
                     }
                 });
                 const saleRef = doc(collection(db, "businesses", currentUser.uid, "sales"));
@@ -480,6 +480,14 @@
                     batch.update(doc(db, "businesses", currentUser.uid, "incoming_orders", loadedOnlineOrder.id), { status: 'completed' });
                 }
                 await batch.commit();
+                
+                const qrModal = document.getElementById('password-qr-modal');
+                document.getElementById('modal-password').textContent = password;
+                const qrContainer = document.getElementById('qrcode-container');
+                qrContainer.innerHTML = '';
+                new QRCode(qrContainer, { text: `${window.location.origin}${window.location.pathname.replace('caixa.html', 'status-cliente.html')}?businessId=${currentUser.uid}&id=${saleRef.id}`, width: 160, height: 160 });
+                qrModal.classList.remove('hidden');
+
                 showNotification('Venda salva com sucesso!', 'success');
                 resetSaleForm();
             } catch(e){ console.error(e); showNotification('Erro ao salvar a venda.', 'error'); }
@@ -493,6 +501,16 @@
              selectedItems.clear();
              renderSelectedItems();
              calculateTotal();
+        }
+
+        async function getNextPassword() {
+            const today = new Date();
+            const todayId = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            const counterRef = doc(db, "businesses", currentUser.uid, "dailyCounters", todayId);
+            const counterSnap = await getDoc(counterRef);
+            let nextNumber = counterSnap.exists() ? counterSnap.data().lastPassword + 1 : 1;
+            await setDoc(counterRef, { lastPassword: nextNumber }, { merge: true });
+            return String(nextNumber).padStart(3, '0');
         }
 
         async function loadDailySales() {
@@ -510,6 +528,12 @@
                 lucide.createIcons();
             });
         }
+        
+        const dailySalesModal = document.getElementById('daily-sales-modal');
+        document.getElementById('show-daily-sales-btn').addEventListener('click', () => dailySalesModal.classList.remove('hidden'));
+        document.getElementById('close-daily-sales-btn').addEventListener('click', () => dailySalesModal.classList.add('hidden'));
+        document.getElementById('close-qr-modal-btn').addEventListener('click', () => document.getElementById('password-qr-modal').classList.add('hidden'));
+
     </script>
 </body>
 </html>
