@@ -404,12 +404,15 @@
 
         document.getElementById('share-btn').addEventListener('click', () => {
             if (!currentUser) return;
-            const orderLink = `${window.location.origin}${window.location.pathname.replace('estoque.html', 'pedido.html')}?businessId=${currentUser.uid}`;
+            // CORREÇÃO: Garante que a URL seja construída corretamente
+            const orderLink = `${window.location.origin}${window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'))}/pedido.html?businessId=${currentUser.uid}`;
             const message = `Olá! 😊\n\nFaça seu pedido através do nosso cardápio digital:\n${orderLink}`;
+            
+            // Lógica de compartilhamento atualizada para funcionar em desktop (Web) e mobile (Share API)
             if (navigator.share) {
                 navigator.share({ title: 'Faça seu Pedido', text: message }).catch(console.error);
             } else {
-                window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+                window.open(`https://web.whatsapp.com/send?text=${encodeURIComponent(message)}`, '_blank');
             }
         });
     </script>
