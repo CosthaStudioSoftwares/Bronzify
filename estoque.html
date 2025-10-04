@@ -41,7 +41,7 @@
                 </div>
                 <div class="flex items-center gap-2">
                     <button id="share-btn" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center justify-center gap-2">
-                        <i data-lucide="share-2"></i> <span>Compartilhar Pedido</span>
+                        <i data-lucide="share-2"></i> <span>Compartilhar Link</span>
                     </button>
                     <button id="add-item-btn" class="bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center justify-center gap-2">
                         <i data-lucide="plus"></i> <span>Cadastrar Item</span>
@@ -295,6 +295,7 @@
                 return;
             }
             const thirtyDaysFromNow = new Date(); thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
             itemsToRender.forEach(item => {
                 const tr = document.createElement('tr');
                 tr.className = 'border-b';
@@ -359,7 +360,7 @@
         }
         
         document.getElementById('cancel-btn').addEventListener('click', () => itemModal.classList.add('hidden'));
-
+        
         itemForm.querySelector('#item-price').addEventListener('input', (e) => {
             let value = e.target.value.replace(/\D/g, '');
             e.target.value = value ? (parseInt(value, 10) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '';
@@ -402,26 +403,14 @@
         }
 
         document.getElementById('share-btn').addEventListener('click', () => {
-            let message = '*--- Lista de Produtos Disponíveis ---*\n\n';
-            const itemsByCategory = allCategories.reduce((acc, cat) => ({ ...acc, [cat.id]: { name: cat.name, items: [] } }), {});
-
-            allStockItems.forEach(item => {
-                if (item.categoryId && itemsByCategory[item.categoryId]) {
-                    itemsByCategory[item.categoryId].items.push(`- ${item.name} (${(item.price || 0).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})})`);
-                }
-            });
-
-            for(const catId in itemsByCategory) {
-                if (itemsByCategory[catId].items.length > 0) {
-                    message += `*${itemsByCategory[catId].name.toUpperCase()}*\n`;
-                    message += itemsByCategory[catId].items.join('\n') + '\n\n';
-                }
+            if (!currentUser) return;
+            const orderLink = `${window.location.origin}${window.location.pathname.replace('estoque.html', 'pedido.html')}?businessId=${currentUser.uid}`;
+            const message = `Olá! 😊\n\nFaça seu pedido através do nosso cardápio digital:\n${orderLink}`;
+            if (navigator.share) {
+                navigator.share({ title: 'Faça seu Pedido', text: message }).catch(console.error);
+            } else {
+                window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
             }
-            message += '*Para fazer seu pedido, preencha abaixo e nos envie de volta:*\n';
-            message += '-------------------------------------\n';
-            message += 'Nome: \nTelefone: \nForma de Pagamento: \nItens desejados (copie da lista acima): \n';
-            
-            window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
         });
     </script>
 </body>
