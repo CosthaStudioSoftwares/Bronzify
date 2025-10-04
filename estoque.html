@@ -404,7 +404,9 @@
 
         document.getElementById('share-btn').addEventListener('click', () => {
             if (!currentUser) return;
-            const orderLink = `${window.location.origin}${window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'))}/pedido.html?businessId=${currentUser.uid}`;
+            // CORREÇÃO: Garante que a URL seja construída corretamente, removendo o nome do arquivo atual.
+            const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
+            const orderLink = `${window.location.origin}${path}/pedido.html?businessId=${currentUser.uid}`;
             const message = `Olá! 😊\n\nFaça seu pedido através do nosso cardápio digital:\n${orderLink}`;
             
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -414,11 +416,15 @@
                     title: 'Faça seu Pedido',
                     text: message,
                 }).catch(err => {
+                    // Ignora o erro se o usuário simplesmente fechar a janela de compartilhamento
                     if (err.name !== 'AbortError') {
                         console.error("Erro ao usar navigator.share:", err);
+                        // Fallback para o WhatsApp Web se o share API falhar por outro motivo
+                        window.open(`https://web.whatsapp.com/send?text=${encodeURIComponent(message)}`, '_blank');
                     }
                 });
             } else {
+                // Link direto para o WhatsApp Web para desktops
                 const whatsappUrl = `https://web.whatsapp.com/send?text=${encodeURIComponent(message)}`;
                 window.open(whatsappUrl, '_blank');
             }
