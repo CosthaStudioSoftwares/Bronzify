@@ -34,8 +34,18 @@
     <div class="flex h-screen">
         <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
             <header class="flex justify-between items-center mb-8">
-                <button id="open-menu-btn" class="lg:hidden p-2 -ml-2"><i data-lucide="menu" class="w-6 h-6 text-gray-800"></i></button>
-                <h2 class="text-3xl lg:text-4xl text-gray-800">Frente de Caixa</h2>
+                <div class="flex items-center gap-4">
+                    <button id="open-menu-btn" class="lg:hidden p-2 -ml-2"><i data-lucide="menu" class="w-6 h-6 text-gray-800"></i></button>
+                    <h2 class="text-3xl lg:text-4xl text-gray-800">Frente de Caixa</h2>
+                    <div class="hidden lg:flex items-center gap-2 border-l pl-4 ml-4">
+                        <button id="cash-flow-btn" class="flex items-center gap-2 p-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-lg">
+                           <i data-lucide="arrow-right-left" class="w-4 h-4"></i> <span>Abertura/Fechamento</span>
+                       </button>
+                       <button id="show-daily-sales-btn" class="flex items-center gap-2 p-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-lg">
+                           <i data-lucide="history" class="w-4 h-4"></i> <span>Atendimentos do Dia</span>
+                       </button>
+                    </div>
+                </div>
                 <div class="relative">
                     <button id="incoming-orders-btn" class="p-2 rounded-full hover:bg-gray-200 transition-colors">
                         <i data-lucide="bell" class="w-6 h-6 text-gray-700"></i>
@@ -55,7 +65,6 @@
                     <div class="bg-white p-6 rounded-2xl shadow-md">
                         <h3 class="text-2xl text-gray-800 mb-4">2. Serviços e Produtos</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                            <!-- Coluna da Esquerda -->
                             <div class="space-y-6">
                                 <div>
                                     <label class="font-semibold text-gray-700">Tipos de Bronze</label>
@@ -74,7 +83,6 @@
                                     <div id="selected-extra-items" class="mt-3 space-y-2"></div>
                                 </div>
                             </div>
-                            <!-- Coluna da Direita -->
                             <div class="space-y-6">
                                 <div>
                                     <label class="font-semibold text-gray-700">Consumo</label>
@@ -100,9 +108,7 @@
                 <div class="lg:col-span-1">
                     <div class="bg-white p-6 rounded-2xl shadow-md lg:sticky top-8">
                         <h3 class="text-2xl text-gray-800 mb-4">3. Resumo da Venda</h3>
-                        <div id="order-details" class="hidden mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                            <p class="text-sm font-semibold text-blue-800">Pedido online carregado. Finalize a venda.</p>
-                        </div>
+                        <div id="order-details" class="hidden mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg"><p class="text-sm font-semibold text-blue-800">Pedido online carregado. Finalize a venda.</p></div>
                         <div class="space-y-3 mb-4">
                             <div class="flex justify-between"><span>Subtotal</span><span id="subtotal">R$ 0,00</span></div>
                             <div class="flex justify-between items-center"><div class="flex items-center gap-2"><span>Desconto</span><div class="flex border rounded-md text-xs"><button id="discount-type-value" class="px-2 py-1 bg-rose-100 text-rose-700 rounded-l-md">R$</button><button id="discount-type-percent" class="px-2 py-1 bg-gray-100 text-gray-500 rounded-r-md">%</button></div></div><input type="text" id="discount-input" placeholder="0,00" class="w-24 p-1 border rounded-md text-right"></div>
@@ -116,11 +122,6 @@
                     </div>
                 </div>
             </div>
-
-            <div class="mt-8 bg-white p-6 rounded-2xl shadow-md">
-                <h3 class="text-2xl text-gray-800 mb-4">Atendimentos do Dia</h3>
-                <div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="border-b"><th class="p-2">Senha</th><th class="p-2">Cliente</th><th class="p-2">Horário</th><th class="p-2">Valor</th><th class="p-2">Pagamento</th><th class="p-2">Ações</th></tr></thead><tbody id="daily-sales-table"></tbody></table></div>
-            </div>
         </main>
     </div>
 
@@ -128,9 +129,7 @@
     <div id="incoming-orders-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-8">
             <h3 class="text-2xl text-gray-800 mb-6">Pedidos Online Pendentes</h3>
-            <div id="incoming-orders-list" class="space-y-4 max-h-[60vh] overflow-y-auto">
-                <p class="text-gray-500">Nenhum pedido pendente no momento.</p>
-            </div>
+            <div id="incoming-orders-list" class="space-y-4 max-h-[60vh] overflow-y-auto"></div>
             <button id="close-orders-modal-btn" class="w-full mt-6 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Fechar</button>
         </div>
     </div>
@@ -141,6 +140,18 @@
             <p class="text-gray-600 mb-4">Peça para a cliente escanear o QR Code abaixo.</p>
             <div id="qrcode-container" class="flex justify-center items-center p-4 border rounded-lg"></div>
             <button id="close-qr-modal-btn" class="w-full mt-6 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold">Fechar</button>
+        </div>
+    </div>
+    <div id="daily-sales-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl p-8">
+            <h3 class="text-2xl text-gray-800 mb-6">Atendimentos do Dia</h3>
+            <div class="overflow-y-auto max-h-[70vh]">
+                <table class="w-full text-left">
+                    <thead><tr class="border-b"><th class="p-2">Senha</th><th class="p-2">Cliente</th><th class="p-2">Horário</th><th class="p-2">Valor</th><th class="p-2">Pagamento</th><th class="p-2">Ações</th></tr></thead>
+                    <tbody id="daily-sales-table"></tbody>
+                </table>
+            </div>
+            <button id="close-daily-sales-btn" class="w-full mt-6 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Fechar</button>
         </div>
     </div>
 
@@ -237,10 +248,9 @@
 
         function renderSearchResults(results, container, type) {
             container.innerHTML = '';
-            if (results.length === 0) {
-                container.innerHTML = `<div class="p-3 text-gray-500">${type === 'client-search' ? 'Nenhum cliente encontrado.' : 'Nenhum item encontrado.'}</div>`;
-            } else {
-                results.slice(0, 5).forEach(result => {
+            if (results.length === 0) { container.innerHTML = `<div class="p-3 text-gray-500">${type === 'client-search' ? 'Nenhum cliente encontrado.' : 'Nenhum item encontrado.'}</div>`; } 
+            else {
+                results.slice(0, 10).forEach(result => {
                     const itemEl = document.createElement('div');
                     itemEl.className = 'p-3 hover:bg-gray-100 cursor-pointer';
                     if (type === 'client-search') {
@@ -258,23 +268,22 @@
         
         async function addItemToSale(item) {
             let isPackage = false;
-            const remainingSessions = selectedClient?.packages?.[item.name] || 0;
-
             if (item.category === 'bronze') {
-                if (selectedClient && remainingSessions > 0) {
-                    const usePackage = await showConfirm(`Esta cliente tem ${remainingSessions} sessão(ões) restante(s). Deseja usar uma agora?`, 'Usar Pacote?', 'Sim, Usar');
-                    if(usePackage) {
-                        const uniqueId = `${item.id}-usage`;
-                        if (selectedItems.has(uniqueId)) return; // Evita adicionar uso de pacote múltiplas vezes
-                        selectedItems.set(uniqueId, { id: item.id, name: `${item.name} (Uso de Pacote)`, price: 0, quantity: 1, isPackage: false, isPackageUsage: true, type: 'bronze' });
-                        renderSelectedItems();
-                        calculateTotal();
-                        return; // Para a execução aqui
+                if (selectedClient) {
+                    const remainingSessions = selectedClient.packages?.[item.name] || 0;
+                    if (remainingSessions > 0) {
+                        const usePackage = await showConfirm(`Esta cliente tem ${remainingSessions} sessão(ões) de ${item.name}. Deseja usar uma agora?`, 'Usar Pacote?', 'Sim, Usar');
+                        if(usePackage) {
+                            const uniqueId = `${item.id}-usage-${Date.now()}`; // ID único para cada uso
+                            selectedItems.set(uniqueId, { id: item.id, name: `${item.name} (Uso de Pacote)`, price: 0, quantity: 1, isPackage: false, isPackageUsage: true, type: 'bronze' });
+                            renderSelectedItems();
+                            calculateTotal();
+                            return;
+                        }
                     }
                 }
-                isPackage = await showConfirm(`O serviço "${item.name}" é um pacote de 3 sessões?`, 'Confirmar Pacote', 'Sim, é Pacote');
+                 isPackage = await showConfirm(`O serviço "${item.name}" é um pacote de 3 sessões?`, 'Confirmar Pacote', 'Sim, é Pacote');
             }
-
             const uniqueId = isPackage ? `${item.id}-package` : item.id;
             const type = item.type || item.category;
 
@@ -312,10 +321,10 @@
                     </div>`;
                 
                 let container;
-                if (item.type === 'bronze') container = ui.selectedBronzeItems;
-                else if (item.type === 'consumable') container = ui.selectedConsumableItems;
-                else if (item.type === 'stock') container = ui.selectedStockItems;
-                else if (item.type === 'extra') container = ui.selectedExtraItems;
+                if(item.type === 'bronze') container = ui.selectedBronzeItems;
+                else if(item.type === 'consumable') container = ui.selectedConsumableItems;
+                else if(item.type === 'stock') container = ui.selectedStockItems;
+                else if(item.type === 'extra') container = ui.selectedExtraItems;
                 if(container) container.appendChild(itemEl);
             }
             lucide.createIcons();
@@ -365,7 +374,6 @@
             }
             lucide.createIcons();
         }
-
         function listenForIncomingOrders() {
             const ordersRef = collection(db, "businesses", currentUser.uid, "incoming_orders");
             const q = query(ordersRef, where("status", "==", "pending"));
@@ -381,10 +389,57 @@
                 }
             });
         }
-        
-        document.getElementById('incoming-orders-btn').addEventListener('click', () => { /* ... (código inalterado) ... */ });
+        document.getElementById('incoming-orders-btn').addEventListener('click', () => {
+            const modal = document.getElementById('incoming-orders-modal');
+            const listEl = document.getElementById('incoming-orders-list');
+            listEl.innerHTML = '';
+            if (pendingOrders.length === 0) {
+                listEl.innerHTML = '<p class="text-gray-500">Nenhum pedido pendente.</p>';
+            } else {
+                pendingOrders.forEach(order => {
+                    const orderEl = document.createElement('div');
+                    orderEl.className = 'p-4 border rounded-lg';
+                    orderEl.innerHTML = `<div class="flex justify-between items-start"><div><p class="font-bold text-lg">${order.customerName}</p><p class="text-sm text-gray-600">${order.customerPhone}</p><p class="text-sm mt-2">Total: <span class="font-bold">${order.total.toLocaleString('pt-BR',{style:'currency', currency:'BRL'})}</span></p></div><div class="flex gap-2"><button class="load-order-btn bg-green-500 text-white px-3 py-1 rounded" data-id="${order.id}">Carregar</button><button class="reject-order-btn bg-red-500 text-white px-3 py-1 rounded" data-id="${order.id}">Rejeitar</button></div></div>`;
+                    listEl.appendChild(orderEl);
+                });
+            }
+            modal.classList.remove('hidden');
+        });
         document.getElementById('close-orders-modal-btn').addEventListener('click', () => document.getElementById('incoming-orders-modal').classList.add('hidden'));
-        document.getElementById('incoming-orders-list').addEventListener('click', async (e) => { /* ... (código inalterado) ... */ });
+
+        document.getElementById('incoming-orders-list').addEventListener('click', async (e) => {
+            const orderId = e.target.dataset.id;
+            if (!orderId) return;
+            const orderRef = doc(db, "businesses", currentUser.uid, "incoming_orders", orderId);
+            if (e.target.classList.contains('load-order-btn')) {
+                const order = pendingOrders.find(o => o.id === orderId);
+                if (order) {
+                    resetSaleForm();
+                    ui.clientSearch.value = order.customerName;
+                    
+                    order.items.forEach(item => {
+                        const fullItem = allStockItems.find(si => si.name === item.name) || allProducts.find(p => p.name === item.name);
+                        if(fullItem) {
+                            const uniqueId = item.name.includes('(Pacote)') ? `${fullItem.id}-package` : fullItem.id;
+                            selectedItems.set(uniqueId, { ...fullItem, name: item.name, quantity: item.quantity, price: item.price, type: fullItem.type || fullItem.category, isPackage: item.name.includes('(Pacote)') });
+                        }
+                    });
+
+                    document.getElementById('payment-method').value = order.paymentMethod;
+                    document.getElementById('order-details').classList.remove('hidden');
+                    loadedOnlineOrder = order;
+                    renderSelectedItems();
+                    calculateTotal();
+                    document.getElementById('incoming-orders-modal').classList.add('hidden');
+                    await updateDoc(orderRef, { status: 'loaded' });
+                }
+            } else if (e.target.classList.contains('reject-order-btn')) {
+                if (await showConfirm('Rejeitar este pedido?')) {
+                    await updateDoc(orderRef, { status: 'rejected' });
+                    showNotification('Pedido rejeitado.', 'info');
+                }
+            }
+        });
         
         document.getElementById('save-sale-btn').addEventListener('click', async () => {
             const totalValue = parseFloat(ui.total.textContent.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
@@ -404,12 +459,11 @@
             };
             try {
                 const batch = writeBatch(db);
-                // Lógica de pacote e estoque
                 if (selectedClient) {
                     const clientRef = doc(db, "businesses", currentUser.uid, "clients", selectedClient.id);
                     const packageUpdates = {};
                     saleItems.forEach(item => {
-                        if (item.isPackage) packageUpdates[`packages.${item.name.replace(' (Pacote)', '')}`] = increment(2); // 1 usada agora, 2 restantes
+                        if (item.isPackage) packageUpdates[`packages.${item.name.replace(' (Pacote)', '')}`] = increment(2);
                         if (item.isPackageUsage) packageUpdates[`packages.${item.name.replace(' (Uso de Pacote)', '')}`] = increment(-1);
                     });
                     if (Object.keys(packageUpdates).length > 0) batch.update(clientRef, packageUpdates);
@@ -420,10 +474,8 @@
                         batch.update(stockItemRef, { quantity: increment(-item.quantity) });
                     }
                 });
-
                 const saleRef = doc(collection(db, "businesses", currentUser.uid, "sales"));
                 batch.set(saleRef, salePayload);
-
                 if (loadedOnlineOrder) {
                     batch.update(doc(db, "businesses", currentUser.uid, "incoming_orders", loadedOnlineOrder.id), { status: 'completed' });
                 }
