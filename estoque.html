@@ -407,10 +407,20 @@
             const orderLink = `${window.location.origin}${window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'))}/pedido.html?businessId=${currentUser.uid}`;
             const message = `Olá! 😊\n\nFaça seu pedido através do nosso cardápio digital:\n${orderLink}`;
             
-            if (navigator.share) {
-                navigator.share({ title: 'Faça seu Pedido', text: message }).catch(console.error);
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+            if (isMobile && navigator.share) {
+                navigator.share({
+                    title: 'Faça seu Pedido',
+                    text: message,
+                }).catch(err => {
+                    if (err.name !== 'AbortError') {
+                        console.error("Erro ao usar navigator.share:", err);
+                    }
+                });
             } else {
-                window.open(`https://web.whatsapp.com/send?text=${encodeURIComponent(message)}`, '_blank');
+                const whatsappUrl = `https://web.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+                window.open(whatsappUrl, '_blank');
             }
         });
     </script>
