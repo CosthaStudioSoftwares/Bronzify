@@ -145,10 +145,48 @@
             </div>
         </div>
     </div>
-    <div id="incoming-orders-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden"><!-- ... --></div>
-    <div id="password-qr-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden"><!-- ... --></div>
-    <div id="daily-sales-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden"><!-- ... --></div>
-    <div id="cancellation-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[60] hidden"><!-- ... --></div>
+    <div id="incoming-orders-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-8">
+            <h3 class="text-2xl text-gray-800 mb-6">Pedidos Online Pendentes</h3>
+            <div id="incoming-orders-list" class="space-y-4 max-h-[60vh] overflow-y-auto"></div>
+            <button id="close-orders-modal-btn" class="w-full mt-6 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Fechar</button>
+        </div>
+    </div>
+    <div id="password-qr-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 text-center">
+            <h3 class="text-2xl text-gray-800 mb-2">Venda Concluída!</h3>
+            <p class="text-gray-600">A senha da cliente é:</p><p id="modal-password" class="text-7xl font-bold text-[#B76E79] my-4"></p>
+            <p class="text-gray-600 mb-4">Peça para a cliente escanear o QR Code abaixo.</p>
+            <div id="qrcode-container" class="flex justify-center items-center p-4 border rounded-lg"></div>
+            <button id="close-qr-modal-btn" class="w-full mt-6 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold">Fechar</button>
+        </div>
+    </div>
+    <div id="daily-sales-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl p-8">
+            <h3 class="text-2xl text-gray-800 mb-6">Atendimentos do Dia</h3>
+            <div class="overflow-y-auto max-h-[70vh]">
+                <table class="w-full text-left">
+                    <thead><tr class="border-b"><th class="p-2">Senha</th><th class="p-2">Cliente</th><th class="p-2">Horário</th><th class="p-2">Valor</th><th class="p-2">Pagamento</th><th class="p-2">Ações</th></tr></thead>
+                    <tbody id="daily-sales-table"></tbody>
+                </table>
+            </div>
+            <button id="close-daily-sales-btn" class="w-full mt-6 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Fechar</button>
+        </div>
+    </div>
+    <div id="cancellation-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[60] hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+            <h3 class="text-2xl text-gray-800 mb-4">Cancelar Venda</h3>
+            <p class="text-gray-600 mb-4">Por favor, informe o motivo do cancelamento.</p>
+            <form id="cancellation-form">
+                <input type="hidden" id="cancellation-sale-id">
+                <textarea id="cancellation-reason" class="w-full p-2 border rounded-lg" rows="3" required></textarea>
+                <div class="flex justify-end gap-4 mt-4">
+                    <button type="button" id="cancel-cancellation-btn" class="px-6 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Voltar</button>
+                    <button type="submit" class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Confirmar Cancelamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script>lucide.createIcons();</script>
     <script src="./config.js"></script>
