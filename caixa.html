@@ -202,6 +202,7 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // --- Variáveis Globais ---
         let currentUser = null, selectedClient = null, loadedOnlineOrder = null, synth = null, editingSaleId = null, discountType = 'value';
         let allClients = [], allProducts = [], allStockItems = [], pendingOrders = [], dailySales = [];
         let selectedItems = new Map();
@@ -253,7 +254,7 @@
         document.getElementById('tab-control').addEventListener('click', (e) => {
             document.getElementById('control-panel').classList.remove('hidden'); document.getElementById('history-panel').classList.add('hidden');
             e.target.classList.add('border-[#B76E79]', 'text-[#B76E79]');
-            document.getElementById('tab-history').classList.remove('border-[#B76E79]', 'text-[#B76E79]');
+            document.getElementById('tab-history').classList.remove('border-transparent', 'text-gray-500');
         });
         document.getElementById('tab-history').addEventListener('click', (e) => {
             document.getElementById('control-panel').classList.add('hidden'); document.getElementById('history-panel').classList.remove('hidden');
