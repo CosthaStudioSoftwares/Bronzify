@@ -145,10 +145,48 @@
             </div>
         </div>
     </div>
-    <div id="incoming-orders-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden"><!-- ... --></div>
-    <div id="password-qr-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden"><!-- ... --></div>
-    <div id="daily-sales-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden"><!-- ... --></div>
-    <div id="cancellation-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[60] hidden"><!-- ... --></div>
+    <div id="incoming-orders-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-8">
+            <h3 class="text-2xl text-gray-800 mb-6">Pedidos Online Pendentes</h3>
+            <div id="incoming-orders-list" class="space-y-4 max-h-[60vh] overflow-y-auto"></div>
+            <button id="close-orders-modal-btn" class="w-full mt-6 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Fechar</button>
+        </div>
+    </div>
+    <div id="password-qr-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 text-center">
+            <h3 class="text-2xl text-gray-800 mb-2">Venda Concluída!</h3>
+            <p class="text-gray-600">A senha da cliente é:</p><p id="modal-password" class="text-7xl font-bold text-[#B76E79] my-4"></p>
+            <p class="text-gray-600 mb-4">Peça para a cliente escanear o QR Code abaixo.</p>
+            <div id="qrcode-container" class="flex justify-center items-center p-4 border rounded-lg"></div>
+            <button id="close-qr-modal-btn" class="w-full mt-6 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold">Fechar</button>
+        </div>
+    </div>
+    <div id="daily-sales-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl p-8">
+            <h3 class="text-2xl text-gray-800 mb-6">Atendimentos do Dia</h3>
+            <div class="overflow-y-auto max-h-[70vh]">
+                <table class="w-full text-left">
+                    <thead><tr class="border-b"><th class="p-2">Senha</th><th class="p-2">Cliente</th><th class="p-2">Horário</th><th class="p-2">Valor</th><th class="p-2">Pagamento</th><th class="p-2">Ações</th></tr></thead>
+                    <tbody id="daily-sales-table"></tbody>
+                </table>
+            </div>
+            <button id="close-daily-sales-btn" class="w-full mt-6 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Fechar</button>
+        </div>
+    </div>
+    <div id="cancellation-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[60] hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+            <h3 class="text-2xl text-gray-800 mb-4">Cancelar Venda</h3>
+            <p class="text-gray-600 mb-4">Por favor, informe o motivo do cancelamento.</p>
+            <form id="cancellation-form">
+                <input type="hidden" id="cancellation-sale-id">
+                <textarea id="cancellation-reason" class="w-full p-2 border rounded-lg" rows="3" required></textarea>
+                <div class="flex justify-end gap-4 mt-4">
+                    <button type="button" id="cancel-cancellation-btn" class="px-6 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Voltar</button>
+                    <button type="submit" class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Confirmar Cancelamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script>lucide.createIcons();</script>
     <script src="./config.js"></script>
@@ -164,13 +202,22 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- Variáveis Globais ---
         let currentUser = null, selectedClient = null, loadedOnlineOrder = null, synth = null, editingSaleId = null, discountType = 'value';
         let allClients = [], allProducts = [], allStockItems = [], pendingOrders = [], dailySales = [];
         let selectedItems = new Map();
         
         const ui = {
-            // ... (seletores da UI)
+            clientSearch: document.getElementById('client-search'), searchResults: document.getElementById('search-results'),
+            bronzeSearch: document.getElementById('bronze-search'), bronzeSearchResults: document.getElementById('bronze-search-results'),
+            consumableSearch: document.getElementById('consumable-search'), consumableSearchResults: document.getElementById('consumable-search-results'),
+            stockSearch: document.getElementById('stock-search'), stockSearchResults: document.getElementById('stock-search-results'),
+            extraSearch: document.getElementById('extra-search'), extraSearchResults: document.getElementById('extra-search-results'),
+            selectedBronzeItems: document.getElementById('selected-bronze-items'),
+            selectedConsumableItems: document.getElementById('selected-consumable-items'),
+            selectedStockItems: document.getElementById('selected-stock-items'),
+            selectedExtraItems: document.getElementById('selected-extra-items'),
+            subtotal: document.getElementById('subtotal'), discountInput: document.getElementById('discount-input'),
+            discountApplied: document.getElementById('discount-applied'), total: document.getElementById('total'),
         };
 
         onAuthStateChanged(auth, (user) => {
@@ -181,6 +228,18 @@
                 document.body.addEventListener('click', async () => { if (!synth) { await Tone.start(); synth = new Tone.Synth().toDestination(); }}, { once: true });
             } else { window.location.href = 'index.html'; }
         });
+
+        async function loadInitialData() {
+            const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
+            const productsRef = collection(db, "businesses", currentUser.uid, "products");
+            const stockItemsRef = collection(db, "businesses", currentUser.uid, "stock_items");
+            const [clientsSnap, productsSnap, stockItemsSnap] = await Promise.all([ getDocs(clientsRef), getDocs(query(productsRef, orderBy("name"))), getDocs(query(stockItemsRef, orderBy("name"))) ]);
+            allClients = clientsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            allProducts = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            allStockItems = stockItemsSnap.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'stock' }));
+            listenForIncomingOrders();
+            listenForDailySales();
+        }
 
         // --- LÓGICA DE ABERTURA/FECHAMENTO DE CAIXA ---
         const cashFlowModal = document.getElementById('cash-flow-modal');
@@ -321,95 +380,24 @@
             }
         });
         
-        // --- TODO O RESTANTE DO CÓDIGO FUNCIONAL DO CAIXA ---
-        // (handleSearch, addItemToSale, renderSelectedItems, calculateTotal, etc.)
-        // Código completo e funcional abaixo
-        
-        async function loadInitialData() {
-            const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
-            const productsRef = collection(db, "businesses", currentUser.uid, "products");
-            const stockItemsRef = collection(db, "businesses", currentUser.uid, "stock_items");
-            const [clientsSnap, productsSnap, stockItemsSnap] = await Promise.all([ getDocs(clientsRef), getDocs(query(productsRef, orderBy("name"))), getDocs(query(stockItemsRef, orderBy("name"))) ]);
-            allClients = clientsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            allProducts = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            allStockItems = stockItemsSnap.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'stock' }));
-            listenForIncomingOrders();
-            listenForDailySales();
-        }
-
-        Object.values(ui).forEach(el => {
-            if (el && el.tagName === 'INPUT') { el.addEventListener('input', handleSearch); el.addEventListener('focus', handleSearch); }
-        });
-        document.addEventListener('click', (e) => { if (!e.target.closest('.relative')) document.querySelectorAll('[id$="-search-results"]').forEach(c => c.classList.add('hidden')); });
-        
-        function handleSearch(e) {
-            const input = e.target; const searchTerm = input.value.trim().toLowerCase(); let results = [], container, type = input.id;
-            switch(type) {
-                case 'client-search': container = ui.searchResults; if (searchTerm.length < 2) { container.classList.add('hidden'); return; } results = allClients.filter(c => (c.name || '').toLowerCase().includes(searchTerm) || (c.phone && c.phone.includes(searchTerm))); break;
-                case 'bronze-search': container = ui.bronzeSearchResults; results = allProducts.filter(p => p.category === 'bronze' && p.name.toLowerCase().includes(searchTerm)); break;
-                case 'consumable-search': container = ui.consumableSearchResults; results = allProducts.filter(p => p.category === 'consumable' && p.name.toLowerCase().includes(searchTerm)); break;
-                case 'stock-search': container = ui.stockSearchResults; results = allStockItems.filter(p => p.name.toLowerCase().includes(searchTerm)); break;
-                case 'extra-search': container = ui.extraSearchResults; results = allProducts.filter(p => p.category === 'extra' && p.name.toLowerCase().includes(searchTerm)); break;
-            }
-            renderSearchResults(results, container, type);
-        }
-
-        function renderSearchResults(results, container, type) {
-            container.innerHTML = '';
-            if (results.length === 0) { container.innerHTML = `<div class="p-3 text-gray-500">${type === 'client-search' ? 'Nenhum cliente.' : 'Nenhum item.'}</div>`; } 
-            else {
-                results.slice(0, 5).forEach(result => {
-                    const itemEl = document.createElement('div');
-                    itemEl.className = 'p-3 hover:bg-gray-100 cursor-pointer';
-                    if (type === 'client-search') {
-                        itemEl.textContent = `${result.name} - ${result.phone}`;
-                        itemEl.onclick = () => selectClient(result);
-                    } else {
-                        itemEl.innerHTML = `<div class="flex justify-between"><span>${result.name}</span><span class="font-semibold">${(result.price || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>`;
-                        itemEl.onclick = () => addItemToSale(result);
-                    }
-                    container.appendChild(itemEl);
-                });
-            }
-            container.classList.remove('hidden');
-        }
-        
-        async function addItemToSale(item) { /* ... (código inalterado) ... */ }
-        function renderSelectedItems() { /* ... (código inalterado) ... */ }
-        document.body.addEventListener('click', (e) => {
-            const removeBtn = e.target.closest('.remove-item-btn');
-            if (removeBtn) { selectedItems.delete(removeBtn.dataset.id); renderSelectedItems(); calculateTotal(); }
-        });
-        document.body.addEventListener('input', (e) => {
-            const quantityInput = e.target.closest('.selected-quantity-input');
-            if (quantityInput) {
-                const item = selectedItems.get(quantityInput.dataset.id);
-                if (item) { item.quantity = parseInt(quantityInput.value) || 1; renderSelectedItems(); calculateTotal(); }
-            }
-        });
-        function calculateTotal() { /* ... (código inalterado) ... */ }
-        function selectClient(client) { /* ... (código inalterado) ... */ }
-        function listenForIncomingOrders() { /* ... (código inalterado) ... */ }
-        document.getElementById('incoming-orders-btn').addEventListener('click', () => { /* ... (código inalterado) ... */ });
-        document.getElementById('close-orders-modal-btn').addEventListener('click', () => document.getElementById('incoming-orders-modal').classList.add('hidden'));
-        document.getElementById('incoming-orders-list').addEventListener('click', async (e) => { /* ... (código inalterado) ... */ });
-        document.getElementById('save-sale-btn').addEventListener('click', async () => { /* ... (código inalterado) ... */ });
-        function resetSaleForm(){ /* ... (código inalterado) ... */ }
-        async function getNextPassword() { /* ... (código inalterado) ... */ }
-        function listenForDailySales() { /* ... (código inalterado) ... */ }
-        const dailySalesModal = document.getElementById('daily-sales-modal');
-        document.getElementById('show-daily-sales-btn').addEventListener('click', () => dailySalesModal.classList.remove('hidden'));
-        document.getElementById('close-daily-sales-btn').addEventListener('click', () => dailySalesModal.classList.add('hidden'));
-        document.getElementById('close-qr-modal-btn').addEventListener('click', () => document.getElementById('password-qr-modal').classList.add('hidden'));
-        document.getElementById('daily-sales-table').addEventListener('click', (e) => {
-            if (e.target.closest('.edit-sale-btn')) handleEditSale(e.target.closest('.edit-sale-btn').dataset.id);
-            if (e.target.closest('.delete-sale-btn')) handleDeleteSale(e.target.closest('.delete-sale-btn').dataset.id);
-        });
-        const cancellationModal = document.getElementById('cancellation-modal');
-        document.getElementById('cancel-cancellation-btn').addEventListener('click', () => cancellationModal.classList.add('hidden'));
-        document.getElementById('cancellation-form').addEventListener('submit', async (e) => { /* ... (código inalterado) ... */ });
-        function handleEditSale(saleId) { /* ... (código inalterado) ... */ }
-        function handleDeleteSale(saleId) { /* ... (código inalterado) ... */ }
+        // --- LÓGICA DE BUSCA E SELEÇÃO ---
+        // Funções handleSearch, renderSearchResults, addItemToSale, renderSelectedItems, listeners e calculateTotal
+        function handleSearch(e){const t=e.target,n=t.value.trim().toLowerCase();let l,a,c=t.id;switch(c){case"client-search":a=ui.searchResults,n.length<2?(a.classList.add("hidden"),0):l=allClients.filter(e=>(e.name||"").toLowerCase().includes(n)||e.phone&&e.phone.includes(n));break;case"bronze-search":a=ui.bronzeSearchResults,l=allProducts.filter(e=>"bronze"===e.category&&e.name.toLowerCase().includes(n));break;case"consumable-search":a=ui.consumableSearchResults,l=allProducts.filter(e=>"consumable"===e.category&&e.name.toLowerCase().includes(n));break;case"stock-search":a=ui.stockSearchResults,l=allStockItems.filter(e=>e.name.toLowerCase().includes(n));break;case"extra-search":a=ui.extraSearchResults,l=allProducts.filter(e=>"extra"===e.category&&e.name.toLowerCase().includes(n))}renderSearchResults(l,a,c)}function renderSearchResults(e,t,n){t.innerHTML="",0===e.length?t.innerHTML=`<div class="p-3 text-gray-500">${"client-search"===n?"Nenhum cliente.":"Nenhum item."}</div>`:e.slice(0,5).forEach(l=>{const a=document.createElement("div");a.className="p-3 hover:bg-gray-100 cursor-pointer","client-search"===n?(a.textContent=`${l.name} - ${l.phone}`,a.onclick=()=>selectClient(l)):(a.innerHTML=`<div class="flex justify-between"><span>${l.name}</span><span class="font-semibold">${(l.price||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</span></div>`,a.onclick=()=>addItemToSale(l)),t.appendChild(a)}),t.classList.remove("hidden")}async function addItemToSale(e){let t=!1;if("bronze"===e.category){if(selectedClient){const n=selectedClient.packages?.[e.name]||0;if(n>0&&await showConfirm(`Esta cliente tem ${n} sessão(ões) de ${e.name}. Deseja usar uma agora?`,"Usar Pacote?","Sim, Usar")){const n=`${e.id}-usage-${Date.now()}`;return selectedItems.set(n,{id:e.id,name:`${e.name} (Uso de Pacote)`,price:0,quantity:1,isPackage:!1,isPackageUsage:!0,type:"bronze"}),renderSelectedItems(),void calculateTotal()}}t=await showConfirm(`O serviço "${e.name}" é um pacote de 3 sessões?`,"Confirmar Pacote","Sim, é Pacote")}const n=t?`${e.id}-package`:e.id,l=e.type||e.category;selectedItems.has(n)&&("consumable"===l||"stock"===l)?selectedItems.get(n).quantity++:selectedItems.has(n)||(selectedItems.set(n,{id:e.id,name:t?`${e.name} (Pacote)`:e.name,price:t?3*e.price:e.price,quantity:1,isPackage:t,type:l,isPackageUsage:!1}),console.log(selectedItems)),renderSelectedItems(),calculateTotal(),[ui.bronzeSearch,ui.consumableSearch,ui.stockSearch,ui.extraSearch].forEach(e=>e.value=""),document.querySelectorAll('[id$="-search-results"]').forEach(e=>e.classList.add("hidden"))}
+        function renderSelectedItems(){ui.selectedBronzeItems.innerHTML="",ui.selectedConsumableItems.innerHTML="",ui.selectedStockItems.innerHTML="",ui.selectedExtraItems.innerHTML="";for(const[e,t]of selectedItems.entries()){const n=document.createElement("div");n.className="flex items-center justify-between p-2 bg-gray-100 rounded-lg";const l=(t.price*t.quantity).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});let a="";"consumable"!==t.type&&"stock"!==t.type||(a=`<input type="number" value="${t.quantity}" min="1" data-id="${e}" class="selected-quantity-input w-16 p-1 border rounded-md text-center">`),n.innerHTML=`<span>${t.name}</span>\n                    <div class="flex items-center gap-2">\n                        <span class="font-semibold">${l}</span>\n                        ${a}\n                        <button data-id="${e}" class="remove-item-btn text-red-500 hover:text-red-700"><i data-lucide="x-circle" class="w-4 h-4"></i></button>\n                    </div>`;let c;"bronze"===t.type?c=ui.selectedBronzeItems:"consumable"===t.type?c=ui.selectedConsumableItems:"stock"===t.type?c=ui.selectedStockItems:"extra"===t.type&&(c=ui.selectedExtraItems),c&&c.appendChild(n)}lucide.createIcons()}document.body.addEventListener("click",e=>{const t=e.target.closest(".remove-item-btn");t&&(selectedItems.delete(t.dataset.id),renderSelectedItems(),calculateTotal())}),document.body.addEventListener("input",e=>{const t=e.target.closest(".selected-quantity-input");if(t){const e=selectedItems.get(t.dataset.id);e&&(e.quantity=parseInt(t.value)||1,renderSelectedItems(),calculateTotal())}});
+        function calculateTotal(){let e=0;for(const t of selectedItems.values())e+=t.price*t.quantity;ui.subtotal.textContent=e.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});let t=0;const n=parseFloat(ui.discountInput.value.replace(/[^0-9,]/g,"").replace(",","."))||0;"value"===discountType?t=n:t=e*(n/100),ui.discountApplied.textContent=`- ${t.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}`,ui.total.textContent=(e-t).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}
+        function selectClient(e){selectedClient=e,ui.clientSearch.value=e.name,document.getElementById("search-results").classList.add("hidden"),document.getElementById("selected-client-name").textContent=e.name,document.getElementById("selected-client-display").style.display="flex";const t=document.getElementById("birthday-alert");e.birthdate?(new Date(e.birthdate+"T00:00:00").getMonth()===new Date().getMonth()?t.style.display="flex":t.style.display="none"):t.style.display="none",lucide.createIcons()}
+        function listenForIncomingOrders(){const e=query(collection(db,"businesses",currentUser.uid,"incoming_orders"),where("status","==","pending"));onSnapshot(e,e=>{pendingOrders=e.docs.map(e=>({id:e.id,...e.data()}));const t=document.getElementById("notification-badge");pendingOrders.length>0?(t.textContent=pendingOrders.length,t.classList.remove("hidden"),e.docChanges().some(e=>"added"===e.type)&&synth&&synth.triggerAttackRelease("C5","8n")):t.classList.add("hidden")})}
+        document.getElementById("incoming-orders-btn").addEventListener("click",()=>{const e=document.getElementById("incoming-orders-modal"),t=document.getElementById("incoming-orders-list");t.innerHTML="",0===pendingOrders.length?t.innerHTML='<p class="text-gray-500">Nenhum pedido pendente.</p>':pendingOrders.forEach(e=>{const n=document.createElement("div");n.className="p-4 border rounded-lg",n.innerHTML=`<div class="flex justify-between items-start"><div><p class="font-bold text-lg">${e.customerName}</p><p class="text-sm text-gray-600">${e.customerPhone}</p><p class="text-sm mt-2">Total: <span class="font-bold">${e.total.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</span></p></div><div class="flex gap-2"><button class="load-order-btn bg-green-500 text-white px-3 py-1 rounded" data-id="${e.id}">Carregar</button><button class="reject-order-btn bg-red-500 text-white px-3 py-1 rounded" data-id="${e.id}">Rejeitar</button></div></div>`,t.appendChild(n)}),e.classList.remove("hidden")}),document.getElementById("close-orders-modal-btn").addEventListener("click",()=>document.getElementById("incoming-orders-modal").classList.add("hidden"));
+        document.getElementById("incoming-orders-list").addEventListener("click",async e=>{const t=e.target.dataset.id;if(t){const n=doc(db,"businesses",currentUser.uid,"incoming_orders",t);if(e.target.classList.contains("load-order-btn")){const e=pendingOrders.find(e=>e.id===t);e&&(resetSaleForm(),ui.clientSearch.value=e.customerName,e.items.forEach(e=>{const t=allStockItems.find(t=>t.name===e.name)||allProducts.find(t=>t.name===e.name)||allProducts.find(t=>`${t.name} (Pacote)`===e.name);if(t){const n=e.name.includes("(Pacote)"),l=n?`${t.id}-package`:t.id;selectedItems.set(l,{...t,name:e.name,quantity:e.quantity,price:e.price,type:t.type||t.category,isPackage:n})}}),document.getElementById("payment-method").value=e.paymentMethod,document.getElementById("order-details").classList.remove("hidden"),loadedOnlineOrder=e,renderSelectedItems(),calculateTotal(),document.getElementById("incoming-orders-modal").classList.add("hidden"),await updateDoc(n,{status:"loaded"}))}else e.target.classList.contains("reject-order-btn")&&await showConfirm("Rejeitar este pedido?")&&(await updateDoc(n,{status:"rejected"}),showNotification("Pedido rejeitado.","info"))}});
+        document.getElementById('save-sale-btn').addEventListener('click',async()=>{const e=parseFloat(ui.total.textContent.replace(/[^\d,]/g,"").replace(",","."))||0,t=Array.from(selectedItems.values());if(0===t.length)return void showNotification("Nenhum item selecionado.","info");if(e<=0&&!t.some(e=>e.isPackageUsage))return void showNotification("O valor da venda não pode ser zero.","info");const n=editingSaleId?dailySales.find(e=>e.id===editingSaleId):null,l=editingSaleId?n.password:await getNextPassword(),a=editingSaleId?n.createdAt:Timestamp.now(),c={clientName:selectedClient?selectedClient.name:ui.clientSearch.value||"Cliente Avulso",clientId:selectedClient?selectedClient.id:null,total:e,subtotal:parseFloat(ui.subtotal.textContent.replace(/[^\d,]/g,"").replace(",","."))||0,discount:parseFloat(ui.discountApplied.textContent.replace(/[^\d,]/g,"").replace(",","."))||0,paymentMethod:document.getElementById("payment-method").value,items:t.map(e=>({name:e.name,price:e.price,quantity:e.quantity,isPackage:e.isPackage,isPackageUsage:e.isPackageUsage,type:e.type,id:e.id})),createdAt:a,status:"waiting",password:l};try{const e=writeBatch(db);if(selectedClient){const n=doc(db,"businesses",currentUser.uid,"clients",selectedClient.id),l={};t.forEach(e=>{e.isPackage&&(l[`packages.${e.name.replace(" (Pacote)","")}`]=increment(2)),e.isPackageUsage&&(l[`packages.${e.name.replace(" (Uso de Pacote)","")}`]=increment(-1))}),Object.keys(l).length>0&&e.update(n,l)}t.forEach(t=>{if("stock"===t.type){const n=doc(db,"businesses",currentUser.uid,"stock_items",t.id);e.update(n,{quantity:increment(-t.quantity)})}});const n=editingSaleId?doc(db,"businesses",currentUser.uid,"sales",editingSaleId):doc(collection(db,"businesses",currentUser.uid,"sales"));e.set(n,c,{merge:!0}),loadedOnlineOrder&&e.update(doc(db,"businesses",currentUser.uid,"incoming_orders",loadedOnlineOrder.id),{status:"completed"}),await e.commit(),editingSaleId||(document.getElementById("modal-password").textContent=l,document.getElementById("qrcode-container").innerHTML="",new QRCode(document.getElementById("qrcode-container"),{text:`${window.location.origin}${window.location.pathname.replace("caixa.html","status-cliente.html")}?businessId=${currentUser.uid}&id=${n.id}`,width:160,height:160}),document.getElementById("password-qr-modal").classList.remove("hidden")),showNotification(editingSaleId?"Venda atualizada!":"Venda salva!","success"),resetSaleForm()}catch(e){console.error(e),showNotification("Erro ao salvar a venda.","error")}});
+        function resetSaleForm(){selectedClient=null,loadedOnlineOrder=null,editingSaleId=null,ui.clientSearch.value="",document.getElementById("selected-client-display").style.display="none",document.getElementById("order-details").classList.add("hidden"),selectedItems.clear(),renderSelectedItems(),calculateTotal(),document.getElementById("save-sale-btn").textContent="Salvar Venda"}
+        async function getNextPassword(){const e=new Date,t=`${e.getFullYear()}-${String(e.getMonth()+1).padStart(2,"0")}-${String(e.getDate()).padStart(2,"0")}`,n=doc(db,"businesses",currentUser.uid,"dailyCounters",t),l=await getDoc(n);let a=l.exists()?l.data().lastPassword+1:1;return await setDoc(n,{lastPassword:a},{merge:!0}),String(a).padStart(3,"0")}
+        function listenForDailySales(){const e=document.getElementById("daily-sales-table"),t=query(collection(db,"businesses",currentUser.uid,"sales"),where("createdAt",">=",new Date((new Date).setHours(0,0,0,0))),orderBy("createdAt","desc"));onSnapshot(t,t=>{dailySales=t.docs.map(e=>({id:e.id,...e.data()})),e.innerHTML="",t.empty?e.innerHTML='<tr><td colspan="6" class="text-center p-8 text-gray-500">Nenhuma venda hoje.</td></tr>':dailySales.forEach(t=>{const n=e.insertRow(),l="cancelled"===t.status;n.className=`border-b ${l?"bg-red-50 text-gray-400 line-through":"hover:bg-gray-50"}`,n.innerHTML=`<td class="p-2 font-mono">${t.password||"N/A"}</td><td class="p-2 font-semibold">${t.clientName} ${l?`<span class="text-xs text-red-600 font-normal block">(${t.cancellationReason||"Cancelado"})</span>`:""}</td><td class="p-2">${t.createdAt.toDate().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</td><td class="p-2">${(t.total||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</td><td class="p-2">${t.paymentMethod}</td><td class="p-2 flex items-center gap-2"><button class="edit-sale-btn p-1 text-gray-500 hover:text-blue-600 ${l?"hidden":""}" data-id="${t.id}"><i data-lucide="pencil" class="w-4 h-4 pointer-events-none"></i></button><button class="delete-sale-btn p-1 text-gray-500 hover:text-red-600 ${l?"hidden":""}" data-id="${t.id}"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button></td>`}),lucide.createIcons()})}
+        const dailySalesModal=document.getElementById("daily-sales-modal");document.getElementById("show-daily-sales-btn").addEventListener("click",()=>dailySalesModal.classList.remove("hidden")),document.getElementById("close-daily-sales-btn").addEventListener("click",()=>dailySalesModal.classList.add("hidden")),document.getElementById("close-qr-modal-btn").addEventListener("click",()=>document.getElementById("password-qr-modal").classList.add("hidden"));
+        document.getElementById("daily-sales-table").addEventListener("click",e=>{e.target.closest(".edit-sale-btn")&&handleEditSale(e.target.closest(".edit-sale-btn").dataset.id),e.target.closest(".delete-sale-btn")&&handleDeleteSale(e.target.closest(".delete-sale-btn").dataset.id)});
+        const cancellationModal=document.getElementById("cancellation-modal");document.getElementById("cancel-cancellation-btn").addEventListener("click",()=>cancellationModal.classList.add("hidden")),document.getElementById("cancellation-form").addEventListener("submit",async e=>{e.preventDefault();const t=e.target.querySelector("#cancellation-sale-id").value,n=e.target.querySelector("#cancellation-reason").value;if(n)try{await updateDoc(doc(db,"businesses",currentUser.uid,"sales",t),{status:"cancelled",cancellationReason:n}),showNotification("Venda cancelada com sucesso.","info"),cancellationModal.classList.add("hidden")}catch(e){showNotification("Erro ao cancelar a venda.","error")}else showNotification("Por favor, informe o motivo.","error")});
+        function handleEditSale(e){const t=dailySales.find(t=>t.id===e);if(t){resetSaleForm(),editingSaleId=e,document.getElementById("save-sale-btn").textContent="Atualizar Venda";const n=allClients.find(e=>e.id===t.clientId);n?selectClient(n):ui.clientSearch.value=t.clientName,t.items.forEach(e=>{const t=e.isPackage?`${e.id}-package`:e.isPackageUsage?`${e.id}-usage-${Date.now()}`:e.id;selectedItems.set(t,{...e})}),renderSelectedItems(),calculateTotal(),dailySalesModal.classList.add("hidden"),window.scrollTo({top:0,behavior:"smooth"})}}
+        function handleDeleteSale(e){cancellationModal.querySelector("#cancellation-sale-id").value=e,cancellationModal.querySelector("#cancellation-reason").value="",cancellationModal.classList.remove("hidden")}
     </script>
 </body>
 </html>
