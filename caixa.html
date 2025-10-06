@@ -390,12 +390,17 @@
         }
         function displayReportModal(report) {
             const contentEl = document.getElementById('report-content-modal');
+            
+            // Safely create Date objects for display
+            const openDate = report.openTime.toDate ? report.openTime.toDate() : new Date(report.openTime);
+            const closeDate = report.closeTime.toDate ? report.closeTime.toDate() : new Date(report.closeTime);
+
             let paymentHtml = '';
             for (const [method, total] of Object.entries(report.paymentTotals || {})) {
                 paymentHtml += `<div class="flex justify-between"><span>${method}:</span><span class="font-semibold">${total.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></div>`;
             }
             const totalCash = (report.paymentTotals?.['Dinheiro'] || 0) + (report.initialChange || 0);
-            contentEl.innerHTML = `<p><strong>Operador:</strong> ${report.operatorName}</p><p><strong>Abertura:</strong> ${report.openTime.toDate().toLocaleString('pt-BR')}</p><p><strong>Fechamento:</strong> ${report.closeTime.toDate().toLocaleString('pt-BR')}</p><hr class="my-2"><p><strong>Total de Atendimentos:</strong> ${report.totalClients}</p><div class="mt-2 border-t pt-2">${paymentHtml}</div><hr class="my-2"><div class="flex justify-between"><span>Troco Inicial:</span><span>${(report.initialChange || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></div><div class="flex justify-between text-lg font-bold mt-2"><span>Total em Caixa (Dinheiro):</span><span>${totalCash.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></div>`;
+            contentEl.innerHTML = `<p><strong>Operador:</strong> ${report.operatorName}</p><p><strong>Abertura:</strong> ${openDate.toLocaleString('pt-BR')}</p><p><strong>Fechamento:</strong> ${closeDate.toLocaleString('pt-BR')}</p><hr class="my-2"><p><strong>Total de Atendimentos:</strong> ${report.totalClients}</p><div class="mt-2 border-t pt-2">${paymentHtml}</div><hr class="my-2"><div class="flex justify-between"><span>Troco Inicial:</span><span>${(report.initialChange || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></div><div class="flex justify-between text-lg font-bold mt-2"><span>Total em Caixa (Dinheiro):</span><span>${totalCash.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></div>`;
             document.getElementById('report-modal').classList.remove('hidden');
             document.getElementById('close-report-modal').onclick = () => document.getElementById('report-modal').classList.add('hidden');
             document.getElementById('download-report-btn').onclick = () => generateReportPDF(report);
@@ -403,11 +408,16 @@
         function generateReportPDF(report) {
              const { jsPDF } = window.jspdf;
              const pdf = new jsPDF();
+             
+             // Safely create Date objects for display
+             const openDate = report.openTime.toDate ? report.openTime.toDate() : new Date(report.openTime);
+             const closeDate = report.closeTime.toDate ? report.closeTime.toDate() : new Date(report.closeTime);
+
              pdf.setFontSize(18); pdf.text("Relatório de Fechamento de Caixa", 14, 22);
              pdf.setFontSize(11); pdf.setTextColor(100);
              pdf.text(`Operador: ${report.operatorName}`, 14, 30);
-             pdf.text(`Abertura: ${report.openTime.toDate().toLocaleString('pt-BR')}`, 14, 36);
-             pdf.text(`Fechamento: ${report.closeTime.toDate().toLocaleString('pt-BR')}`, 14, 42);
+             pdf.text(`Abertura: ${openDate.toLocaleString('pt-BR')}`, 14, 36);
+             pdf.text(`Fechamento: ${closeDate.toLocaleString('pt-BR')}`, 14, 42);
              
              const body = [
                  ['Total de Atendimentos', report.totalClients.toString()],
@@ -863,3 +873,4 @@
     </script>
 </body>
 </html>
+
