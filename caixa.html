@@ -796,12 +796,20 @@
         document.getElementById('save-sale-btn').addEventListener('click', async () => {
             const totalValue = parseFloat(ui.total.textContent.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
             const saleItems = Array.from(selectedItems.values());
+            const isServiceSale = saleItems.some(item => item.type !== 'consumable');
             if (saleItems.length === 0) { showNotification('Nenhum item selecionado.', 'info'); return; }
             if (totalValue <= 0 && !saleItems.some(i => i.isPackageUsage)) {
                 showNotification('O valor da venda não pode ser zero.', 'info'); return;
             }
             const existingSale = editingSaleId ? dailySales.find(s => s.id === editingSaleId) : null;
-            const password = editingSaleId ? existingSale.password : await getNextPassword();
+            let password = null;
+if (isServiceSale) {
+    // Se for venda de serviço, gera a senha normalmente
+    password = editingSaleId ? existingSale.password : await getNextPassword();
+} else if (editingSaleId) {
+    // Se for edição de uma venda antiga (que pode ter senha), mantém a senha
+    password = existingSale.password;
+}
             const createdAt = editingSaleId ? existingSale.createdAt : Timestamp.now();
             const salePayload = {
                 clientName: selectedClient ? selectedClient.name : ui.clientSearch.value || "Cliente Avulso",
@@ -837,7 +845,7 @@
                 }
                 await batch.commit();
                 
-                if (!editingSaleId) {
+                if (!editingSaleId && isServiceSale) {
                     document.getElementById('modal-password').textContent = password;
                     const qrContainer = document.getElementById('qrcode-container');
                     qrContainer.innerHTML = '';
@@ -955,5 +963,6 @@
     </script>
 </body>
 </html>
+
 
 
