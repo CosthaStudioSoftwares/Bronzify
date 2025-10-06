@@ -796,7 +796,7 @@
         document.getElementById('save-sale-btn').addEventListener('click', async () => {
             const totalValue = parseFloat(ui.total.textContent.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
             const saleItems = Array.from(selectedItems.values());
-            const isServiceSale = saleItems.some(item => item.type !== 'consumable');
+            const isServiceSale = saleItems.some(item => item.type !== 'stock');
             if (saleItems.length === 0) { showNotification('Nenhum item selecionado.', 'info'); return; }
             if (totalValue <= 0 && !saleItems.some(i => i.isPackageUsage)) {
                 showNotification('O valor da venda não pode ser zero.', 'info'); return;
@@ -963,6 +963,7 @@ if (isServiceSale) {
     </script>
 </body>
 </html>
+
 
 
 
