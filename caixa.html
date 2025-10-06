@@ -157,6 +157,7 @@
                                 <option>Crédito</option>
                                 <option>A Prazo</option>
                                 <option>Parceria</option>
+                                <option>Permuta</option>
                             </select>
                             <button id="save-sale-btn" class="w-full bg-gradient-to-r from-pink-500 to-[#B76E79] text-white py-3 rounded-lg font-bold text-lg">Salvar Venda</button>
                         </div>
@@ -809,7 +810,7 @@
                 subtotal: parseFloat(ui.subtotal.textContent.replace(/[^\d,]/g, '').replace(',', '.')) || 0,
                 discount: parseFloat(ui.discountApplied.textContent.replace(/[^\d,]/g, '').replace(',', '.')) || 0,
                 paymentMethod: document.getElementById('payment-method').value,
-                items: saleItems.map(i => ({ name: i.name, price: i.price, quantity: i.quantity, isPackage: i.isPackage, isPackageUsage: i.isPackageUsage, type: i.type, id: i.id })),
+                items: saleItems.map(i => ({ name: i.name, price: i.price, quantity: i.quantity, isPackage: i.isPackage || false, isPackageUsage: i.isPackageUsage || false, type: i.type, id: i.id })),
                 createdAt: createdAt, status: 'waiting', password: password
             };
             try {
@@ -954,4 +955,5 @@
     </script>
 </body>
 </html>
+
 
