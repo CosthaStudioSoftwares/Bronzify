@@ -460,6 +460,7 @@
             ];
             pdf.autoTable({ head: [['Resumo Financeiro', 'Valor']], body: summaryBody, startY: 50, headStyles: {fillColor: [183,110,121]} });
             
+            // Nova seção para vendas canceladas
             if (report.canceledSales && report.canceledSales.length > 0) {
                 const canceledHead = [['Horário', 'Cliente', 'Valor', 'Pagamento', 'Motivo']];
                 const canceledBody = report.canceledSales.map(sale => [
@@ -470,15 +471,17 @@
                     sale.cancellationReason || 'N/A'
                 ]);
 
+                // Define a posição do título e o escreve no PDF
+                const titleY = pdf.autoTable.previous.finalY + 15;
+                pdf.setFontSize(14);
+                pdf.text('Vendas Canceladas no Período', 14, titleY);
+
+                // Cria a tabela logo abaixo do título
                 pdf.autoTable({
                     head: canceledHead,
                     body: canceledBody,
-                    startY: pdf.autoTable.previous.finalY + 10,
-                    headStyles: { fillColor: [220, 53, 69] },
-                    didDrawPage: (data) => {
-                        pdf.setFontSize(14);
-                        pdf.text('Vendas Canceladas no Período', data.settings.margin.left, data.cursor.y + 15);
-                    }
+                    startY: titleY + 5, // Posição inicial da tabela
+                    headStyles: { fillColor: [220, 53, 69] } // Cor vermelha para destacar
                 });
             }
 
@@ -951,3 +954,4 @@
     </script>
 </body>
 </html>
+
