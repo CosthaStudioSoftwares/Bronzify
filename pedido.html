@@ -36,7 +36,6 @@
             <p class="text-gray-600">Não foi possível carregar o cardápio. Por favor, solicite um novo link.</p>
         </div>
 
-        <!-- NOVO: Container de sucesso -->
         <div id="success-state" class="hidden text-center py-16 bg-green-50 p-8 rounded-lg">
             <i data-lucide="check-circle-2" class="mx-auto w-12 h-12 text-green-500"></i>
             <h2 class="text-2xl mt-4 text-green-700">Pedido Enviado!</h2>
@@ -45,8 +44,7 @@
 
         <div id="content-container" class="hidden space-y-8">
             <div id="categories-container" class="space-y-4">
-                <!-- Categorias e itens serão inseridos aqui -->
-            </div>
+                </div>
 
             <div class="bg-white p-6 rounded-2xl shadow-md space-y-4">
                 <h3 class="text-2xl text-gray-800 border-b pb-2">Seus Dados</h3>
@@ -91,6 +89,9 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, getDocs, query, orderBy, addDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+        // ATENÇÃO: É seguro expor sua configuração do Firebase no cliente,
+        // mas é ESSENCIAL que você configure as Regras de Segurança no console do Firebase
+        // para proteger seus dados contra acesso não autorizado.
         const firebaseConfig = {
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
             authDomain: "bronzify-b2491.firebaseapp.com",
@@ -117,18 +118,24 @@
             }
 
             try {
-                const categoriesRef = collection(db, "businesses", businessId, "stock_categories");
-                const itemsRef = collection(db, "businesses", businessId, "stock_items");
-                
-                const [categoriesSnapshot, itemsSnapshot] = await Promise.all([
-                    getDocs(query(categoriesRef, orderBy("name"))),
-                    getDocs(query(itemsRef, orderBy("name")))
+                const productsRef = collection(db, "businesses", businessId, "products");
+                const [productsSnapshot] = await Promise.all([
+                    getDocs(query(productsRef, orderBy("name")))
                 ]);
+                
+                const products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                const categories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                const items = itemsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // Agrupar produtos por categoria
+                const categories = products.reduce((acc, product) => {
+                    const categoryName = product.category || 'Outros';
+                    if (!acc[categoryName]) {
+                        acc[categoryName] = [];
+                    }
+                    acc[categoryName].push(product);
+                    return acc;
+                }, {});
 
-                renderMenu(categories, items);
+                renderMenu(categories);
 
                 document.getElementById('loading-state').classList.add('hidden');
                 document.getElementById('content-container').classList.remove('hidden');
@@ -140,16 +147,15 @@
             }
         }
 
-        function renderMenu(categories, items) {
+        function renderMenu(categories) {
             categoriesContainer.innerHTML = '';
-            categories.forEach(category => {
-                const itemsInCategory = items.filter(item => item.categoryId === category.id);
-                if (itemsInCategory.length === 0) return;
-
+            for (const categoryName in categories) {
+                const itemsInCategory = categories[categoryName];
+                
                 const categoryDiv = document.createElement('div');
                 categoryDiv.innerHTML = `
                     <div data-accordion-trigger class="flex justify-between items-center cursor-pointer bg-white p-4 rounded-lg shadow">
-                        <h3 class="text-xl text-gray-800">${category.name}</h3>
+                        <h3 class="text-xl text-gray-800">${categoryName.charAt(0).toUpperCase() + categoryName.slice(1)}</h3>
                         <i data-lucide="chevron-down" class="transition-transform duration-300"></i>
                     </div>
                     <div class="accordion-content max-h-0 bg-white rounded-b-lg shadow">
@@ -170,7 +176,7 @@
                     </div>
                 `;
                 categoriesContainer.appendChild(categoryDiv);
-            });
+            }
             lucide.createIcons();
             addEventListeners();
         }
@@ -179,7 +185,9 @@
             categoriesContainer.querySelectorAll('[data-accordion-trigger]').forEach(trigger => {
                 trigger.addEventListener('click', () => {
                     const panel = trigger.nextElementSibling;
-                    const icon = trigger.querySelector('i');
+                    // CORREÇÃO AQUI: Procura pelo atributo em vez da tag `i`
+                    const icon = trigger.querySelector('[data-lucide="chevron-down"]');
+                    
                     if (panel.style.maxHeight) {
                         panel.style.maxHeight = null;
                         icon.classList.remove('rotate-180');
@@ -189,9 +197,21 @@
                     }
                 });
             });
+            
+            categoriesContainer.querySelectorAll('.item-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const row = e.target.closest('.item-row');
+                    const quantityInput = row.querySelector('.item-quantity');
+                    if (e.target.checked) {
+                        quantityInput.classList.remove('hidden');
+                    } else {
+                        quantityInput.classList.add('hidden');
+                    }
+                    calculateTotal();
+                });
+            });
 
-            categoriesContainer.querySelectorAll('.item-checkbox, .item-quantity').forEach(el => {
-                el.addEventListener('change', calculateTotal);
+            categoriesContainer.querySelectorAll('.item-quantity').forEach(el => {
                 el.addEventListener('input', calculateTotal);
             });
 
@@ -209,8 +229,10 @@
         function calculateTotal() {
             let total = 0;
             document.querySelectorAll('.item-row').forEach(row => {
-                if (row.querySelector('.item-checkbox').checked) {
-                    total += parseFloat(row.dataset.price) * (parseInt(row.querySelector('.item-quantity').value) || 0);
+                const checkbox = row.querySelector('.item-checkbox');
+                if (checkbox.checked) {
+                    const quantity = parseInt(row.querySelector('.item-quantity').value) || 0;
+                    total += parseFloat(row.dataset.price) * quantity;
                 }
             });
             document.getElementById('total-price').textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -219,8 +241,8 @@
         async function sendOrder() {
             const name = document.getElementById('customer-name').value.trim();
             const phone = document.getElementById('customer-phone').value.trim();
-            if (!name || !phone) {
-                alert('Por favor, preencha seu nome e telefone.');
+            if (!name || phone.length < 14) { // Validação simples de telefone
+                alert('Por favor, preencha seu nome e um telefone válido.');
                 return;
             }
 
@@ -257,7 +279,7 @@
                 total: total,
                 paymentMethod: document.getElementById('payment-method').value,
                 observations: document.getElementById('customer-obs').value.trim(),
-                status: 'pending', // 'pending', 'confirmed', 'rejected'
+                status: 'pending',
                 createdAt: Timestamp.now()
             };
 
@@ -280,4 +302,3 @@
     </script>
 </body>
 </html>
-
