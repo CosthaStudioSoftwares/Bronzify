@@ -273,6 +273,7 @@
         let currentUser = null, selectedClient = null, loadedOnlineOrder = null, synth = null, editingSaleId = null, discountType = 'value';
         let allClients = [], allProducts = [], allStockItems = [], pendingOrders = [], dailySales = [];
         let selectedItems = new Map();
+        let isClosingCash = false; // Flag to prevent re-entry
         
         const ui = {
             clientSearch: document.getElementById('client-search'), searchResults: document.getElementById('search-results'),
@@ -359,13 +360,23 @@
             } catch (error) { console.error("Erro ao abrir caixa:", error); showNotification('Erro ao abrir caixa.', 'error'); }
         }
         async function handleCloseCash() {
+             if (isClosingCash) {
+                 console.warn("Fechamento de caixa já está em progresso.");
+                 return;
+             }
+             isClosingCash = true;
+
              try {
                 const patioSalesRef = query(collection(db, "businesses", currentUser.uid, "sales"), where("status", "==", "called"));
                 const patioSnapshot = await getDocs(patioSalesRef);
                 if (!patioSnapshot.empty) {
-                    if(!await showConfirm(`Atenção: ${patioSnapshot.size} cliente(s) ainda estão no pátio. Deseja mesmo fechar o caixa?`, 'Confirmar Fechamento', 'Sim, Fechar Mesmo Assim')) return;
+                    if(!await showConfirm(`Atenção: ${patioSnapshot.size} cliente(s) ainda estão no pátio. Deseja mesmo fechar o caixa?`, 'Confirmar Fechamento', 'Sim, Fechar Mesmo Assim')) {
+                        return; // Retorna se o usuário cancelar
+                    }
                 }
-                if (!await showConfirm('Deseja realmente fechar o caixa agora?', 'Confirmar Fechamento', 'Sim, Fechar')) return;
+                if (!await showConfirm('Deseja realmente fechar o caixa agora?', 'Confirmar Fechamento', 'Sim, Fechar')) {
+                    return; // Retorna se o usuário cancelar
+                }
                 
                 const cashRegister = JSON.parse(sessionStorage.getItem('cashRegister'));
                 if (!cashRegister || !cashRegister.shiftId) {
@@ -400,12 +411,13 @@
              } catch (error) { 
                  console.error("Erro ao fechar caixa:", error); 
                  showNotification('Erro ao fechar o caixa.', 'error'); 
+             } finally {
+                isClosingCash = false; // Garante que a trava seja liberada no final
              }
         }
         function displayReportModal(report) {
             const contentEl = document.getElementById('report-content-modal');
             
-            // CORREÇÃO: Converte as datas de forma segura, seja do Firebase (Timestamp) ou do sessionStorage (número)
             const openDate = (report.openTime && typeof report.openTime.toDate === 'function') 
                 ? report.openTime.toDate() 
                 : new Date(report.openTime || Date.now());
@@ -428,7 +440,6 @@
              const { jsPDF } = window.jspdf;
              const pdf = new jsPDF();
              
-             // CORREÇÃO: Converte as datas de forma segura, seja do Firebase (Timestamp) ou do sessionStorage (número)
              const openDate = (report.openTime && typeof report.openTime.toDate === 'function') 
                 ? report.openTime.toDate() 
                 : new Date(report.openTime || Date.now());
