@@ -389,18 +389,19 @@
                 
                 if (!patioSnapshot.empty) {
                     if(!await showConfirm(`Atenção: ${patioSnapshot.size} cliente(s) ainda estão no pátio. Deseja mesmo fechar o caixa?`, 'Confirmar Fechamento', 'Sim, Fechar Mesmo Assim')) {
-                        // Se o usuário cancelar, o finally vai rodar e resetar a flag
+                        isClosingCash = false;
                         return; 
                     }
                 }
                 if (!await showConfirm('Deseja realmente fechar o caixa agora?', 'Confirmar Fechamento', 'Sim, Fechar')) {
-                    // Se o usuário cancelar, o finally vai rodar e resetar a flag
+                    isClosingCash = false;
                     return; 
                 }
                 
                 const cashRegister = JSON.parse(sessionStorage.getItem('cashRegister'));
                 if (!cashRegister || !cashRegister.shiftId) {
                     showNotification("Informações do caixa não encontradas. Por favor, recarregue a página.", "error");
+                    isClosingCash = false;
                     return;
                 }
 
@@ -432,7 +433,7 @@
                  console.error("Erro ao fechar caixa:", error); 
                  showNotification('Erro ao fechar o caixa.', 'error'); 
              } finally {
-                isClosingCash = false; // Garante que a trava seja liberada no final
+                isClosingCash = false;
              }
         }
         function displayReportModal(report) {
