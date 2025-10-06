@@ -391,9 +391,14 @@
         function displayReportModal(report) {
             const contentEl = document.getElementById('report-content-modal');
             
-            // Safely create Date objects for display
-            const openDate = report.openTime.toDate ? report.openTime.toDate() : new Date(report.openTime);
-            const closeDate = report.closeTime.toDate ? report.closeTime.toDate() : new Date(report.closeTime);
+            // CORREÇÃO: Converte as datas de forma segura, seja do Firebase (Timestamp) ou do sessionStorage (número)
+            const openDate = (report.openTime && typeof report.openTime.toDate === 'function') 
+                ? report.openTime.toDate() 
+                : new Date(report.openTime || Date.now());
+
+            const closeDate = (report.closeTime && typeof report.closeTime.toDate === 'function')
+                ? report.closeTime.toDate()
+                : new Date(report.closeTime || Date.now());
 
             let paymentHtml = '';
             for (const [method, total] of Object.entries(report.paymentTotals || {})) {
@@ -409,9 +414,14 @@
              const { jsPDF } = window.jspdf;
              const pdf = new jsPDF();
              
-             // Safely create Date objects for display
-             const openDate = report.openTime.toDate ? report.openTime.toDate() : new Date(report.openTime);
-             const closeDate = report.closeTime.toDate ? report.closeTime.toDate() : new Date(report.closeTime);
+             // CORREÇÃO: Converte as datas de forma segura, seja do Firebase (Timestamp) ou do sessionStorage (número)
+             const openDate = (report.openTime && typeof report.openTime.toDate === 'function') 
+                ? report.openTime.toDate() 
+                : new Date(report.openTime || Date.now());
+
+             const closeDate = (report.closeTime && typeof report.closeTime.toDate === 'function')
+                ? report.closeTime.toDate()
+                : new Date(report.closeTime || Date.now());
 
              pdf.setFontSize(18); pdf.text("Relatório de Fechamento de Caixa", 14, 22);
              pdf.setFontSize(11); pdf.setTextColor(100);
