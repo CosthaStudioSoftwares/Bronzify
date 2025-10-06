@@ -314,7 +314,7 @@
         const cashFlowModal = document.getElementById('cash-flow-modal');
         const mainContentOverlay = document.getElementById('main-content-overlay');
         
-        // CORREÇÃO: Usar delegação de eventos para evitar múltiplos listeners
+        // Usar delegação de eventos para evitar múltiplos listeners
         cashFlowModal.addEventListener('click', (e) => {
             if (e.target.id === 'close-cash-btn') {
                 handleCloseCash();
@@ -351,11 +351,15 @@
             const cashRegister = JSON.parse(sessionStorage.getItem('cashRegister'));
             if (cashRegister && cashRegister.status === 'open') {
                 controlPanel.innerHTML = `<p class="mb-4">Caixa aberto por: <span class="font-bold">${cashRegister.operatorName}</span></p><button id="close-cash-btn" class="w-full bg-red-500 text-white py-2 rounded-lg hover:bg-red-600">Fechar Caixa</button>`;
-                // Listener removido daqui
             } else {
                 controlPanel.innerHTML = `<form id="open-cash-form" class="space-y-4"><div><label for="operator-name" class="font-semibold text-gray-700">Seu Nome</label><input type="text" id="operator-name" class="w-full p-2 border rounded-lg mt-1" required></div><div><label for="initial-change" class="font-semibold text-gray-700">Valor de Troco Inicial</label><input type="text" id="initial-change" class="w-full p-2 border rounded-lg mt-1" placeholder="R$ 0,00" required></div><button type="submit" class="w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600">Abrir Caixa</button></form>`;
-                document.getElementById('initial-change').addEventListener('input', (e) => { let v = e.target.value.replace(/\D/g, ''); e.target.value = v ? (parseInt(v) / 100).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}) : ''; });
-                // Listener de submit removido daqui
+                const initialChangeInput = document.getElementById('initial-change');
+                if(initialChangeInput) {
+                    initialChangeInput.addEventListener('input', (e) => { 
+                        let v = e.target.value.replace(/\D/g, ''); 
+                        e.target.value = v ? (parseInt(v) / 100).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}) : ''; 
+                    });
+                }
             }
         }
         async function handleOpenCash(e) {
@@ -382,13 +386,16 @@
              try {
                 const patioSalesRef = query(collection(db, "businesses", currentUser.uid, "sales"), where("status", "==", "called"));
                 const patioSnapshot = await getDocs(patioSalesRef);
+                
                 if (!patioSnapshot.empty) {
                     if(!await showConfirm(`Atenção: ${patioSnapshot.size} cliente(s) ainda estão no pátio. Deseja mesmo fechar o caixa?`, 'Confirmar Fechamento', 'Sim, Fechar Mesmo Assim')) {
-                        return; // Retorna se o usuário cancelar
+                        // Se o usuário cancelar, o finally vai rodar e resetar a flag
+                        return; 
                     }
                 }
                 if (!await showConfirm('Deseja realmente fechar o caixa agora?', 'Confirmar Fechamento', 'Sim, Fechar')) {
-                    return; // Retorna se o usuário cancelar
+                    // Se o usuário cancelar, o finally vai rodar e resetar a flag
+                    return; 
                 }
                 
                 const cashRegister = JSON.parse(sessionStorage.getItem('cashRegister'));
