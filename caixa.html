@@ -356,6 +356,7 @@
             } catch (error) { console.error("Erro ao abrir caixa:", error); showNotification('Erro ao abrir caixa.', 'error'); }
         }
         
+        // CORRIGIDO: handleCloseCash para não sobrescrever o openTime
         async function handleCloseCash() {
             const patioSalesRef = query(collection(db, "businesses", currentUser.uid, "sales"), where("status", "==", "called"));
             const patioSnapshot = await getDocs(patioSalesRef);
@@ -386,9 +387,19 @@
                     }
                 });
 
-                const reportData = { ...cashRegister, closeTime: Timestamp.now(), totalClients, paymentTotals, status: 'closed' };
+                // Objeto de atualização contendo APENAS os campos novos ou modificados
+                const closingData = {
+                    closeTime: Timestamp.now(),
+                    totalClients: totalClients,
+                    paymentTotals: paymentTotals,
+                    status: 'closed'
+                };
                 
-                await updateDoc(doc(db, "businesses", currentUser.uid, "cash_shifts", cashRegister.shiftId), reportData);
+                // O reportData é usado apenas para exibir o modal e o PDF
+                const reportData = { ...cashRegister, ...closingData };
+
+                // Atualiza o documento no Firestore apenas com os dados do fechamento
+                await updateDoc(doc(db, "businesses", currentUser.uid, "cash_shifts", cashRegister.shiftId), closingData);
                 
                 sessionStorage.removeItem('cashRegister');
                 showNotification('Caixa fechado com sucesso!', 'info');
@@ -477,7 +488,6 @@
                 showNotification("Erro ao buscar histórico. Verifique o console (F12) para mais detalhes.", "error");
             }
         });
-
 
         document.getElementById('history-results').addEventListener('click', async (e) => {
             if(e.target.classList.contains('view-report-btn')) {
