@@ -89,9 +89,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, getDocs, query, orderBy, addDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // ATENÇÃO: É seguro expor sua configuração do Firebase no cliente,
-        // mas é ESSENCIAL que você configure as Regras de Segurança no console do Firebase
-        // para proteger seus dados contra acesso não autorizado.
         const firebaseConfig = {
             apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
             authDomain: "bronzify-b2491.firebaseapp.com",
@@ -118,24 +115,19 @@
             }
 
             try {
-                const productsRef = collection(db, "businesses", businessId, "products");
-                const [productsSnapshot] = await Promise.all([
-                    getDocs(query(productsRef, orderBy("name")))
-                ]);
+                // CORREÇÃO: Buscar das coleções corretas (stock_categories e stock_items)
+                const categoriesRef = collection(db, "businesses", businessId, "stock_categories");
+                const itemsRef = collection(db, "businesses", businessId, "stock_items");
                 
-                const products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const [categoriesSnapshot, itemsSnapshot] = await Promise.all([
+                    getDocs(query(categoriesRef, orderBy("name"))),
+                    getDocs(query(itemsRef, orderBy("name")))
+                ]);
 
-                // Agrupar produtos por categoria
-                const categories = products.reduce((acc, product) => {
-                    const categoryName = product.category || 'Outros';
-                    if (!acc[categoryName]) {
-                        acc[categoryName] = [];
-                    }
-                    acc[categoryName].push(product);
-                    return acc;
-                }, {});
+                const categories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const items = itemsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                renderMenu(categories);
+                renderMenu(categories, items);
 
                 document.getElementById('loading-state').classList.add('hidden');
                 document.getElementById('content-container').classList.remove('hidden');
@@ -147,15 +139,16 @@
             }
         }
 
-        function renderMenu(categories) {
+        function renderMenu(categories, items) {
             categoriesContainer.innerHTML = '';
-            for (const categoryName in categories) {
-                const itemsInCategory = categories[categoryName];
-                
+            categories.forEach(category => {
+                const itemsInCategory = items.filter(item => item.categoryId === category.id);
+                if (itemsInCategory.length === 0) return;
+
                 const categoryDiv = document.createElement('div');
                 categoryDiv.innerHTML = `
                     <div data-accordion-trigger class="flex justify-between items-center cursor-pointer bg-white p-4 rounded-lg shadow">
-                        <h3 class="text-xl text-gray-800">${categoryName.charAt(0).toUpperCase() + categoryName.slice(1)}</h3>
+                        <h3 class="text-xl text-gray-800">${category.name}</h3>
                         <i data-lucide="chevron-down" class="transition-transform duration-300"></i>
                     </div>
                     <div class="accordion-content max-h-0 bg-white rounded-b-lg shadow">
@@ -176,7 +169,7 @@
                     </div>
                 `;
                 categoriesContainer.appendChild(categoryDiv);
-            }
+            });
             lucide.createIcons();
             addEventListeners();
         }
@@ -185,15 +178,14 @@
             categoriesContainer.querySelectorAll('[data-accordion-trigger]').forEach(trigger => {
                 trigger.addEventListener('click', () => {
                     const panel = trigger.nextElementSibling;
-                    // CORREÇÃO AQUI: Procura pelo atributo em vez da tag `i`
                     const icon = trigger.querySelector('[data-lucide="chevron-down"]');
                     
                     if (panel.style.maxHeight) {
                         panel.style.maxHeight = null;
-                        icon.classList.remove('rotate-180');
+                        if (icon) icon.classList.remove('rotate-180');
                     } else {
                         panel.style.maxHeight = panel.scrollHeight + "px";
-                        icon.classList.add('rotate-180');
+                        if (icon) icon.classList.add('rotate-180');
                     }
                 });
             });
@@ -241,7 +233,7 @@
         async function sendOrder() {
             const name = document.getElementById('customer-name').value.trim();
             const phone = document.getElementById('customer-phone').value.trim();
-            if (!name || phone.length < 14) { // Validação simples de telefone
+            if (!name || phone.length < 14) {
                 alert('Por favor, preencha seu nome e um telefone válido.');
                 return;
             }
