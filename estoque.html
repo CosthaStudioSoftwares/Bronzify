@@ -25,6 +25,11 @@
         body { font-family: 'Poppins', sans-serif; background-color: #FFF9F9; }
         h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
         .sidebar-link:hover, .sidebar-link.active { background-color: #FADADD; color: #B76E79; }
+        .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1.25rem; border-radius: 0.75rem; color: #4A5568; transition: all 0.3s ease; font-weight: 500; }
+        .sidebar-link:hover, .sidebar-link.active { background-color: #FADADD; color: #B76E79; }
+        .sidebar-link svg { margin-right: 0.75rem; }
+        .sidebar-mobile { transform: translateX(-100%); transition: transform 0.3s ease-in-out; }
+        .sidebar-mobile.open { transform: translateX(0); }
         tbody tr:hover { background-color: #f9fafb; }
         .notification-alert { animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
@@ -32,7 +37,8 @@
 </head>
 <body class="bg-gray-50">
 
-    <div class="flex h-screen">
+   <div class="flex h-screen bg-gray-50">
+       <div class="flex-1 flex flex-col overflow-hidden">
         <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
             <header class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
                 <div class="flex items-center">
@@ -70,6 +76,7 @@
                 <div id="pagination-controls" class="mt-6 flex justify-between items-center"></div>
             </div>
         </main>
+           </div>
     </div>
 
     <div id="alerts-panel" class="fixed bottom-5 right-5 space-y-2 z-40"></div>
@@ -432,4 +439,5 @@
     </script>
 </body>
 </html>
+
 
