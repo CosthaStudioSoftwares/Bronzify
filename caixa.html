@@ -356,7 +356,6 @@
             } catch (error) { console.error("Erro ao abrir caixa:", error); showNotification('Erro ao abrir caixa.', 'error'); }
         }
         
-        // CORRIGIDO: handleCloseCash para ter apenas uma confirmação
         async function handleCloseCash() {
             const patioSalesRef = query(collection(db, "businesses", currentUser.uid, "sales"), where("status", "==", "called"));
             const patioSnapshot = await getDocs(patioSalesRef);
@@ -402,7 +401,6 @@
             }
         }
 
-        // CORRIGIDO: displayReportModal para tratar a data corretamente
         function displayReportModal(report) {
             const contentEl = document.getElementById('report-content-modal');
             let paymentHtml = '';
@@ -411,7 +409,6 @@
             }
             const totalCash = (report.paymentTotals?.['Dinheiro'] || 0) + (report.initialChange || 0);
 
-            // Se o objeto tiver o método toDate, ele é um timestamp do Firestore. Senão, é um número de milissegundos do sessionStorage.
             const openTimeDate = report.openTime.toDate ? report.openTime.toDate() : new Date(report.openTime);
             const closeTimeDate = report.closeTime.toDate ? report.closeTime.toDate() : new Date(report.closeTime);
 
@@ -422,7 +419,6 @@
             document.getElementById('download-report-btn').onclick = () => generateReportPDF(report);
         }
 
-        // CORRIGIDO: generateReportPDF para tratar a data corretamente
         function generateReportPDF(report) {
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF();
@@ -445,29 +441,44 @@
             pdf.autoTable({ head: [['Descrição', 'Valor']], body, startY: 50, headStyles: {fillColor: [183,110,121]} });
             pdf.save(`fechamento_caixa_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`);
         }
-
+        
         document.getElementById('search-history-btn').addEventListener('click', async () => {
             const date = document.getElementById('history-date').value;
-            if (!date) { showNotification("Por favor, selecione uma data.", "info"); return; }
-            const startOfDay = new Date(date + 'T00:00:00');
-            const endOfDay = new Date(date + 'T23:59:59');
-            const historyRef = collection(db, "businesses", currentUser.uid, "cash_shifts");
-            const q = query(historyRef, where("openTime", ">=", startOfDay), where("openTime", "<=", endOfDay), where("status", "==", "closed"), orderBy("openTime", "desc"));
-            const snapshot = await getDocs(q);
-            const resultsEl = document.getElementById('history-results');
-            resultsEl.innerHTML = '';
-            if (snapshot.empty) {
-                resultsEl.innerHTML = '<p class="text-gray-500 p-4 text-center">Nenhum fechamento encontrado para esta data.</p>';
+            if (!date) {
+                showNotification("Por favor, selecione uma data.", "info");
                 return;
             }
-            snapshot.docs.forEach(doc => {
-                const shift = {id: doc.id, ...doc.data()};
-                const shiftEl = document.createElement('div');
-                shiftEl.className = 'p-3 bg-gray-100 rounded-lg flex justify-between items-center';
-                shiftEl.innerHTML = `<div><p class="font-semibold">${shift.operatorName}</p><p class="text-xs text-gray-600">Aberto em: ${shift.openTime.toDate().toLocaleTimeString('pt-BR')}</p></div><button class="view-report-btn bg-white border rounded-lg px-3 py-1 text-sm" data-shift-id="${shift.id}">Ver Relatório</button>`;
-                resultsEl.appendChild(shiftEl);
-            });
+
+            const [year, month, day] = date.split('-').map(Number);
+            const startOfDay = Timestamp.fromDate(new Date(year, month - 1, day, 0, 0, 0));
+            const endOfDay = Timestamp.fromDate(new Date(year, month - 1, day, 23, 59, 59));
+
+            const historyRef = collection(db, "businesses", currentUser.uid, "cash_shifts");
+            const q = query(historyRef, where("openTime", ">=", startOfDay), where("openTime", "<=", endOfDay), where("status", "==", "closed"), orderBy("openTime", "desc"));
+            
+            try {
+                const snapshot = await getDocs(q);
+                const resultsEl = document.getElementById('history-results');
+                resultsEl.innerHTML = '';
+                if (snapshot.empty) {
+                    resultsEl.innerHTML = '<p class="text-gray-500 p-4 text-center">Nenhum fechamento encontrado para esta data.</p>';
+                    return;
+                }
+                snapshot.docs.forEach(doc => {
+                    const shift = {id: doc.id, ...doc.data()};
+                    const shiftEl = document.createElement('div');
+                    shiftEl.className = 'p-3 bg-gray-100 rounded-lg flex justify-between items-center';
+                    shiftEl.innerHTML = `<div><p class="font-semibold">${shift.operatorName}</p><p class="text-xs text-gray-600">Aberto em: ${shift.openTime.toDate().toLocaleTimeString('pt-BR')}</p></div><button class="view-report-btn bg-white border rounded-lg px-3 py-1 text-sm" data-shift-id="${shift.id}">Ver Relatório</button>`;
+                    resultsEl.appendChild(shiftEl);
+                });
+                lucide.createIcons();
+            } catch (error) {
+                console.error("Erro ao buscar histórico:", error);
+                showNotification("Erro ao buscar histórico. Verifique o console (F12) para mais detalhes.", "error");
+            }
         });
+
+
         document.getElementById('history-results').addEventListener('click', async (e) => {
             if(e.target.classList.contains('view-report-btn')) {
                 const shiftId = e.target.dataset.shiftId;
