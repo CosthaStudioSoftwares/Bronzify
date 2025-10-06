@@ -389,19 +389,19 @@
 
                 if (!patioSnapshot.empty) {
                     if (!await showConfirm(`Atenção: ${patioSnapshot.size} cliente(s) ainda estão no pátio. Deseja mesmo fechar o caixa?`, 'Confirmar Fechamento', 'Sim, Fechar Mesmo Assim')) {
-                        // Se o usuário cancelar, a função sai aqui e o 'finally' vai desativar a trava.
+                        isClosingCash = false;
                         return;
                     }
                 }
                 if (!await showConfirm('Deseja realmente fechar o caixa agora?', 'Confirmar Fechamento', 'Sim, Fechar')) {
-                    // Se o usuário cancelar, a função sai aqui e o 'finally' vai desativar a trava.
+                    isClosingCash = false;
                     return;
                 }
 
                 const cashRegister = JSON.parse(sessionStorage.getItem('cashRegister'));
                 if (!cashRegister || !cashRegister.shiftId) {
                     showNotification("Informações do caixa não encontradas. Por favor, recarregue a página.", "error");
-                    return;
+                    return; // finally will still run
                 }
 
                 const openTime = new Date(cashRegister.openTime);
@@ -432,7 +432,6 @@
                 console.error("Erro ao fechar caixa:", error);
                 showNotification('Erro ao fechar o caixa.', 'error');
             } finally {
-                // Esta linha garante que a trava seja desativada, não importa como a função termine.
                 isClosingCash = false;
             }
         }
@@ -929,4 +928,6 @@
     </script>
 </body>
 </html>
+
+
 
