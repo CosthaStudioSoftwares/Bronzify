@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <script>
-        // Redireciona se o acesso não for liberado via dashboard
         if (sessionStorage.getItem('acessoLiberado') !== 'true') {
             window.location.href = 'dashboard.html';
         }
@@ -65,7 +64,6 @@
             </header>
             
             <div class="relative">
-                <!-- Overlay para quando o caixa estiver fechado -->
                 <div id="main-content-overlay" class="flex items-center justify-center rounded-2xl">
                     <div class="text-center">
                         <i data-lucide="lock" class="w-12 h-12 mx-auto text-gray-400"></i>
@@ -168,7 +166,6 @@
         </main>
     </div>
 
-    <!-- Modais -->
     <div id="cash-flow-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-8">
             <h3 class="text-2xl text-gray-800 mb-2">Abertura / Fechamento de Caixa</h3>
@@ -358,36 +355,54 @@
                 checkCashRegisterStatus();
             } catch (error) { console.error("Erro ao abrir caixa:", error); showNotification('Erro ao abrir caixa.', 'error'); }
         }
+        
+        // CORRIGIDO: handleCloseCash para ter apenas uma confirmação
         async function handleCloseCash() {
-             const patioSalesRef = query(collection(db, "businesses", currentUser.uid, "sales"), where("status", "==", "called"));
-             const patioSnapshot = await getDocs(patioSalesRef);
-             if (!patioSnapshot.empty) {
-                 if(!await showConfirm(`Atenção: ${patioSnapshot.size} cliente(s) ainda estão no pátio. Deseja mesmo fechar o caixa?`, 'Confirmar Fechamento', 'Sim, Fechar Mesmo Assim')) return;
-             }
-             if (!await showConfirm('Deseja realmente fechar o caixa agora?', 'Confirmar Fechamento', 'Sim, Fechar')) return;
-             const cashRegister = JSON.parse(sessionStorage.getItem('cashRegister'));
-             const openTime = new Date(cashRegister.openTime);
-             const salesRef = query(collection(db, "businesses", currentUser.uid, "sales"), where("createdAt", ">=", openTime));
-             const salesSnapshot = await getDocs(salesRef);
-             let totalClients = 0; const paymentTotals = {};
-             salesSnapshot.forEach(doc => {
-                 const sale = doc.data();
-                 if(sale.status !== 'cancelled') {
-                     totalClients++;
-                     const method = sale.paymentMethod || 'N/A';
-                     paymentTotals[method] = (paymentTotals[method] || 0) + sale.total;
-                 }
-             });
-             const reportData = { ...cashRegister, closeTime: Timestamp.now(), totalClients, paymentTotals, status: 'closed' };
-             try {
-                 await updateDoc(doc(db, "businesses", currentUser.uid, "cash_shifts", cashRegister.shiftId), reportData);
-                 sessionStorage.removeItem('cashRegister');
-                 showNotification('Caixa fechado com sucesso!', 'info');
-                 cashFlowModal.classList.add('hidden');
-                 checkCashRegisterStatus();
-                 displayReportModal(reportData);
-             } catch (error) { console.error("Erro ao fechar caixa:", error); showNotification('Erro ao fechar o caixa.', 'error'); }
+            const patioSalesRef = query(collection(db, "businesses", currentUser.uid, "sales"), where("status", "==", "called"));
+            const patioSnapshot = await getDocs(patioSalesRef);
+
+            let confirmationMessage = 'Deseja realmente fechar o caixa agora?';
+            if (!patioSnapshot.empty) {
+                confirmationMessage = `Atenção: ${patioSnapshot.size} cliente(s) ainda estão no pátio. Deseja mesmo fechar o caixa?`;
+            }
+
+            const confirmed = await showConfirm(confirmationMessage, 'Confirmar Fechamento', 'Sim, Fechar');
+            if (!confirmed) return;
+            
+            const cashRegister = JSON.parse(sessionStorage.getItem('cashRegister'));
+            const openTime = new Date(cashRegister.openTime);
+            const salesRef = query(collection(db, "businesses", currentUser.uid, "sales"), where("createdAt", ">=", openTime));
+            
+            try {
+                const salesSnapshot = await getDocs(salesRef);
+                let totalClients = 0;
+                const paymentTotals = {};
+                
+                salesSnapshot.forEach(doc => {
+                    const sale = doc.data();
+                    if(sale.status !== 'cancelled' && sale.createdAt.toDate() >= openTime) {
+                        totalClients++;
+                        const method = sale.paymentMethod || 'N/A';
+                        paymentTotals[method] = (paymentTotals[method] || 0) + sale.total;
+                    }
+                });
+
+                const reportData = { ...cashRegister, closeTime: Timestamp.now(), totalClients, paymentTotals, status: 'closed' };
+                
+                await updateDoc(doc(db, "businesses", currentUser.uid, "cash_shifts", cashRegister.shiftId), reportData);
+                
+                sessionStorage.removeItem('cashRegister');
+                showNotification('Caixa fechado com sucesso!', 'info');
+                cashFlowModal.classList.add('hidden');
+                checkCashRegisterStatus();
+                displayReportModal(reportData);
+            } catch (error) {
+                console.error("Erro ao fechar caixa:", error);
+                showNotification('Erro ao fechar o caixa.', 'error');
+            }
         }
+
+        // CORRIGIDO: displayReportModal para tratar a data corretamente
         function displayReportModal(report) {
             const contentEl = document.getElementById('report-content-modal');
             let paymentHtml = '';
@@ -395,29 +410,42 @@
                 paymentHtml += `<div class="flex justify-between"><span>${method}:</span><span class="font-semibold">${total.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></div>`;
             }
             const totalCash = (report.paymentTotals?.['Dinheiro'] || 0) + (report.initialChange || 0);
-            contentEl.innerHTML = `<p><strong>Operador:</strong> ${report.operatorName}</p><p><strong>Abertura:</strong> ${report.openTime.toDate().toLocaleString('pt-BR')}</p><p><strong>Fechamento:</strong> ${report.closeTime.toDate().toLocaleString('pt-BR')}</p><hr class="my-2"><p><strong>Total de Atendimentos:</strong> ${report.totalClients}</p><div class="mt-2 border-t pt-2">${paymentHtml}</div><hr class="my-2"><div class="flex justify-between"><span>Troco Inicial:</span><span>${(report.initialChange || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></div><div class="flex justify-between text-lg font-bold mt-2"><span>Total em Caixa (Dinheiro):</span><span>${totalCash.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></div>`;
+
+            // Se o objeto tiver o método toDate, ele é um timestamp do Firestore. Senão, é um número de milissegundos do sessionStorage.
+            const openTimeDate = report.openTime.toDate ? report.openTime.toDate() : new Date(report.openTime);
+            const closeTimeDate = report.closeTime.toDate ? report.closeTime.toDate() : new Date(report.closeTime);
+
+            contentEl.innerHTML = `<p><strong>Operador:</strong> ${report.operatorName}</p><p><strong>Abertura:</strong> ${openTimeDate.toLocaleString('pt-BR')}</p><p><strong>Fechamento:</strong> ${closeTimeDate.toLocaleString('pt-BR')}</p><hr class="my-2"><p><strong>Total de Atendimentos:</strong> ${report.totalClients}</p><div class="mt-2 border-t pt-2">${paymentHtml}</div><hr class="my-2"><div class="flex justify-between"><span>Troco Inicial:</span><span>${(report.initialChange || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></div><div class="flex justify-between text-lg font-bold mt-2"><span>Total em Caixa (Dinheiro):</span><span>${totalCash.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></div>`;
+            
             document.getElementById('report-modal').classList.remove('hidden');
             document.getElementById('close-report-modal').onclick = () => document.getElementById('report-modal').classList.add('hidden');
             document.getElementById('download-report-btn').onclick = () => generateReportPDF(report);
         }
+
+        // CORRIGIDO: generateReportPDF para tratar a data corretamente
         function generateReportPDF(report) {
-             const { jsPDF } = window.jspdf;
-             const pdf = new jsPDF();
-             pdf.setFontSize(18); pdf.text("Relatório de Fechamento de Caixa", 14, 22);
-             pdf.setFontSize(11); pdf.setTextColor(100);
-             pdf.text(`Operador: ${report.operatorName}`, 14, 30);
-             pdf.text(`Abertura: ${report.openTime.toDate().toLocaleString('pt-BR')}`, 14, 36);
-             pdf.text(`Fechamento: ${report.closeTime.toDate().toLocaleString('pt-BR')}`, 14, 42);
-             
-             const body = [
-                 ['Total de Atendimentos', report.totalClients.toString()],
-                 ...Object.entries(report.paymentTotals || {}).map(([method, total]) => [method, total.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})]),
-                 ['Troco Inicial', (report.initialChange || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})],
-                 ['Total em Caixa (Dinheiro)', ((report.paymentTotals?.['Dinheiro'] || 0) + (report.initialChange || 0)).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})]
-             ];
-             pdf.autoTable({ head: [['Descrição', 'Valor']], body, startY: 50, headStyles: {fillColor: [183,110,121]} });
-             pdf.save(`fechamento_caixa_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`);
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
+
+            const openTimeDate = report.openTime.toDate ? report.openTime.toDate() : new Date(report.openTime);
+            const closeTimeDate = report.closeTime.toDate ? report.closeTime.toDate() : new Date(report.closeTime);
+
+            pdf.setFontSize(18); pdf.text("Relatório de Fechamento de Caixa", 14, 22);
+            pdf.setFontSize(11); pdf.setTextColor(100);
+            pdf.text(`Operador: ${report.operatorName}`, 14, 30);
+            pdf.text(`Abertura: ${openTimeDate.toLocaleString('pt-BR')}`, 14, 36);
+            pdf.text(`Fechamento: ${closeTimeDate.toLocaleString('pt-BR')}`, 14, 42);
+            
+            const body = [
+                    ['Total de Atendimentos', report.totalClients.toString()],
+                    ...Object.entries(report.paymentTotals || {}).map(([method, total]) => [method, total.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})]),
+                    ['Troco Inicial', (report.initialChange || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})],
+                    ['Total em Caixa (Dinheiro)', ((report.paymentTotals?.['Dinheiro'] || 0) + (report.initialChange || 0)).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})]
+            ];
+            pdf.autoTable({ head: [['Descrição', 'Valor']], body, startY: 50, headStyles: {fillColor: [183,110,121]} });
+            pdf.save(`fechamento_caixa_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`);
         }
+
         document.getElementById('search-history-btn').addEventListener('click', async () => {
             const date = document.getElementById('history-date').value;
             if (!date) { showNotification("Por favor, selecione uma data.", "info"); return; }
@@ -450,8 +478,7 @@
             }
         });
         
-        // --- LÓGICA DE BUSCA E SELEÇÃO DE ITENS (CORRIGIDO) ---
-        // Adiciona os event listeners que estavam faltando
+        // --- LÓGICA DE BUSCA E SELEÇÃO DE ITENS ---
         ['client-search', 'bronze-search', 'consumable-search', 'stock-search', 'extra-search'].forEach(id => {
             const input = document.getElementById(id);
             if (input) {
@@ -461,7 +488,7 @@
         });
         document.addEventListener('click', (e) => {
              if (!e.target.closest('.relative')) {
-                document.querySelectorAll('[id$="-search-results"]').forEach(c => c.classList.add('hidden'));
+                 document.querySelectorAll('[id$="-search-results"]').forEach(c => c.classList.add('hidden'));
             }
         });
 
@@ -795,8 +822,8 @@
                                      <td class="p-2">${(sale.total || 0).toLocaleString('pt-BR', {style:'currency', currency: 'BRL'})}</td>
                                      <td class="p-2">${sale.paymentMethod}</td>
                                      <td class="p-2 flex items-center gap-2">
-                                         <button class="edit-sale-btn p-1 text-gray-500 hover:text-blue-600 ${isCancelled ? 'hidden' : ''}" data-id="${sale.id}"><i data-lucide="pencil" class="w-4 h-4 pointer-events-none"></i></button>
-                                         <button class="delete-sale-btn p-1 text-gray-500 hover:text-red-600 ${isCancelled ? 'hidden' : ''}" data-id="${sale.id}"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button>
+                                          <button class="edit-sale-btn p-1 text-gray-500 hover:text-blue-600 ${isCancelled ? 'hidden' : ''}" data-id="${sale.id}"><i data-lucide="pencil" class="w-4 h-4 pointer-events-none"></i></button>
+                                          <button class="delete-sale-btn p-1 text-gray-500 hover:text-red-600 ${isCancelled ? 'hidden' : ''}" data-id="${sale.id}"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button>
                                      </td>`;
                 });
                 lucide.createIcons();
