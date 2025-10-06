@@ -184,8 +184,8 @@
             
             let timeOptions = '<option value="1">1 min</option>';
             for (let i = 5; i <= 60; i += 5) {
-                timeOptions += `<option value="${i}" ${i === 20 ? 'selected' : ''}>${i} min</option>`;
-            }
+            timeOptions += `<option value="${i}">${i} min</option>`;
+              }
 
             card.innerHTML = `
                 <div class="client-details flex-grow"></div>
@@ -253,6 +253,9 @@
             const imageDisplay = card.querySelector(`#image-display-${saleId}`);
             const timeSelect = card.querySelector(`#time-select-${saleId}`);
             const actionButton = card.querySelector('.action-timer-btn');
+            // Pega a duração salva (em segundos) e converte para minutos para o <select>
+            const savedDurationInMinutes = state.phaseDuration ? (state.phaseDuration / 60) : 20; // Padrão de 20 min se não houver nada salvo
+            timeSelect.value = savedDurationInMinutes;
 
             const state = timerState || { status: 'idle', currentPhase: 0 };
             const { status, currentPhase, remainingSeconds, endTime } = state;
@@ -422,27 +425,31 @@
         });
 
         patioListContainer.addEventListener('change', async (e) => {
-            if (!e.target.classList.contains('time-select') || !currentUser) return;
-            
-            const select = e.target;
-            const saleId = select.closest('.timer-section').dataset.saleId;
-            const card = document.getElementById(`sale-${saleId}`);
-            const currentTimerState = JSON.parse(card.dataset.timerState || '{}');
+           if (!e.target.classList.contains('time-select') || !currentUser) return;
 
-            if (!currentTimerState.status || currentTimerState.status === 'idle') return;
+           const select = e.target;
+           const saleId = select.closest('.timer-section').dataset.saleId;
+           const card = document.getElementById(`sale-${saleId}`);
+           const currentTimerState = JSON.parse(card.dataset.timerState || '{}');
+           const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
 
-            const newDurationInSeconds = parseInt(select.value) * 60;
-            const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
-            const updateData = {
-                "timerState.remainingSeconds": newDurationInSeconds,
-                "timerState.phaseDuration": newDurationInSeconds
-            };
+           const newDurationInSeconds = parseInt(select.value) * 60;
 
-            if (currentTimerState.status === 'running') {
-                updateData["timerState.endTime"] = Timestamp.fromMillis(Date.now() + newDurationInSeconds * 1000);
-            }
+          const updateData = {
+         "timerState.phaseDuration": newDurationInSeconds
+        };
 
-            await updateDoc(saleRef, updateData);
+         // Se o timer estiver pausado ou parado, também atualizamos os segundos restantes.
+        if (currentTimerState.status === 'paused' || !currentTimerState.status || currentTimerState.status === 'idle') {
+       updateData["timerState.remainingSeconds"] = newDurationInSeconds;
+       }
+
+      // Se o timer estiver rodando, recalcula a hora de término com base no novo tempo.
+      if (currentTimerState.status === 'running') {
+     updateData["timerState.endTime"] = Timestamp.fromMillis(Date.now() + newDurationInSeconds * 1000);
+     }
+
+      await updateDoc(saleRef, updateData);
         });
 
        // --- LÓGICA DO BOTÃO DE AJUDA (ATUALIZADA) ---
@@ -492,5 +499,6 @@ helpButton.addEventListener('click', async () => {
     </script>
 </body>
 </html>
+
 
 
