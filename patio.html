@@ -10,61 +10,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pátio - Bronzify</title>
     <script src="https://cdn.tailwindcss.com"></script>
-
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#B76E79">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Bronzify">
-    <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
-
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #FFF9F9; }
         h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
         .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1.25rem; border-radius: 0.75rem; color: #4A5568; transition: all 0.3s ease; font-weight: 500; }
         .sidebar-link:hover, .sidebar-link.active { background-color: #FADADD; color: #B76E79; }
         .sidebar-link svg { margin-right: 0.75rem; }
+        .sidebar-mobile { transform: translateX(-100%); transition: transform 0.3s ease-in-out; }
+        .sidebar-mobile.open { transform: translateX(0); }
         .patio-card { transition: opacity 0.5s ease, transform 0.5s ease, box-shadow 0.3s ease; }
         .patio-card.removing { opacity: 0; transform: scale(0.95); }
         .patio-card.needs-attention { box-shadow: 0 0 0 4px #FBBF24; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0px rgba(251, 191, 36, 0.7); } 100% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); } }
-        .sidebar-mobile { transform: translateX(-100%); transition: transform 0.3s ease-in-out; }
-        .sidebar-mobile.open { transform: translateX(0); }
     </style>
 </head>
 <body class="bg-gray-50">
 
-    <div class="flex h-screen">
-        <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
-            <header class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
-                <div class="flex items-center w-full">
-                    <button id="open-menu-btn" class="lg:hidden p-2 -ml-2"><i data-lucide="menu" class="w-6 h-6 text-gray-800"></i></button>
-                    <h2 class="text-3xl lg:text-4xl text-gray-800 w-full text-center sm:text-left">Pátio</h2>
-                </div>
-                <button id="help-btn" class="w-full sm:w-auto bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 flex items-center justify-center gap-2 flex-shrink-0">
-                    <i data-lucide="bell-ring"></i> Pedir Ajuda
-                </button>
-            </header>
+    <div class="flex h-screen bg-gray-50">
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
+                <header class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+                    <div class="flex items-center w-full">
+                        <button id="open-menu-btn" class="lg:hidden p-2 -ml-2"><i data-lucide="menu" class="w-6 h-6 text-gray-800"></i></button>
+                        <h2 class="text-3xl lg:text-4xl text-gray-800 w-full text-center sm:text-left">Pátio</h2>
+                    </div>
+                    <button id="help-btn" class="w-full sm:w-auto bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 flex items-center justify-center gap-2 flex-shrink-0">
+                        <i data-lucide="bell-ring"></i> Pedir Ajuda
+                    </button>
+                </header>
 
-            <div id="patio-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
-            
-            <div id="no-clients-patio" class="text-center py-16 text-gray-500 hidden">
-                <i data-lucide="sun" class="mx-auto w-16 h-16 mb-4"></i>
-                <p class="text-xl">O pátio está vazio no momento.</p>
-            </div>
-        </main>
+                <div id="patio-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+                
+                <div id="no-clients-patio" class="text-center py-16 text-gray-500 hidden">
+                    <i data-lucide="sun" class="mx-auto w-16 h-16 mb-4"></i>
+                    <p class="text-xl">O pátio está vazio no momento.</p>
+                </div>
+            </main>
+        </div>
     </div>
-    <script>
-      lucide.createIcons();
-    </script>
-    
+
+    <script>lucide.createIcons();</script>
     <script src="./config.js"></script>
     <script type="module" src="./layout.js"></script>
     <script src="./utils.js"></script>
@@ -183,9 +175,10 @@
             card.id = `sale-${sale.id}`;
             
             let timeOptions = '<option value="1">1 min</option>';
+            // CORREÇÃO 1: Remove o 'selected' fixo daqui
             for (let i = 5; i <= 60; i += 5) {
-            timeOptions += `<option value="${i}">${i} min</option>`;
-              }
+                timeOptions += `<option value="${i}">${i} min</option>`;
+            }
 
             card.innerHTML = `
                 <div class="client-details flex-grow"></div>
@@ -253,13 +246,14 @@
             const imageDisplay = card.querySelector(`#image-display-${saleId}`);
             const timeSelect = card.querySelector(`#time-select-${saleId}`);
             const actionButton = card.querySelector('.action-timer-btn');
-            // Pega a duração salva (em segundos) e converte para minutos para o <select>
-            const savedDurationInMinutes = state.phaseDuration ? (state.phaseDuration / 60) : 20; // Padrão de 20 min se não houver nada salvo
-            timeSelect.value = savedDurationInMinutes;
 
             const state = timerState || { status: 'idle', currentPhase: 0 };
-            const { status, currentPhase, remainingSeconds, endTime } = state;
+            const { status, currentPhase, remainingSeconds, endTime, phaseDuration } = state;
             const phaseInfo = TANNING_PHASES[currentPhase];
+            
+            // CORREÇÃO 2: Define o valor do <select> com base no tempo salvo
+            const savedDurationInMinutes = phaseDuration ? (phaseDuration / 60) : 20; // Padrão de 20 min se não houver nada salvo
+            timeSelect.value = savedDurationInMinutes;
 
             const formatTime = (seconds) => {
                 if (isNaN(seconds) || seconds < 0) return "00:00";
@@ -276,7 +270,7 @@
             switch(status) {
                 case 'running':
                     phaseDisplay.textContent = `Posição: ${phaseInfo.name}`;
-                    imageDisplay.src = phaseInfo.image;
+                    imageDisplay.src = `img/${phaseInfo.image}`;
                     imageDisplay.classList.remove('hidden');
                     actionButton.innerHTML = `<i data-lucide="pause"></i> Pausar`;
                     actionButton.className = 'action-timer-btn w-full mt-3 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors bg-orange-500 hover:bg-orange-600';
@@ -295,7 +289,7 @@
                 case 'paused':
                     phaseDisplay.textContent = `Pausado em: ${phaseInfo.name}`;
                     timerDisplay.textContent = formatTime(remainingSeconds);
-                    imageDisplay.src = phaseInfo.image;
+                    imageDisplay.src = `img/${phaseInfo.image}`;
                     imageDisplay.classList.remove('hidden');
                     actionButton.innerHTML = `<i data-lucide="play"></i> Retomar`;
                     actionButton.className = 'action-timer-btn w-full mt-3 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors bg-cyan-500 hover:bg-cyan-600';
@@ -306,7 +300,7 @@
                     card.classList.add('needs-attention');
                     phaseDisplay.textContent = `Mudar para: ${nextPhaseInfo.name}`;
                     timerDisplay.textContent = "00:00";
-                    imageDisplay.src = nextPhaseInfo.image;
+                    imageDisplay.src = `img/${nextPhaseInfo.image}`;
                     imageDisplay.classList.remove('hidden');
                     actionButton.innerHTML = `<i data-lucide="play"></i> Iniciar Próximo Lado`;
                     actionButton.className = 'action-timer-btn w-full mt-3 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors bg-green-500 hover:bg-green-600';
@@ -423,82 +417,71 @@
                 }, 500);
             }
         });
-
+        
+        // CORREÇÃO 3: Salva a alteração do tempo imediatamente
         patioListContainer.addEventListener('change', async (e) => {
-           if (!e.target.classList.contains('time-select') || !currentUser) return;
+            if (!e.target.classList.contains('time-select') || !currentUser) return;
+            
+            const select = e.target;
+            const saleId = select.closest('.timer-section').dataset.saleId;
+            const card = document.getElementById(`sale-${saleId}`);
+            const currentTimerState = JSON.parse(card.dataset.timerState || '{}');
+            const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
+            
+            const newDurationInSeconds = parseInt(select.value) * 60;
 
-           const select = e.target;
-           const saleId = select.closest('.timer-section').dataset.saleId;
-           const card = document.getElementById(`sale-${saleId}`);
-           const currentTimerState = JSON.parse(card.dataset.timerState || '{}');
-           const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
+            const updateData = {
+                "timerState.phaseDuration": newDurationInSeconds
+            };
 
-           const newDurationInSeconds = parseInt(select.value) * 60;
+            if (currentTimerState.status === 'paused' || !currentTimerState.status || currentTimerState.status === 'idle') {
+                updateData["timerState.remainingSeconds"] = newDurationInSeconds;
+            }
 
-          const updateData = {
-         "timerState.phaseDuration": newDurationInSeconds
-        };
+            if (currentTimerState.status === 'running') {
+                updateData["timerState.endTime"] = Timestamp.fromMillis(Date.now() + newDurationInSeconds * 1000);
+            }
 
-         // Se o timer estiver pausado ou parado, também atualizamos os segundos restantes.
-        if (currentTimerState.status === 'paused' || !currentTimerState.status || currentTimerState.status === 'idle') {
-       updateData["timerState.remainingSeconds"] = newDurationInSeconds;
-       }
-
-      // Se o timer estiver rodando, recalcula a hora de término com base no novo tempo.
-      if (currentTimerState.status === 'running') {
-     updateData["timerState.endTime"] = Timestamp.fromMillis(Date.now() + newDurationInSeconds * 1000);
-     }
-
-      await updateDoc(saleRef, updateData);
+            await updateDoc(saleRef, updateData);
         });
 
-       // --- LÓGICA DO BOTÃO DE AJUDA (ATUALIZADA) ---
-const helpButton = document.getElementById('help-btn');
-helpButton.addEventListener('click', async () => {
-    if (!currentUser) {
-        console.error("Usuário não autenticado para pedir ajuda.");
-        return;
-    }
+       const helpButton = document.getElementById('help-btn');
+        helpButton.addEventListener('click', async () => {
+            if (!currentUser) return;
 
-    helpButton.disabled = true;
-    helpButton.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i> Enviando...';
-    lucide.createIcons();
-
-    try {
-        await initializeAudio();
-        playNotificationSound();
-
-        const helpRequestsRef = collection(db, "businesses", currentUser.uid, "help_requests");
-        await addDoc(helpRequestsRef, {
-            page: "Pátio",
-            createdAt: Timestamp.now()
-        });
-
-        helpButton.classList.remove('bg-amber-500', 'hover:bg-amber-600');
-        helpButton.classList.add('bg-green-500');
-        helpButton.innerHTML = '<i data-lucide="check-circle"></i> Ajuda a caminho!';
-        lucide.createIcons();
-
-    } catch (error) {
-        console.error("Erro ao enviar pedido de ajuda:", error);
-        helpButton.classList.remove('bg-amber-500', 'hover:bg-amber-600');
-        helpButton.classList.add('bg-red-500');
-        helpButton.innerHTML = '<i data-lucide="x-circle"></i> Erro ao enviar!';
-        lucide.createIcons();
-    } finally {
-        setTimeout(() => {
-            helpButton.disabled = false;
-            helpButton.classList.remove('bg-green-500', 'bg-red-500');
-            helpButton.classList.add('bg-amber-500', 'hover:bg-amber-600');
-            helpButton.innerHTML = '<i data-lucide="bell-ring"></i> Pedir Ajuda';
+            helpButton.disabled = true;
+            helpButton.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i> Enviando...';
             lucide.createIcons();
-        }, 3000);
-    }
-});
 
+            try {
+                await initializeAudio();
+                playNotificationSound();
+
+                const helpRequestsRef = collection(db, "businesses", currentUser.uid, "help_requests");
+                await addDoc(helpRequestsRef, {
+                    page: "Pátio",
+                    createdAt: Timestamp.now()
+                });
+
+                helpButton.classList.replace('bg-amber-500', 'bg-green-500');
+                helpButton.innerHTML = '<i data-lucide="check-circle"></i> Ajuda a caminho!';
+                lucide.createIcons();
+
+            } catch (error) {
+                console.error("Erro ao enviar pedido de ajuda:", error);
+                helpButton.classList.replace('bg-amber-500', 'bg-red-500');
+                helpButton.innerHTML = '<i data-lucide="x-circle"></i> Erro ao enviar!';
+                lucide.createIcons();
+            } finally {
+                setTimeout(() => {
+                    helpButton.disabled = false;
+                    helpButton.classList.remove('bg-green-500', 'bg-red-500');
+                    helpButton.classList.add('bg-amber-500', 'hover:bg-amber-600');
+                    helpButton.innerHTML = '<i data-lucide="bell-ring"></i> Pedir Ajuda';
+                    lucide.createIcons();
+                }, 3000);
+            }
+        });
     </script>
 </body>
 </html>
-
-
-
