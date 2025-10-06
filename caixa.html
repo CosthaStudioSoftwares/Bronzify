@@ -916,21 +916,49 @@ if (isServiceSale) {
         const cancellationModal = document.getElementById('cancellation-modal');
         document.getElementById('cancel-cancellation-btn').addEventListener('click', () => cancellationModal.classList.add('hidden'));
         document.getElementById('cancellation-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const saleId = e.target.querySelector('#cancellation-sale-id').value;
-            const reason = e.target.querySelector('#cancellation-reason').value;
-            if (!reason) { showNotification('Por favor, informe o motivo.', 'error'); return; }
-            
-            try {
-                const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
-                await updateDoc(saleRef, { status: 'cancelled', cancellationReason: reason });
-                showNotification('Venda cancelada com sucesso.', 'info');
-                cancellationModal.classList.add('hidden');
-            } catch (error) {
-                console.error("Erro ao cancelar venda:", error);
-                showNotification('Erro ao cancelar a venda.', 'error');
+    e.preventDefault();
+    const saleId = e.target.querySelector('#cancellation-sale-id').value;
+    const reason = e.target.querySelector('#cancellation-reason').value;
+    if (!reason) { showNotification('Por favor, informe o motivo.', 'error'); return; }
+
+    const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
+
+    try {
+        // 1. Busca os detalhes da venda que será cancelada
+        const saleToCancelDoc = await getDoc(saleRef);
+        if (!saleToCancelDoc.exists()) {
+            showNotification('Erro: Venda não encontrada.', 'error');
+            return;
+        }
+        const saleToCancel = saleToCancelDoc.data();
+
+        // 2. Inicia um "pacote" de operações para garantir que tudo aconteça de uma vez
+        const batch = writeBatch(db);
+
+        // 3. Percorre os itens da venda e prepara a devolução ao estoque
+        saleToCancel.items.forEach(item => {
+            // Verifica se o item é do tipo 'stock' e se ele tem um ID
+            if (item.type === 'stock' && item.id) {
+                const stockItemRef = doc(db, "businesses", currentUser.uid, "stock_items", item.id);
+                // Adiciona a quantidade de volta ao estoque
+                batch.update(stockItemRef, { quantity: increment(item.quantity) });
             }
         });
+
+        // 4. Prepara a atualização do status da venda
+        batch.update(saleRef, { status: 'cancelled', cancellationReason: reason });
+
+        // 5. Executa todas as operações (devolução e cancelamento) de uma vez
+        await batch.commit();
+
+        showNotification('Venda cancelada e estoque atualizado!', 'success');
+        cancellationModal.classList.add('hidden');
+
+    } catch (error) {
+        console.error("Erro ao cancelar venda:", error);
+        showNotification('Erro ao cancelar a venda.', 'error');
+    }
+});
         
         function handleEditSale(saleId) {
             const saleToEdit = dailySales.find(s => s.id === saleId);
@@ -963,6 +991,7 @@ if (isServiceSale) {
     </script>
 </body>
 </html>
+
 
 
 
