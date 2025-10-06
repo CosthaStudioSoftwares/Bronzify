@@ -801,6 +801,10 @@
         });
 
         document.getElementById('save-sale-btn').addEventListener('click', async () => {
+            const saveBtn = document.getElementById('save-sale-btn');
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i> Salvando...';
+            lucide.createIcons();
             const totalValue = parseFloat(ui.total.textContent.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
             const saleItems = Array.from(selectedItems.values());
             const isServiceSale = saleItems.some(item => item.type !== 'stock');
@@ -861,7 +865,12 @@ if (isServiceSale) {
                 }
                 showNotification(editingSaleId ? 'Venda atualizada!' : 'Venda salva!', 'success');
                 resetSaleForm();
-            } catch(e){ console.error(e); showNotification('Erro ao salvar a venda.', 'error'); }
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Salvar Venda';
+            } catch(e){ console.error(e); showNotification('Erro ao salvar a venda.', 'error');
+                      saveBtn.disabled = false;
+                      saveBtn.textContent = 'Salvar Venda';
+                      }
         });
         
         function resetSaleForm(){
@@ -998,6 +1007,7 @@ if (isServiceSale) {
     </script>
 </body>
 </html>
+
 
 
 
