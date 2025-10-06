@@ -248,6 +248,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
             const q = query(itemsRef, orderBy("name"));
             onSnapshot(q, (snapshot) => {
                 allStockItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // Adiciona a ordenação alfabética que ignora maiúsculas/minúsculas
+             allStockItems.sort((a, b) => {
+             return (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase());
+             });
                 applyFiltersAndRender();
                 checkAlerts();
             });
@@ -381,6 +385,22 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         itemForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = itemForm.querySelector('#item-id').value;
+            const newName = itemForm.querySelector('#item-name').value.trim();
+            const newCode = itemForm.querySelector('#item-code').value.trim();
+
+           // A verificação só acontece se for um item NOVO (sem ID)
+           if (!id) { 
+           const isDuplicate = allStockItems.some(item => 
+           (item.name || '').toLowerCase() === newName.toLowerCase() ||
+           (newCode && newCode.length > 0 && (item.code || '').toLowerCase() === newCode.toLowerCase())
+            );
+
+          if (isDuplicate) {
+            // Usa a sua função de notificação para avisar o usuário
+          showNotification('Já existe um item com este nome ou código.', 'error');
+          return; // Impede o salvamento do formulário
+        }
+     }
             const priceString = itemForm.querySelector('#item-price').value.replace(/\D/g, '');
             const itemData = {
                 code: itemForm.querySelector('#item-code').value,
@@ -444,6 +464,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     </script>
 </body>
 </html>
+
 
 
 
