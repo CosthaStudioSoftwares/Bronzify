@@ -359,34 +359,48 @@
             } catch (error) { console.error("Erro ao abrir caixa:", error); showNotification('Erro ao abrir caixa.', 'error'); }
         }
         async function handleCloseCash() {
-             const patioSalesRef = query(collection(db, "businesses", currentUser.uid, "sales"), where("status", "==", "called"));
-             const patioSnapshot = await getDocs(patioSalesRef);
-             if (!patioSnapshot.empty) {
-                 if(!await showConfirm(`Atenção: ${patioSnapshot.size} cliente(s) ainda estão no pátio. Deseja mesmo fechar o caixa?`, 'Confirmar Fechamento', 'Sim, Fechar Mesmo Assim')) return;
-             }
-             if (!await showConfirm('Deseja realmente fechar o caixa agora?', 'Confirmar Fechamento', 'Sim, Fechar')) return;
-             const cashRegister = JSON.parse(sessionStorage.getItem('cashRegister'));
-             const openTime = new Date(cashRegister.openTime);
-             const salesRef = query(collection(db, "businesses", currentUser.uid, "sales"), where("createdAt", ">=", openTime));
-             const salesSnapshot = await getDocs(salesRef);
-             let totalClients = 0; const paymentTotals = {};
-             salesSnapshot.forEach(doc => {
-                 const sale = doc.data();
-                 if(sale.status !== 'cancelled') {
-                     totalClients++;
-                     const method = sale.paymentMethod || 'N/A';
-                     paymentTotals[method] = (paymentTotals[method] || 0) + sale.total;
-                 }
-             });
-             const reportData = { ...cashRegister, closeTime: Timestamp.now(), totalClients, paymentTotals, status: 'closed' };
              try {
-                 await updateDoc(doc(db, "businesses", currentUser.uid, "cash_shifts", cashRegister.shiftId), reportData);
-                 sessionStorage.removeItem('cashRegister');
-                 showNotification('Caixa fechado com sucesso!', 'info');
-                 cashFlowModal.classList.add('hidden');
-                 checkCashRegisterStatus();
-                 displayReportModal(reportData);
-             } catch (error) { console.error("Erro ao fechar caixa:", error); showNotification('Erro ao fechar o caixa.', 'error'); }
+                const patioSalesRef = query(collection(db, "businesses", currentUser.uid, "sales"), where("status", "==", "called"));
+                const patioSnapshot = await getDocs(patioSalesRef);
+                if (!patioSnapshot.empty) {
+                    if(!await showConfirm(`Atenção: ${patioSnapshot.size} cliente(s) ainda estão no pátio. Deseja mesmo fechar o caixa?`, 'Confirmar Fechamento', 'Sim, Fechar Mesmo Assim')) return;
+                }
+                if (!await showConfirm('Deseja realmente fechar o caixa agora?', 'Confirmar Fechamento', 'Sim, Fechar')) return;
+                
+                const cashRegister = JSON.parse(sessionStorage.getItem('cashRegister'));
+                if (!cashRegister || !cashRegister.shiftId) {
+                    showNotification("Informações do caixa não encontradas. Por favor, recarregue a página.", "error");
+                    return;
+                }
+
+                const openTime = new Date(cashRegister.openTime);
+                const salesRef = query(collection(db, "businesses", currentUser.uid, "sales"), where("createdAt", ">=", openTime));
+                const salesSnapshot = await getDocs(salesRef);
+                
+                let totalClients = 0; 
+                const paymentTotals = {};
+                salesSnapshot.forEach(doc => {
+                    const sale = doc.data();
+                    if(sale.status !== 'cancelled') {
+                        totalClients++;
+                        const method = sale.paymentMethod || 'N/A';
+                        paymentTotals[method] = (paymentTotals[method] || 0) + sale.total;
+                    }
+                });
+                
+                const reportData = { ...cashRegister, closeTime: Timestamp.now(), totalClients, paymentTotals, status: 'closed' };
+                
+                await updateDoc(doc(db, "businesses", currentUser.uid, "cash_shifts", cashRegister.shiftId), reportData);
+                
+                sessionStorage.removeItem('cashRegister');
+                showNotification('Caixa fechado com sucesso!', 'info');
+                cashFlowModal.classList.add('hidden');
+                checkCashRegisterStatus();
+                displayReportModal(reportData);
+             } catch (error) { 
+                 console.error("Erro ao fechar caixa:", error); 
+                 showNotification('Erro ao fechar o caixa.', 'error'); 
+             }
         }
         function displayReportModal(report) {
             const contentEl = document.getElementById('report-content-modal');
