@@ -175,7 +175,6 @@
             card.id = `sale-${sale.id}`;
             
             let timeOptions = '<option value="1">1 min</option>';
-            // CORREÇÃO 1: Remove o 'selected' fixo daqui
             for (let i = 5; i <= 60; i += 5) {
                 timeOptions += `<option value="${i}">${i} min</option>`;
             }
@@ -251,8 +250,7 @@
             const { status, currentPhase, remainingSeconds, endTime, phaseDuration } = state;
             const phaseInfo = TANNING_PHASES[currentPhase];
             
-            // CORREÇÃO 2: Define o valor do <select> com base no tempo salvo
-            const savedDurationInMinutes = phaseDuration ? (phaseDuration / 60) : 20; // Padrão de 20 min se não houver nada salvo
+            const savedDurationInMinutes = phaseDuration ? (phaseDuration / 60) : 20;
             timeSelect.value = savedDurationInMinutes;
 
             const formatTime = (seconds) => {
@@ -270,7 +268,7 @@
             switch(status) {
                 case 'running':
                     phaseDisplay.textContent = `Posição: ${phaseInfo.name}`;
-                    imageDisplay.src = `img/${phaseInfo.image}`;
+                    imageDisplay.src = phaseInfo.image; // CORREÇÃO AQUI
                     imageDisplay.classList.remove('hidden');
                     actionButton.innerHTML = `<i data-lucide="pause"></i> Pausar`;
                     actionButton.className = 'action-timer-btn w-full mt-3 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors bg-orange-500 hover:bg-orange-600';
@@ -289,7 +287,7 @@
                 case 'paused':
                     phaseDisplay.textContent = `Pausado em: ${phaseInfo.name}`;
                     timerDisplay.textContent = formatTime(remainingSeconds);
-                    imageDisplay.src = `img/${phaseInfo.image}`;
+                    imageDisplay.src = phaseInfo.image; // CORREÇÃO AQUI
                     imageDisplay.classList.remove('hidden');
                     actionButton.innerHTML = `<i data-lucide="play"></i> Retomar`;
                     actionButton.className = 'action-timer-btn w-full mt-3 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors bg-cyan-500 hover:bg-cyan-600';
@@ -300,7 +298,7 @@
                     card.classList.add('needs-attention');
                     phaseDisplay.textContent = `Mudar para: ${nextPhaseInfo.name}`;
                     timerDisplay.textContent = "00:00";
-                    imageDisplay.src = `img/${nextPhaseInfo.image}`;
+                    imageDisplay.src = nextPhaseInfo.image; // CORREÇÃO AQUI
                     imageDisplay.classList.remove('hidden');
                     actionButton.innerHTML = `<i data-lucide="play"></i> Iniciar Próximo Lado`;
                     actionButton.className = 'action-timer-btn w-full mt-3 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors bg-green-500 hover:bg-green-600';
@@ -418,7 +416,6 @@
             }
         });
         
-        // CORREÇÃO 3: Salva a alteração do tempo imediatamente
         patioListContainer.addEventListener('change', async (e) => {
             if (!e.target.classList.contains('time-select') || !currentUser) return;
             
