@@ -172,17 +172,26 @@
         let currentUser = null;
         let allClients = [];
         let lastSearchResults = []; // Armazena os últimos resultados da busca
+        let businessId = null;
 
         // A lógica do menu e do logout foi movida para layout.js
 
         onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                loadAllClients();
-            } else {
-                window.location.href = 'index.html';
-            }
-        });
+    if (user) {
+        currentUser = user;
+        businessId = sessionStorage.getItem('businessId'); // Pega o ID da empresa
+
+        // Se não encontrar, volta para o login por segurança
+        if (!businessId) {
+            window.location.href = './index.html';
+            return;
+        }
+
+        loadAllClients();
+    } else {
+        window.location.href = 'index.html';
+    }
+});
 
         // --- LÓGICA DOS FILTROS ---
         const monthSelect = document.getElementById('filter-month');
@@ -203,7 +212,7 @@
 
         async function loadAllClients() {
             if (!currentUser) return;
-            const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
+            const clientsRef = collection(db, "businesses", businessId, "clients");
             const querySnapshot = await getDocs(clientsRef);
             allClients = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         }
@@ -277,7 +286,8 @@
                 return;
             }
 
-            const salesRef = collection(db, "businesses", currentUser.uid, "sales");
+            const salesRef = collection(db, "businesses", businessId, "sales");
+
             let constraints = [];
 
             if (selectedMonth > -1) {
@@ -371,6 +381,7 @@
 </script>
 </body>
 </html>
+
 
 
 
