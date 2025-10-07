@@ -164,6 +164,12 @@
             { id: 'ordem-chegada', name: 'Ordem de Chegada' }, { id: 'patio', name: 'Pátio' }
         ];
 
+        const actionCodeSettings = {
+        // URL para onde o usuário volta DEPOIS de redefinir a senha
+        url: window.location.origin + '/index.html', 
+        handleCodeInApp: true
+         };
+
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
@@ -403,7 +409,7 @@
 
             try {
                 await inviteUser(userData);
-                await sendPasswordResetEmail(auth, email);
+                await sendPasswordResetEmail(auth, email, actionCodeSettings);
                 showNotification('Convite enviado! O usuário receberá um e-mail para definir a senha.', 'success');
                 userModal.classList.add('hidden');
             } catch(error) {
@@ -414,3 +420,4 @@
     </script>
 </body>
 </html>
+
