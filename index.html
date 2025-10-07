@@ -156,21 +156,53 @@
         const loginSection = document.getElementById('login-section');
         
         async function handleUserRedirect(user) {
-            const userProfileRef = doc(db, "users", user.uid);
-            try {
-                const docSnap = await getDoc(userProfileRef);
-                if (docSnap.exists() && docSnap.data().status === 'active') {
-                    window.location.href = './dashboard.html';
-                } else {
-                    window.location.href = './assinatura.html';
-                }
-            } catch (error) {
-                console.error("Erro ao verificar dados do usuário, redirecionando para login.", error);
-                signOut(auth);
-                loaderSection.classList.add('hidden');
-                loginSection.classList.remove('hidden');
+    // Passo 1: Verificar se o usuário que está logando é um funcionário
+    const staffRef = doc(db, "staff_members", user.uid);
+    const staffDoc = await getDoc(staffRef);
+
+    if (staffDoc.exists()) {
+        // --- CAMINHO DO FUNCIONÁRIO ---
+        console.log("Usuário é um funcionário. Redirecionando...");
+        const adminId = staffDoc.data().adminId; // Pega o ID do chefe
+
+        // Busca as permissões específicas do funcionário
+        const permissionsRef = doc(db, "businesses", adminId, "user_permissions", user.uid);
+        const permissionsDoc = await getDoc(permissionsRef);
+        const userPermissions = permissionsDoc.exists() ? permissionsDoc.data().permissions : {};
+
+        // Salva o ID do ADMIN e as PERMISSÕES na sessão para as outras páginas usarem
+        sessionStorage.setItem('businessId', adminId);
+        sessionStorage.setItem('userPermissions', JSON.stringify(userPermissions));
+        sessionStorage.setItem('acessoLiberado', 'true'); // Libera o acesso às páginas internas
+
+        window.location.href = './dashboard.html'; // Redireciona para o dashboard da empresa
+
+    } else {
+        // --- CAMINHO DO ADMINISTRADOR (LÓGICA ORIGINAL) ---
+        console.log("Usuário é um administrador. Verificando plano...");
+        const adminId = user.uid; // O admin é o dono do próprio negócio
+        const userProfileRef = doc(db, "users", adminId);
+
+        try {
+            const docSnap = await getDoc(userProfileRef);
+            if (docSnap.exists() && docSnap.data().status === 'active') {
+                // Salva o próprio ID como businessId e libera o acesso
+                sessionStorage.setItem('businessId', adminId);
+                // Um objeto vazio significa que o admin tem acesso a tudo
+                sessionStorage.setItem('userPermissions', JSON.stringify({})); 
+                sessionStorage.setItem('acessoLiberado', 'true');
+                window.location.href = './dashboard.html';
+            } else {
+                window.location.href = './assinatura.html';
             }
+        } catch (error) {
+            console.error("Erro ao verificar dados do administrador:", error);
+            signOut(auth);
+            loaderSection.classList.add('hidden');
+            loginSection.classList.remove('hidden');
         }
+    }
+}
 
         const loginForm = document.getElementById('login-form');
         loginForm.addEventListener('submit', (e) => {
@@ -352,3 +384,4 @@
     </script>
 </body>
 </html>
+
