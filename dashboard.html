@@ -97,15 +97,65 @@
             </main>
         </div>
     </div>
-    
+
     <div id="payment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8">
+            <h3 class="text-2xl text-gray-800 mb-2 text-center">Finalizar Pagamento</h3>
+            <p class="text-center text-gray-500 mb-6">Por favor, confirme seus dados para continuar.</p>
+            <form id="payment-form" class="space-y-4">
+                <div>
+                    <label for="name-input" class="block text-sm font-medium text-gray-700">Nome Completo</label>
+                    <input type="text" id="name-input" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#B76E79] focus:border-[#B76E79]" placeholder="Seu nome completo" required>
+                </div>
+                <div>
+                    <label for="cpf-input" class="block text-sm font-medium text-gray-700">CPF ou CNPJ</label>
+                    <input type="text" id="cpf-input" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#B76E79] focus:border-[#B76E79]" placeholder="Apenas números" required>
+                </div>
+                 <div>
+                    <label for="phone-input" class="block text-sm font-medium text-gray-700">Telefone com DDD</label>
+                    <input type="tel" id="phone-input" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#B76E79] focus:border-[#B76E79]" placeholder="Apenas números" required>
+                </div>
+                <p id="payment-error" class="text-red-500 text-xs text-center h-4"></p>
+                <div class="pt-2 space-y-3">
+                    <button type="submit" data-method="CREDIT_CARD" class="payment-submit-btn w-full bg-[#B76E79] text-white py-2.5 rounded-lg hover:opacity-90 flex items-center justify-center gap-2">
+                        <i data-lucide="credit-card" class="w-5 h-5"></i>
+                        <span>Pagar com Cartão</span>
+                    </button>
+                    <button type="submit" data-method="PIX" class="payment-submit-btn w-full bg-gray-800 text-white py-2.5 rounded-lg hover:bg-gray-700 flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm4-48.42a8,8,0,0,1-16,0V152H104a8,8,0,0,1,0-16h12V124H96.34a8,8,0,0,1-6.66-3.33L72,96h23.23a8,8,0,0,1,6.66,3.33L116,124h12a8,8,0,0,1,0,16H116v15.58a8,8,0,0,1-5.33,7.45L96,172H80a8,8,0,0,1,0-16h7.23l12-8.33V136H96.34a8,8,0,0,1-6.66-3.33L72,108h23.23a8,8,0,0,1,6.66,3.33L116,136h12a8,8,0,0,1,0,16H116v12.42a8,8,0,0,1-16,0Zm56-35.92-32,40a8,8,0,1,1-12.8-9.6l32-40a8,8,0,0,1,12.8,9.6ZM152,96a12,12,0,1,1,12,12A12,12,0,0,1,152,96Z"></path></svg>
+                        <span>Pagar com PIX</span>
+                    </button>
+                    <button type="button" id="cancel-payment-btn" class="w-full text-gray-600 py-2 rounded-lg hover:bg-gray-100">Cancelar</button>
+                </div>
+            </form>
         </div>
+    </div>
     <div id="admin-password-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8">
+            <h3 id="admin-modal-title" class="text-2xl text-gray-800 mb-4 text-center">Modo Administrador</h3>
+            <p id="admin-modal-subtitle" class="text-center text-gray-500 mb-6">Insira a senha para ver os dados.</p>
+            <form id="admin-password-form">
+                <input type="password" id="admin-password-input" class="w-full text-center px-4 py-2 border rounded-lg" required>
+                <button type="submit" class="w-full mt-4 bg-[#B76E79] text-white py-2 rounded-lg hover:opacity-90">Confirmar</button>
+                <button type="button" id="cancel-admin-password" class="w-full mt-2 text-gray-600 py-2 rounded-lg hover:bg-gray-100">Cancelar</button>
+                <p class="text-center text-sm mt-4"><a href="#" id="forgot-admin-password-link" class="text-gray-500 hover:underline">Esqueci minha senha de ADM</a></p>
+            </form>
         </div>
-    <div id="help-alert-modal" class="fixed bottom-8 right-8 bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-50 hidden opacity-0 transition-opacity duration-300">
+    </div>
+    <div id="help-alert-modal" class="fixed bottom-8 right-8 bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-50 transform translate-y-full opacity-0 transition-all duration-300 ease-out">
+        <div class="flex items-start gap-4">
+            <div class="bg-amber-100 p-2 rounded-full"><i data-lucide="bell-ring" class="w-8 h-8 text-amber-500"></i></div>
+            <div>
+                <h3 class="text-xl text-gray-800 font-semibold">Pedido de Ajuda!</h3>
+                <p id="help-alert-message" class="text-gray-600 mt-1"></p>
+            </div>
         </div>
+        <button id="close-help-alert" class="w-full mt-4 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300">OK, Entendido</button>
+    </div>
     <div id="payment-success-toast" class="toast-success fixed bottom-8 right-8 bg-green-500 text-white p-4 rounded-xl shadow-lg flex items-center gap-3 z-[100]">
-        </div>
+        <i data-lucide="check-circle" class="w-6 h-6"></i>
+        <span>Pagamento confirmado! Sua assinatura foi renovada.</span>
+    </div>
 
     <script> lucide.createIcons(); const { jsPDF } = window.jspdf; </script>
     <script src="./config.js"></script>
@@ -146,6 +196,13 @@
         const helpAlertModal = document.getElementById('help-alert-modal');
         const helpAlertMessage = document.getElementById('help-alert-message');
         const closeHelpAlertBtn = document.getElementById('close-help-alert');
+        const paymentModal = document.getElementById('payment-modal');
+        const paymentForm = document.getElementById('payment-form');
+        const nameInput = document.getElementById('name-input');
+        const cpfInput = document.getElementById('cpf-input');
+        const phoneInput = document.getElementById('phone-input');
+        const paymentError = document.getElementById('payment-error');
+        const cancelPaymentBtn = document.getElementById('cancel-payment-btn');
         const ctx = document.getElementById('servicesChart').getContext('2d');
         const servicesChart = new Chart(ctx, { type: 'pie', data: { labels: [], datasets: [{ label: 'Vendas', data: [], backgroundColor: ['#B76E79', '#D49A9A', '#FADADD', '#A9606C', '#C98B8B', '#E3BDBD'], borderColor: '#FFF9F9', borderWidth: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } });
         
@@ -182,41 +239,33 @@
         });
         
         async function initializePage() {
-            // Esconde botões de admin para funcionários
             if (!isAdmin) {
                 renewBtn.style.display = 'none';
                 adminModeBtn.style.display = 'none';
-                
-                // Para funcionários, não precisamos verificar o plano, apenas mostramos um status genérico e iniciamos
                 document.getElementById('subscription-card-title').textContent = "Acesso de Funcionário";
                 document.getElementById('subscription-days').textContent = "Ativo";
                 document.getElementById('subscription-status-text').textContent = `Membro da equipe.`;
-                
-                await initializeDashboard();
-                document.body.classList.remove('opacity-0');
-                return;
-            }
-
-            // A lógica abaixo só roda para o admin
-            const userProfileRef = doc(db, "users", businessId);
-            try {
-                const docSnap = await getDoc(userProfileRef);
-                if (docSnap.exists() && docSnap.data().plan?.expiresAt) {
-                    updateSubscriptionCard(docSnap.data());
-                    const expiresAtDate = docSnap.data().plan.expiresAt.toDate();
-                    const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                    if (diffDays <= 0) {
+            } else {
+                const userProfileRef = doc(db, "users", businessId);
+                try {
+                    const docSnap = await getDoc(userProfileRef);
+                    if (docSnap.exists() && docSnap.data().plan?.expiresAt) {
+                        updateSubscriptionCard(docSnap.data());
+                        const expiresAtDate = docSnap.data().plan.expiresAt.toDate();
+                        const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                        if (diffDays <= 0) {
+                            window.location.href = './assinatura.html';
+                            return;
+                        }
+                    } else {
                         window.location.href = './assinatura.html';
                         return;
                     }
-                } else {
-                    window.location.href = './assinatura.html';
+                } catch(error) {
+                    console.error("Erro ao verificar plano do admin:", error);
+                    document.body.innerHTML = `<p>Erro ao carregar dados do plano.</p>`;
                     return;
                 }
-            } catch(error) {
-                console.error("Erro ao verificar plano do admin:", error);
-                document.body.innerHTML = `<div class="w-full h-screen flex items-center justify-center text-center p-4"><div><h1 class="text-2xl text-red-600">Erro Crítico</h1><p class="text-gray-700 mt-2">Não foi possível carregar dados do plano.</p></div></div>`;
-                return;
             }
 
             await initializeDashboard();
@@ -356,8 +405,8 @@
             }
         });
 
-        async function checkAdminPasswordSetup() {
-             const adminPassRef = doc(db, "admin_passwords", currentUser.uid);
+        async function checkAdminPasswordSetup(user) {
+             const adminPassRef = doc(db, "admin_passwords", user.uid);
              try{
                 const docSnap = await getDoc(adminPassRef);
                 if (!docSnap.exists()) {
@@ -543,6 +592,65 @@
                 }
             } else {
                 alert("Função de compartilhamento não suportada neste navegador.");
+            }
+        });
+
+        // Lógica de Pagamento
+        renewBtn.addEventListener('click', () => {
+            if (currentUser && currentUser.displayName) {
+                nameInput.value = currentUser.displayName;
+            }
+            paymentModal.classList.remove('hidden');
+        });
+
+        cancelPaymentBtn.addEventListener('click', () => {
+            paymentModal.classList.add('hidden');
+            paymentForm.reset();
+            paymentError.textContent = '';
+        });
+
+        paymentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const clickedButton = e.submitter;
+            const paymentMethod = clickedButton.dataset.method;
+            if (!paymentMethod) return;
+
+            paymentError.textContent = '';
+            let userName = nameInput.value.trim();
+            let cpfCnpj = cpfInput.value.replace(/\D/g, '');
+            let phone = phoneInput.value.replace(/\D/g, '');
+
+            if ((cpfCnpj.length === 11 && !validaCPF(cpfCnpj)) || (cpfCnpj.length === 14 && !validaCNPJ(cpfCnpj))) {
+                paymentError.textContent = 'CPF ou CNPJ inválido.';
+                return;
+            }
+            if (userName.length < 3 || (cpfCnpj.length !== 11 && cpfCnpj.length !== 14) || phone.length < 10) {
+                paymentError.textContent = 'Dados inválidos. Verifique todos os campos.';
+                return;
+            }
+
+            const originalContent = clickedButton.innerHTML;
+            document.querySelectorAll('.payment-submit-btn').forEach(btn => btn.disabled = true);
+            clickedButton.innerHTML = '<div class="loader mx-auto h-6 w-6"></div>';
+
+            try {
+                const createAsaasPaymentLink = httpsCallable(functions, 'createAsaasPaymentLink');
+                const result = await createAsaasPaymentLink({ userName, cpfCnpj, phone, metodo: paymentMethod });
+                
+                if (result.data.success) {
+                    window.location.href = result.data.paymentUrl;
+                } else {
+                    throw new Error(result.data.message || "Não foi possível gerar o link.");
+                }
+            } catch (error) {
+                console.error("Erro ao iniciar pagamento:", error);
+                paymentError.textContent = `Erro: ${error.message}`;
+                document.querySelectorAll('.payment-submit-btn').forEach(btn => {
+                    btn.disabled = false;
+                    if(btn.dataset.method === paymentMethod) {
+                        btn.innerHTML = originalContent;
+                    }
+                });
             }
         });
     </script>
