@@ -118,7 +118,7 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        let currentUser = null;
+        let currentUser = null, businessId = null;
         let allProducts = [];
         let synth = null;
         let localIntervals = {};
@@ -131,16 +131,22 @@
         ];
 
         onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                loadProductsAndListenForClients();
-            } else { window.location.href = './index.html'; }
-        });
+    if (user) {
+        currentUser = user;
+        businessId = sessionStorage.getItem('businessId'); // Pega o ID da empresa
+
+        if (!businessId) {
+            window.location.href = './index.html';
+            return;
+        }
+        loadProductsAndListenForClients();
+    } else { window.location.href = './index.html'; }
+});
 
         async function loadProductsAndListenForClients() {
             if (!currentUser) return;
             try {
-                const productsRef = collection(db, "businesses", currentUser.uid, "products");
+                const productsRef = collection(db, "businesses", businessId, "products");
                 const productsSnapshot = await getDocs(productsRef);
                 allProducts = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 listenForPatioClients();
@@ -184,7 +190,7 @@
         function listenForPatioClients() {
             if (!currentUser) return;
             const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-            const salesRef = collection(db, "businesses", currentUser.uid, "sales");
+            const salesRef = collection(db, "businesses", businessId, "sales");
             const q = query(salesRef, orderBy("createdAt", "asc"));
 
             onSnapshot(q, (snapshot) => {
@@ -384,7 +390,7 @@
                 : `É hora de virar ${clientName} para a posição de ${TANNING_PHASES[nextPhaseIndex].name}.`;
             showLocalNotification("Hora de Virar!", notificationBody);
 
-            const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
+            const saleRef = doc(db, "businesses", businessId, "sales", saleId);
             await updateDoc(saleRef, {
                 "timerState.status": newStatus,
                 "timerState.currentPhase": isFinished ? timerState.currentPhase : nextPhaseIndex,
@@ -398,7 +404,7 @@
             if (!button || !currentUser) return;
 
             const saleId = button.closest('.timer-section')?.dataset.saleId || button.dataset.id;
-            const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
+           const saleRef = doc(db, "businesses", businessId, "sales", saleId);
             
             if (button.classList.contains('action-timer-btn')) {
                 button.disabled = true; 
@@ -471,7 +477,7 @@
             const saleId = select.closest('.timer-section').dataset.saleId;
             const card = document.getElementById(`sale-${saleId}`);
             const currentTimerState = JSON.parse(card.dataset.timerState || '{}');
-            const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
+            const saleRef = doc(db, "businesses", businessId, "sales", saleId);
             
             const newDurationInSeconds = parseInt(select.value) * 60;
 
@@ -502,7 +508,7 @@
                 await initializeAudio();
                 playNotificationSound();
 
-                const helpRequestsRef = collection(db, "businesses", currentUser.uid, "help_requests");
+                const helpRequestsRef = collection(db, "businesses", businessId, "help_requests");
                 await addDoc(helpRequestsRef, {
                     page: "Pátio",
                     createdAt: Timestamp.now()
@@ -530,4 +536,5 @@
     </script>
 </body>
 </html>
+
 
