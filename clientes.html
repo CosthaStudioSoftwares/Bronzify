@@ -176,6 +176,7 @@
         const db = getFirestore(app);
 
         let currentUser = null;
+        let businessId = null;
         const clientsListEl = document.getElementById('clients-list');
         const searchInput = document.getElementById('search-input');
         const searchResultsContainer = document.getElementById('search-results');
@@ -204,18 +205,24 @@
         }
 
         onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUser = user;
-                await initializePage();
-            } else {
-                window.location.href = 'index.html';
-            }
-        });
+    if (user) {
+        currentUser = user;
+        businessId = sessionStorage.getItem('businessId'); // Pega o ID da empresa
+
+        if (!businessId) {
+            window.location.href = 'index.html';
+            return;
+        }
+        await initializePage();
+    } else {
+        window.location.href = 'index.html';
+    }
+});
 
         // 1. Carrega todos os clientes e ordena
         async function loadAllClients() {
             if (!currentUser) return;
-            const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
+            const clientsRef = collection(db, "businesses", businessId, "clients");
             const querySnapshot = await getDocs(query(clientsRef));
             allClientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             allClientsData.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' }));
@@ -394,7 +401,7 @@
                 const confirmed = await showConfirm('Você tem certeza que deseja excluir "' + clientNameToDelete + '"?');
                 if (confirmed) {
                     try {
-                        await deleteDoc(doc(db, "businesses", currentUser.uid, "clients", clientIdToDelete));
+                        await deleteDoc(doc(db, "businesses", businessId, "clients", clientIdToDelete));
                         showNotification("Cliente excluído com sucesso!", "success");
                         initializePage();
                     } catch (error) { console.error("Erro ao excluir cliente:", error); showNotification("Erro ao excluir cliente.", "error"); }
@@ -407,7 +414,7 @@
             if (!currentUser) return;
             const clientId = clientIdField.value;
             const clientData = { name: clientNameField.value, phone: clientPhoneField.value, birthdate: clientBirthdateField.value };
-            const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
+            const clientsRef = collection(db, "businesses", businessId, "clients");
             const nameQuery = query(clientsRef, where("name", "==", clientData.name.trim()));
             const phoneQuery = query(clientsRef, where("phone", "==", clientData.phone));
             try {
@@ -437,7 +444,7 @@
             if (selectedMonths.length === 0) { showNotification("Selecione um mês para o sorteio.", "info"); return; }
             const currentYear = new Date().getFullYear();
             try {
-                const salesRef = collection(db, "businesses", currentUser.uid, "sales");
+                const salesRef = collection(db, "businesses", businessId, "sales");
                 const q = query(salesRef, where("createdAt", ">=", new Date(currentYear, 0, 1)), where("createdAt", "<=", new Date(currentYear, 11, 31, 23, 59, 59)));
                 const salesSnapshot = await getDocs(q);
                 const salesInPeriod = [];
@@ -467,4 +474,5 @@
     </script>
 </body>
 </html>
+
 
