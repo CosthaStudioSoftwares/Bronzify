@@ -198,6 +198,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         const db = getFirestore(app);
 
         let currentUser = null;
+        let businessId = null;
         let allStockItems = [];
         let allCategories = [];
         let currentItemList = [];
@@ -213,17 +214,29 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         const categoryFilter = document.getElementById('category-filter');
 
         onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                listenForCategories();
-                listenForStockItems();
-            } else {
-                window.location.href = './index.html';
-            }
-        });
+    if (user) {
+        currentUser = user;
+        businessId = sessionStorage.getItem('businessId'); // Pega o ID da empresa
+
+        if (!businessId) {
+            window.location.href = './index.html';
+            return;
+        }
+
+        // Verifica se é admin para limitar as ações depois
+        const isAdmin = user.uid === businessId;
+        limitEmployeeActions(isAdmin);
+
+        listenForCategories();
+        listenForStockItems();
+    } else {
+        window.location.href = './index.html';
+    }
+});
+
 
         function listenForCategories() {
-            const categoriesRef = collection(db, "businesses", currentUser.uid, "stock_categories");
+            const categoriesRef = collection(db, "businesses", businessId, "stock_categories");
             const q = query(categoriesRef, orderBy("name"));
             onSnapshot(q, (snapshot) => {
                 allCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -269,7 +282,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
             const id = document.getElementById('category-id-input').value;
             const name = document.getElementById('category-name-input').value;
             if (!name) return;
-            const categoriesRef = collection(db, "businesses", currentUser.uid, "stock_categories");
+            const categoriesRef = collection(db, "businesses", businessId, "stock_categories");
             try {
                 if (id) {
                     await updateDoc(doc(categoriesRef, id), { name });
@@ -292,14 +305,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
             const deleteBtn = e.target.closest('.delete-cat-btn');
             if (deleteBtn) {
                 if (await showConfirm('Excluir esta categoria? Os itens nela não serão excluídos.')) {
-                    await deleteDoc(doc(db, "businesses", currentUser.uid, "stock_categories", deleteBtn.dataset.id));
+                    await deleteDoc(doc(db, "businesses", businessId, "stock_categories", deleteBtn.dataset.id));
                     showNotification('Categoria excluída.', 'info');
                 }
             }
         });
 
         function listenForStockItems() {
-            const itemsRef = collection(db, "businesses", currentUser.uid, "stock_items");
+            const itemsRef = collection(db, "businesses", businessId, "stock_items");
             const q = query(itemsRef, orderBy("name"));
             onSnapshot(q, (snapshot) => {
                 allStockItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -424,7 +437,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         async function handleDeleteItem(itemId) {
             if (await showConfirm('Tem certeza que deseja excluir este item?')) {
                 try {
-                    await deleteDoc(doc(db, "businesses", currentUser.uid, "stock_items", itemId));
+                    await deleteDoc(doc(db, "businesses", businessId, "stock_items", itemId));
                     showNotification('Item excluído com sucesso!', 'success');
                 } catch (error) { showNotification('Erro ao excluir item.', 'error'); }
             }
@@ -467,7 +480,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
                 quantity: parseInt(itemForm.querySelector('#item-quantity').value) || 0,
             };
             try {
-                const itemsRef = collection(db, "businesses", currentUser.uid, "stock_items");
+                const itemsRef = collection(db, "businesses", businessId, "stock_items");
                 if (id) {
                     await updateDoc(doc(itemsRef, id), itemData);
                     showNotification("Item atualizado!", 'success');
@@ -494,7 +507,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
             if (!currentUser) return;
             // CORREÇÃO: Garante que a URL seja construída corretamente, removendo o nome do arquivo atual.
             const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
-            const orderLink = `${window.location.origin}${path}/pedido.html?businessId=${currentUser.uid}`;
+            const orderLink = `${window.location.origin}${path}/pedido.html?businessId=${businessId}`;
             const message = `Olá! 😊\n\nFaça seu pedido através do nosso cardápio digital:\n${orderLink}`;
             
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -628,6 +641,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     </script>
 </body>
 </html>
+
 
 
 
