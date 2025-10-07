@@ -100,13 +100,14 @@
 
     <div id="payment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden"></div>
     <div id="admin-password-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden"></div>
-    <div id="help-alert-modal" class="fixed bottom-8 right-8 bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-50 transform translate-y-full opacity-0 transition-all duration-300 ease-out"></div>
+    <div id="help-alert-modal" class="fixed bottom-8 right-8 bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-50 hidden opacity-0 transition-opacity duration-300"></div>
     <div id="payment-success-toast" class="toast-success fixed bottom-8 right-8 bg-green-500 text-white p-4 rounded-xl shadow-lg flex items-center gap-3 z-[100]"></div>
 
     <script> lucide.createIcons(); const { jsPDF } = window.jspdf; </script>
     <script src="./config.js"></script>
     <script type="module" src="./layout.js"></script>
-    <script src="./utils.js"></script> <script type="module">
+    <script src="./utils.js"></script>
+    <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, doc, getDoc, collection, onSnapshot, setDoc, deleteDoc, query, where, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -117,125 +118,425 @@
         const db = getFirestore(app);
         const functions = getFunctions(app, 'southamerica-east1');
 
-        // VARIÁVEL GLOBAL PARA O ID DA EMPRESA
-        let businessId = null;
-
-        // ... o restante do seu código ...
-        // (Vou colar o script completo e corrigido abaixo para garantir)
-
+        // VARIÁVEIS GLOBAIS
+        let currentUser = null;
+        let businessId = null; 
         let isAdminModeActive = false;
         let dashboardDataCache = null;
-        let isAudioContextStarted = false;
         let synth = null;
-        let currentUser = null; // Ainda mantemos para verificar o login
         let currentHelpRequestId = null;
 
+        // ELEMENTOS DA UI
         const renewBtn = document.getElementById('renew-btn');
-        // ... resto das suas constantes (monthSelect, yearSelect, etc.) ...
+        const monthSelect = document.getElementById('filter-month');
+        const yearSelect = document.getElementById('filter-year');
+        const adminModeBtn = document.getElementById('admin-mode-btn');
+        const adminPasswordModal = document.getElementById('admin-password-modal');
+        const adminPasswordForm = document.getElementById('admin-password-form');
+        const adminPasswordInput = document.getElementById('admin-password-input');
+        const adminModalTitle = document.getElementById('admin-modal-title');
+        const adminModalSubtitle = document.getElementById('admin-modal-subtitle');
+        const forgotAdminPasswordLink = document.getElementById('forgot-admin-password-link');
+        const helpAlertModal = document.getElementById('help-alert-modal');
+        const helpAlertMessage = document.getElementById('help-alert-message');
+        const closeHelpAlertBtn = document.getElementById('close-help-alert');
+        const ctx = document.getElementById('servicesChart').getContext('2d');
+        const servicesChart = new Chart(ctx, { type: 'pie', data: { labels: [], datasets: [{ label: 'Vendas', data: [], backgroundColor: ['#B76E79', '#D49A9A', '#FADADD', '#A9606C', '#C98B8B', '#E3BDBD'], borderColor: '#FFF9F9', borderWidth: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } });
+        
+        const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+        const currentYear = new Date().getFullYear();
+        months.forEach((month, index) => monthSelect.add(new Option(month, index)));
+        monthSelect.add(new Option("Ano Inteiro", 12));
+        for (let year = currentYear; year >= 2020; year--) {
+            yearSelect.add(new Option(year, year));
+        }
+        monthSelect.value = new Date().getMonth();
+        yearSelect.value = currentYear;
+        
+        document.body.addEventListener('click', async () => { if (!synth && typeof Tone !== 'undefined') { await Tone.start(); synth = new Tone.Synth().toDestination(); }}, { once: true });
 
         // LÓGICA DE INICIALIZAÇÃO CORRIGIDA
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                currentUser = user; // Guarda o usuário logado
-                businessId = sessionStorage.getItem('businessId'); // Pega o ID da empresa (do chefe ou do próprio admin)
+                currentUser = user;
+                businessId = sessionStorage.getItem('businessId');
 
-                // Se não encontrar o businessId, é um erro de login, volta para o início
                 if (!businessId) {
+                    console.error("Business ID não encontrado na sessão. Fazendo logout.");
                     signOut(auth);
                     window.location.href = 'index.html';
                     return;
                 }
                 
-                // Libera o acesso e inicia o dashboard
                 sessionStorage.setItem('acessoLiberado', 'true');
                 await checkUserPlan(user);
+
             } else {
-                 setTimeout(() => {
-                    if (!auth.currentUser) {
-                       window.location.href = 'index.html';
-                    }
-                }, 1500);
+                window.location.href = 'index.html';
             }
         });
         
         async function checkUserPlan(user) {
-            // Um funcionário não tem um plano próprio, então só checamos para o admin
-            // O ID do admin é igual ao businessId
             const userProfileRef = doc(db, "users", businessId); 
             try {
                 onSnapshot(userProfileRef, (docSnap) => {
+                    if (user.uid !== businessId) {
+                        renewBtn.style.display = 'none';
+                        adminModeBtn.style.display = 'none';
+                    }
+
                     if (docSnap.exists() && docSnap.data().plan?.expiresAt) {
                         updateSubscriptionCard(docSnap.data());
                         const expiresAtDate = docSnap.data().plan.expiresAt.toDate();
                         const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
                         
-                        // A verificação de expiração só redireciona o admin
-                        if (user.uid === businessId && diffDays <= 0 && window.location.pathname.includes('dashboard.html')) {
+                        if (user.uid === businessId && diffDays <= 0) {
                             window.location.href = './assinatura.html';
                             return;
                         }
                         
                         if (document.body.classList.contains('opacity-0')) {
-                             initializeDashboard(user, docSnap.data());
+                             initializeDashboard(user);
                              document.body.classList.remove('opacity-0');
                         }
-                    } else if (user.uid === businessId) { // Se não encontrar plano, só redireciona se for o admin
+                    } else if (user.uid === businessId) { 
                         window.location.href = './assinatura.html';
-                    } else { // Se for funcionário e não achar o plano do admin, apenas inicia o dashboard
+                    } else { 
                          if (document.body.classList.contains('opacity-0')) {
-                             initializeDashboard(user, {});
+                             initializeDashboard(user);
                              document.body.classList.remove('opacity-0');
                         }
                     }
                 });
             } catch (error) {
-                // ... sua lógica de erro ...
+                console.error("Erro crítico ao verificar o plano:", error);
+                document.body.innerHTML = `<div class="w-full h-screen flex items-center justify-center text-center p-4"><div><h1 class="text-2xl text-red-600">Erro Crítico</h1><p class="text-gray-700 mt-2">Não foi possível carregar os dados.</p></div></div>`;
+                document.body.classList.remove('opacity-0');
             }
         }
         
-        async function initializeDashboard(user, userData) {
+        async function initializeDashboard(user) {
             await checkAdminPasswordSetup(user);
             await fetchDashboardData();
-            listenForHelpRequests(); // Não precisa de parâmetro, vai usar o businessId global
+            listenForHelpRequests();
         }
 
-        function listenForHelpRequests(){
+        function updateSubscriptionCard(userData) {
+            const expiresAtDate = userData.plan.expiresAt.toDate();
+            const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+            const cardTitle = document.getElementById('subscription-card-title');
+            const daysEl = document.getElementById('subscription-days');
+            const statusText = document.getElementById('subscription-status-text');
+            daysEl.textContent = `${diffDays} dia${diffDays !== 1 ? 's' : ''}`;
+            statusText.textContent = `Expira em ${expiresAtDate.toLocaleDateString('pt-BR')}.`;
+            if (userData.plan.type === 'trial') {
+                cardTitle.textContent = "Período de Teste";
+                renewBtn.querySelector('span').textContent = "Assinar Agora";
+            } else {
+                cardTitle.textContent = "Assinatura Ativa";
+                renewBtn.querySelector('span').textContent = "Renovar Assinatura";
+            }
+            if (diffDays <= 7) { daysEl.classList.add('text-amber-600'); }
+        }
+
+        async function fetchDashboardData(isFilteredPeriod = false) {
+            if (!businessId) return;
+
+            let startDate, endDate;
+            const month = parseInt(monthSelect.value);
+            const year = parseInt(yearSelect.value);
+            const revenueTitle = document.getElementById("revenue-title");
+            const servicesChartTitle = document.getElementById("services-chart-title");
+
+            if (month === 12) {
+                startDate = new Date(year, 0, 1);
+                endDate = new Date(year, 11, 31, 23, 59, 59);
+                revenueTitle.textContent = "Faturamento Anual";
+                servicesChartTitle.textContent = "Tipos de Bronze e Serviços (Ano)";
+            } else {
+                startDate = new Date(year, month, 1);
+                endDate = new Date(year, month + 1, 0, 23, 59, 59);
+                revenueTitle.textContent = "Faturamento Mensal";
+                servicesChartTitle.textContent = "Tipos de Bronze e Serviços (Mês)";
+            }
+
+            const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+            const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+
+            const salesCollRef = collection(db, "businesses", businessId, "sales");
+            const periodQuery = query(salesCollRef, where("createdAt", ">=", Timestamp.fromDate(startDate)), where("createdAt", "<=", Timestamp.fromDate(endDate)));
+            const todayQuery = query(salesCollRef, where("createdAt", ">=", Timestamp.fromDate(todayStart)), where("createdAt", "<=", Timestamp.fromDate(todayEnd)));
+            
+            try {
+                const [periodSnapshot, todaySnapshot] = await Promise.all([getDocs(periodQuery), getDocs(todayQuery)]);
+                
+                let monthlyRevenue = 0, dailyRevenue = 0;
+                const serviceCounts = {}, periodPaymentMethodTotals = {}, dailyPaymentMethodTotals = {};
+                
+                periodSnapshot.forEach(doc => {
+                    const sale = doc.data();
+                    if (sale.status !== 'cancelled') {
+                        monthlyRevenue += sale.total || 0;
+                        if (sale.items && Array.isArray(sale.items)) {
+                            sale.items.forEach(item => {
+                                serviceCounts[item.name] = (serviceCounts[item.name] || 0) + item.quantity;
+                            });
+                        }
+                        const method = sale.paymentMethod || "N/A";
+                        periodPaymentMethodTotals[method] = (periodPaymentMethodTotals[method] || 0) + sale.total;
+                    }
+                });
+
+                todaySnapshot.forEach(doc => {
+                    const sale = doc.data();
+                     if (sale.status !== 'cancelled') {
+                        dailyRevenue += sale.total || 0;
+                        const method = sale.paymentMethod || "N/A";
+                        dailyPaymentMethodTotals[method] = (dailyPaymentMethodTotals[method] || 0) + sale.total;
+                    }
+                });
+                
+                dashboardDataCache = {
+                    monthlyRevenue, dailyRevenue, dailyPaymentMethodTotals, 
+                    dailyAppointments: todaySnapshot.docs.filter(d => d.data().status !== 'cancelled').length,
+                    serviceCounts, 
+                    periodAppointments: periodSnapshot.docs.filter(d => d.data().status !== 'cancelled').length, 
+                    periodPaymentMethodTotals, isFilteredPeriod
+                };
+
+                servicesChart.data.labels = Object.keys(serviceCounts);
+                servicesChart.data.datasets[0].data = Object.values(serviceCounts);
+                servicesChart.update();
+                updateUIVisibility();
+
+            } catch (error) {
+                console.error("Erro ao buscar dados do dashboard: ", error);
+            }
+        }
+        
+        function listenForHelpRequests() {
             if (!businessId) return;
             const helpRequestsRef = collection(db, "businesses", businessId, "help_requests");
             onSnapshot(helpRequestsRef, (snapshot) => {
                 snapshot.docChanges().forEach((change) => {
                     if (change.type === "added") {
-                        // ... sua lógica de notificação
+                        const data = change.doc.data();
+                        currentHelpRequestId = change.doc.id;
+                        if (synth) synth.triggerAttackRelease("C5", "8n");
+                        helpAlertMessage.textContent = `Um pedido de ajuda foi enviado da página ${data.page}.`;
+                        helpAlertModal.style.transform = 'translateY(0)';
+                        helpAlertModal.style.opacity = '1';
+                        lucide.createIcons();
                     }
                 });
             });
         }
-
-        async function fetchDashboardData(isFilteredPeriod = false) {
-            if (!businessId) return; // Proteção
-            
-            const month = parseInt(monthSelect.value);
-            const year = parseInt(yearSelect.value);
-            // ... resto da sua lógica de data ...
-
-            // CORREÇÃO: Usar a variável 'businessId' em vez de currentUser.uid
-            const salesCollRef = collection(db, "businesses", businessId, "sales");
-
-            const periodQuery = query(salesCollRef, where("createdAt", ">=", Timestamp.fromDate(startDate)), where("createdAt", "<=", Timestamp.fromDate(endDate)));
-            const todayQuery = query(salesCollRef, where("createdAt", ">=", Timestamp.fromDate(todayStart)), where("createdAt", "<=", Timestamp.fromDate(todayEnd)));
-
-            try {
-                const [periodSnapshot, todaySnapshot] = await Promise.all([getDocs(periodQuery), getDocs(todayQuery)]);
-                // ... resto da sua lógica para calcular totais e atualizar a UI ...
-                // Esta parte não precisa de mais alterações, pois agora a busca inicial está correta.
-            } catch (error) {
-                console.error("Erro ao buscar dados do dashboard: ", error);
+        
+        closeHelpAlertBtn.addEventListener("click", async () => {
+            if (currentHelpRequestId && businessId) {
+                try {
+                    const helpDocRef = doc(db, "businesses", businessId, "help_requests", currentHelpRequestId);
+                    await deleteDoc(helpDocRef);
+                    helpAlertModal.style.transform = 'translateY(100%)';
+                    helpAlertModal.style.opacity = '0';
+                    currentHelpRequestId = null;
+                } catch (error) {
+                    console.error("Erro ao remover pedido de ajuda:", error);
+                }
             }
+        });
+
+        async function checkAdminPasswordSetup(user) {
+             const adminPassRef = doc(db, "admin_passwords", user.uid);
+             try{
+                const docSnap = await getDoc(adminPassRef);
+                if (!docSnap.exists()) {
+                    adminModalTitle.textContent = "Bem-vindo(a)!";
+                    adminModalSubtitle.textContent = "Este parece ser seu primeiro acesso. Por favor, crie uma nova senha de administrador.";
+                    document.getElementById("cancel-admin-password").classList.add("hidden");
+                    forgotAdminPasswordLink.classList.add("hidden");
+                    adminPasswordModal.classList.remove("hidden");
+                }
+             } catch(error) { console.error("Erro ao verificar senha ADM:", error); }
+        }
+        
+        function updateUIVisibility() {
+            const monthlyRevenueEl = document.getElementById("monthly-revenue");
+            const dailyRevenueEl = document.getElementById("daily-revenue");
+            const paymentDetailsEl = document.getElementById("payment-methods-details");
+            const chartContainer = document.getElementById("chart-container");
+            const adminModeText = document.getElementById("admin-mode-text");
+            const adminModeIcon = adminModeBtn.querySelector("i");
+            const appointmentsTitle = document.getElementById("appointments-title");
+            const dailyAppointmentsEl = document.getElementById("daily-appointments");
+            const paymentDetailsTitle = document.getElementById("payment-details-title");
+            
+            if (isAdminModeActive && dashboardDataCache) {
+                monthlyRevenueEl.textContent = dashboardDataCache.monthlyRevenue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+                dailyRevenueEl.textContent = dashboardDataCache.dailyRevenue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+                
+                const totals = dashboardDataCache.isFilteredPeriod ? dashboardDataCache.periodPaymentMethodTotals : dashboardDataCache.dailyPaymentMethodTotals;
+                if (dashboardDataCache.isFilteredPeriod) {
+                    appointmentsTitle.textContent = "Atendimentos no Período";
+                    dailyAppointmentsEl.textContent = dashboardDataCache.periodAppointments;
+                    paymentDetailsTitle.textContent = "Faturamento por Pagamento no Período";
+                } else {
+                    appointmentsTitle.textContent = "Atendimentos no Dia";
+                    dailyAppointmentsEl.textContent = dashboardDataCache.dailyAppointments;
+                    paymentDetailsTitle.textContent = "Faturamento Diário por Pagamento";
+                }
+
+                paymentDetailsEl.innerHTML = Object.keys(totals).length > 0 ? 
+                    Object.keys(totals).map(method => `<div class="flex justify-between items-center"><span class="text-gray-600">${method}</span><span class="font-bold text-gray-800">${totals[method].toLocaleString("pt-BR", {style:"currency", currency:"BRL"})}</span></div>`).join('') :
+                    (dashboardDataCache.isFilteredPeriod ? '<p class="text-gray-500">Nenhuma venda no período.</p>' : '<p class="text-gray-500">Nenhuma venda hoje.</p>');
+
+                chartContainer.style.opacity = 1;
+                adminModeIcon.setAttribute("data-lucide", "eye-off");
+                adminModeText.textContent = "Desativar Modo ADM";
+            } else {
+                monthlyRevenueEl.textContent = "R$ *******";
+                dailyRevenueEl.textContent = "R$ *******";
+                dailyAppointmentsEl.textContent = "***";
+                paymentDetailsEl.innerHTML = '<p class="text-gray-500">Dados ocultos. Ative o modo ADM.</p>';
+                chartContainer.style.opacity = 0;
+                adminModeIcon.setAttribute("data-lucide", "eye");
+                adminModeText.textContent = "Ativar Modo ADM";
+                appointmentsTitle.textContent = "Atendimentos no Dia";
+                paymentDetailsTitle.textContent = "Faturamento Diário por Pagamento";
+            }
+            lucide.createIcons();
         }
 
-        // ... O restante das suas funções (validaCPF, updateUIVisibility, listeners de botões, etc.)
-        // devem ser revisadas para usar a variável `businessId` em vez de `currentUser.uid`
-        // sempre que fizerem uma consulta ao banco de dados na coleção `businesses`.
+        adminModeBtn.addEventListener("click", async () => {
+            if (isAdminModeActive) {
+                isAdminModeActive = false;
+                updateUIVisibility();
+            } else {
+                adminModalTitle.textContent = "Modo Administrador";
+                adminModalSubtitle.textContent = "Insira a sua senha de administrador.";
+                document.getElementById("cancel-admin-password").classList.remove("hidden");
+                forgotAdminPasswordLink.classList.remove("hidden");
+                adminPasswordModal.classList.remove("hidden");
+            }
+        });
+
+        forgotAdminPasswordLink.addEventListener("click", async (e) => {
+            e.preventDefault();
+            if (currentUser && confirm("Isso enviará um link para o seu e-mail para redefinir sua senha de LOGIN PRINCIPAL. Deseja continuar?")) {
+                try {
+                    await sendPasswordResetEmail(auth, currentUser.email);
+                    alert("Enviamos um link para o seu e-mail. Siga as instruções para redefinir sua senha de login.");
+                    adminPasswordModal.classList.add("hidden");
+                } catch (error) {
+                    console.error("Erro ao enviar e-mail:", error);
+                    alert("Ocorreu um erro. Tente novamente.");
+                }
+            }
+        });
+        
+        document.getElementById("cancel-admin-password").addEventListener("click", () => adminPasswordModal.classList.add("hidden"));
+
+        adminPasswordForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            if (!currentUser) return;
+            
+            const password = adminPasswordInput.value;
+            const adminPassRef = doc(db, "admin_passwords", currentUser.uid);
+            
+            try {
+                let passwordCorrect = false;
+                const docSnap = await getDoc(adminPassRef);
+                
+                if (docSnap.exists()) {
+                    if (docSnap.data().value === password) {
+                        passwordCorrect = true;
+                    } else {
+                        alert("Senha incorreta!");
+                    }
+                } else {
+                    await setDoc(adminPassRef, { value: password });
+                    alert("Sua senha de administrador foi definida com sucesso!");
+                    passwordCorrect = true;
+                }
+
+                if (passwordCorrect) {
+                    isAdminModeActive = true;
+                    adminPasswordForm.reset();
+                    adminPasswordModal.classList.add("hidden");
+                    await fetchDashboardData(false);
+                }
+            } catch (error) {
+                console.error("Erro na senha de ADM:", error);
+                alert("Ocorreu um erro. Tente novamente.");
+            }
+        });
+        
+        document.getElementById("filter-apply").addEventListener("click", () => {
+            if (isAdminModeActive) {
+                fetchDashboardData(true);
+            } else {
+                alert("Por favor, ative o Modo ADM para poder usar os filtros.");
+            }
+        });
+
+        document.getElementById("download-btn").addEventListener("click", () => {
+            if (!isAdminModeActive || !dashboardDataCache) {
+                return alert("Ative o Modo ADM para baixar o relatório.");
+            }
+            const pdf = new jsPDF();
+            const periodText = monthSelect.options[monthSelect.selectedIndex].text + " de " + yearSelect.value;
+            
+            pdf.setFontSize(18);
+            pdf.text("Relatório de Faturamento - Bronzify", 14, 22);
+            pdf.setFontSize(11);
+            pdf.setTextColor(100);
+            pdf.text(`Período do Relatório: ${periodText}`, 14, 30);
+            
+            const summaryData = [
+                ["Faturamento do Período", dashboardDataCache.monthlyRevenue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })],
+                ["Faturamento de Hoje", dashboardDataCache.dailyRevenue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })],
+                [dashboardDataCache.isFilteredPeriod ? "Atendimentos no Período" : "Atendimentos Hoje", dashboardDataCache.isFilteredPeriod ? dashboardDataCache.periodAppointments : dashboardDataCache.dailyAppointments]
+            ];
+            pdf.autoTable({ head: [["Resumo Financeiro", "Valor"]], body: summaryData, startY: 40, headStyles: { fillColor: [183, 110, 121] } });
+            
+            const paymentTotals = dashboardDataCache.isFilteredPeriod ? dashboardDataCache.periodPaymentMethodTotals : dashboardDataCache.dailyPaymentMethodTotals;
+            const paymentTitle = dashboardDataCache.isFilteredPeriod ? "Faturamento por Pagamento no Período" : "Faturamento Diário por Pagamento";
+            const paymentBody = Object.entries(paymentTotals).map(([method, total]) => [method, total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })]);
+            if (paymentBody.length > 0) {
+                pdf.autoTable({ head: [[paymentTitle, "Total"]], body: paymentBody, startY: pdf.autoTable.previous.finalY + 10, headStyles: { fillColor: [183, 110, 121] } });
+            }
+            
+            const servicesBody = Object.entries(dashboardDataCache.serviceCounts).map(([name, count]) => [name, count]);
+            if (servicesBody.length > 0) {
+                pdf.autoTable({ head: [["Serviços Realizados no Período", "Quantidade"]], body: servicesBody, startY: pdf.autoTable.previous.finalY + 10, headStyles: { fillColor: [183, 110, 121] } });
+            }
+            
+            pdf.save(`relatorio_vendas_bronzify_${yearSelect.value}_${monthSelect.options[monthSelect.selectedIndex].text}.pdf`);
+        });
+
+        document.getElementById("share-btn").addEventListener("click", async () => {
+            if (!isAdminModeActive || !dashboardDataCache) {
+                return alert("Ative o Modo ADM para compartilhar o relatório.");
+            }
+            const periodText = monthSelect.options[monthSelect.selectedIndex].text + " de " + yearSelect.value;
+            let shareText = `*Relatório Bronzify - ${periodText}*\n\n`;
+            shareText += `*Faturamento:* ${dashboardDataCache.monthlyRevenue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+            shareText += dashboardDataCache.isFilteredPeriod ? `*Atendimentos no Período:* ${dashboardDataCache.periodAppointments}\n\n` : `*Atendimentos (hoje):* ${dashboardDataCache.dailyAppointments}\n\n`;
+            shareText += "*Serviços mais realizados:*\n";
+            for (const service in dashboardDataCache.serviceCounts) {
+                shareText += `- ${service}: ${dashboardDataCache.serviceCounts[service]}\n`;
+            }
+            
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title: `Relatório Bronzify - ${periodText}`, text: shareText });
+                } catch (err) {
+                    console.error("Erro ao compartilhar:", err);
+                }
+            } else {
+                alert("Função de compartilhamento não suportada neste navegador.");
+            }
+        });
     </script>
 </body>
 </html>
