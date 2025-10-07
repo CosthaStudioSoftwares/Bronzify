@@ -324,7 +324,7 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        let currentUser = null, selectedClient = null, loadedOnlineOrder = null, synth = null, editingSaleId = null, discountType = 'value';
+        let currentUser = null, businessId = null, selectedClient = null, loadedOnlineOrder = null, synth = null, editingSaleId = null, discountType = 'value';
         let allClients = [], allProducts = [], allStockItems = [], pendingOrders = [], dailySales = [];
         let selectedItems = new Map();
         
@@ -343,18 +343,25 @@
         };
 
         onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                checkCashRegisterStatus();
-                loadInitialData();
-                document.body.addEventListener('click', async () => { if (!synth) { await Tone.start(); synth = new Tone.Synth().toDestination(); }}, { once: true });
-            } else { window.location.href = 'index.html'; }
-        });
+    if (user) {
+        currentUser = user;
+        businessId = sessionStorage.getItem('businessId'); // Pega o ID da empresa
+
+        if (!businessId) {
+            window.location.href = 'index.html';
+            return;
+        }
+
+        checkCashRegisterStatus();
+        loadInitialData();
+        document.body.addEventListener('click', async () => { if (!synth) { await Tone.start(); synth = new Tone.Synth().toDestination(); }}, { once: true });
+    } else { window.location.href = 'index.html'; }
+});
 
         async function loadInitialData() {
-            const clientsRef = collection(db, "businesses", currentUser.uid, "clients");
-            const productsRef = collection(db, "businesses", currentUser.uid, "products");
-            const stockItemsRef = collection(db, "businesses", currentUser.uid, "stock_items");
+            const clientsRef = collection(db, "businesses", businessId, "clients");
+            const productsRef = collection(db, "businesses", businessId, "products");
+            const stockItemsRef = collection(db, "businesses", businessId, "stock_items");
             const [clientsSnap, productsSnap, stockItemsSnap] = await Promise.all([ getDocs(clientsRef), getDocs(query(productsRef, orderBy("name"))), getDocs(query(stockItemsRef, orderBy("name"))) ]);
             allClients = clientsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             allProducts = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -403,7 +410,7 @@
             const initialChange = parseFloat(document.getElementById('initial-change').value.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
             const newShift = { operatorName, initialChange, openTime: Timestamp.now(), status: 'open' };
             try {
-                const shiftRef = doc(collection(db, "businesses", currentUser.uid, "cash_shifts"));
+                const shiftRef = doc(collection(db, "businesses", businessId, "cash_shifts"));
                 await setDoc(shiftRef, newShift);
                 sessionStorage.setItem('cashRegister', JSON.stringify({ ...newShift, shiftId: shiftRef.id, openTime: newShift.openTime.toMillis() }));
                 showNotification('Caixa aberto com sucesso!', 'success');
@@ -413,7 +420,7 @@
         }
         
         async function handleCloseCash() {
-            const patioSalesRef = query(collection(db, "businesses", currentUser.uid, "sales"), where("status", "==", "called"));
+            const patioSalesRef = query(collection(db, "businesses", businessId, "sales"), where("status", "==", "called"));
             const patioSnapshot = await getDocs(patioSalesRef);
 
             let confirmationMessage = 'Deseja realmente fechar o caixa agora?';
@@ -426,7 +433,8 @@
             
             const cashRegister = JSON.parse(sessionStorage.getItem('cashRegister'));
             const openTime = new Date(cashRegister.openTime);
-            const salesRef = query(collection(db, "businesses", currentUser.uid, "sales"), where("createdAt", ">=", openTime));
+            const salesRef = query(collection(db, "businesses", businessId, "sales"), where("createdAt", ">=", openTime));
+
             
             try {
                 const salesSnapshot = await getDocs(salesRef);
@@ -457,7 +465,7 @@
                 
                 const reportData = { ...cashRegister, ...closingData, canceledSales };
 
-                await updateDoc(doc(db, "businesses", currentUser.uid, "cash_shifts", cashRegister.shiftId), closingData);
+                await updateDoc(doc(db, "businesses", businessId, "cash_shifts", cashRegister.shiftId), closingData);
                 
                 sessionStorage.removeItem('cashRegister');
                 showNotification('Caixa fechado com sucesso!', 'info');
@@ -556,7 +564,7 @@
             const startOfDay = Timestamp.fromDate(new Date(year, month - 1, day, 0, 0, 0));
             const endOfDay = Timestamp.fromDate(new Date(year, month - 1, day, 23, 59, 59));
 
-            const historyRef = collection(db, "businesses", currentUser.uid, "cash_shifts");
+            const historyRef = collection(db, "businesses", businessId, "cash_shifts");
             const q = query(historyRef, where("openTime", ">=", startOfDay), where("openTime", "<=", endOfDay), where("status", "==", "closed"), orderBy("openTime", "desc"));
             
             try {
@@ -584,12 +592,12 @@
         document.getElementById('history-results').addEventListener('click', async (e) => {
             if(e.target.classList.contains('view-report-btn')) {
                 const shiftId = e.target.dataset.shiftId;
-                const shiftDoc = await getDoc(doc(db, "businesses", currentUser.uid, "cash_shifts", shiftId));
+                const shiftDoc = await getDoc(doc(db, "businesses", businessId, "cash_shifts", shiftId));
                 if (shiftDoc.exists()) {
                     const shiftData = shiftDoc.data();
                     const openTime = shiftData.openTime.toDate();
                     const closeTime = shiftData.closeTime.toDate();
-                    const salesRef = query(collection(db, "businesses", currentUser.uid, "sales"), 
+                    const salesRef = query(collection(db, "businesses", businessId, "sales"), 
                         where("createdAt", ">=", openTime), 
                         where("createdAt", "<=", closeTime),
                         where("status", "==", "cancelled")
@@ -780,7 +788,7 @@
         }
 
         function listenForIncomingOrders(){
-            const q = query(collection(db,"businesses",currentUser.uid,"incoming_orders"),where("status","==","pending"));
+            const q = query(collection(db,"businesses", businessId,"incoming_orders"),where("status","==","pending"));
             onSnapshot(q,snapshot=>{
                 pendingOrders=snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));
                 const badge=document.getElementById("notification-badge");
@@ -819,7 +827,7 @@
             const orderId=e.target.dataset.id;
             if(!orderId) return;
 
-            const orderRef = doc(db,"businesses",currentUser.uid,"incoming_orders",orderId);
+            const orderRef = doc(db,"businesses", businessId,"incoming_orders",orderId);
             if(e.target.classList.contains("load-order-btn")){
                 const orderData = pendingOrders.find(o=>o.id===orderId);
                 if(orderData){
@@ -884,7 +892,7 @@ if (isServiceSale) {
             try {
                 const batch = writeBatch(db);
                 if (selectedClient) {
-                    const clientRef = doc(db, "businesses", currentUser.uid, "clients", selectedClient.id);
+                    const clientRef = doc(db, "businesses", businessId, "clients", selectedClient.id);
                     const packageUpdates = {};
                     saleItems.forEach(item => {
                         if (item.isPackage) packageUpdates[`packages.${item.name.replace(' (Pacote)', '')}`] = increment(2);
@@ -894,14 +902,14 @@ if (isServiceSale) {
                 }
                 saleItems.forEach(item => {
                     if (item.type === 'stock') {
-                        const stockItemRef = doc(db, "businesses", currentUser.uid, "stock_items", item.id);
+                        const stockItemRef = doc(db, "businesses", businessId, "stock_items", item.id);
                         batch.update(stockItemRef, { quantity: increment(-item.quantity) });
                     }
                 });
-                const saleRef = editingSaleId ? doc(db, "businesses", currentUser.uid, "sales", editingSaleId) : doc(collection(db, "businesses", currentUser.uid, "sales"));
+                const saleRef = editingSaleId ? doc(db, "businesses", businessId, "sales", editingSaleId) : doc(collection(db, "businesses", businessId, "sales"));
                 batch.set(saleRef, salePayload, { merge: true });
                 if (loadedOnlineOrder) {
-                    batch.update(doc(db, "businesses", currentUser.uid, "incoming_orders", loadedOnlineOrder.id), { status: 'completed' });
+                    batch.update(doc(db, "businesses", businessId, "incoming_orders", loadedOnlineOrder.id), { status: 'completed' });
                 }
                 await batch.commit();
                 
@@ -909,7 +917,7 @@ if (isServiceSale) {
                     document.getElementById('modal-password').textContent = password;
                     const qrContainer = document.getElementById('qrcode-container');
                     qrContainer.innerHTML = '';
-                    new QRCode(qrContainer, { text: `${window.location.origin}${window.location.pathname.replace("caixa.html","status-cliente.html")}?businessId=${currentUser.uid}&id=${saleRef.id}`, width: 160, height: 160 });
+                    new QRCode(qrContainer, { text: `...businessId=${businessId}&id=${saleRef.id}`, width: 160, height: 160 });
                     document.getElementById('password-qr-modal').classList.remove('hidden');
                 }
                 showNotification(editingSaleId ? 'Venda atualizada!' : 'Venda salva!', 'success');
@@ -936,7 +944,7 @@ if (isServiceSale) {
         async function getNextPassword() {
             const today = new Date();
             const todayId = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-            const counterRef = doc(db, "businesses", currentUser.uid, "dailyCounters", todayId);
+            const counterRef = doc(db, "businesses", businessId, "dailyCounters", todayId);
             const counterSnap = await getDoc(counterRef);
             let nextNumber = counterSnap.exists() ? counterSnap.data().lastPassword + 1 : 1;
             await setDoc(counterRef, { lastPassword: nextNumber }, { merge: true });
@@ -945,7 +953,7 @@ if (isServiceSale) {
 
         function listenForDailySales() {
             const tableBody = document.getElementById('daily-sales-table');
-            const q = query(collection(db, "businesses", currentUser.uid, "sales"), where("createdAt", ">=", new Date(new Date().setHours(0,0,0,0))), orderBy("createdAt", "desc"));
+            const q = query(collection(db, "businesses", businessId, "sales"), where("createdAt", ">=", new Date(new Date().setHours(0,0,0,0))), orderBy("createdAt", "desc"));
             onSnapshot(q, (snapshot) => {
                 dailySales = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
                 tableBody.innerHTML = '';
@@ -986,7 +994,7 @@ if (isServiceSale) {
     const reason = e.target.querySelector('#cancellation-reason').value;
     if (!reason) { showNotification('Por favor, informe o motivo.', 'error'); return; }
 
-    const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
+    const saleRef = doc(db, "businesses", businessId, "sales", saleId);
 
     try {
         // 1. Busca os detalhes da venda que será cancelada
@@ -1004,7 +1012,7 @@ if (isServiceSale) {
         saleToCancel.items.forEach(item => {
             // Verifica se o item é do tipo 'stock' e se ele tem um ID
             if (item.type === 'stock' && item.id) {
-                const stockItemRef = doc(db, "businesses", currentUser.uid, "stock_items", item.id);
+                const stockItemRef = doc(db, "businesses", businessId, "stock_items", item.id);
                 // Adiciona a quantidade de volta ao estoque
                 batch.update(stockItemRef, { quantity: increment(item.quantity) });
             }
@@ -1056,6 +1064,7 @@ if (isServiceSale) {
     </script>
 </body>
 </html>
+
 
 
 
