@@ -146,6 +146,17 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        // Lista de menus em ordem de prioridade para o redirecionamento
+        const menuPages = [
+        { id: 'dashboard', href: './dashboard.html' },
+        { id: 'caixa', href: './caixa.html' },
+        { id: 'ordem-chegada', href: './ordem-chegada.html' },
+        { id: 'patio', href: './patio.html' },
+        { id: 'estoque', href: './estoque.html' },
+        { id: 'vendas', href: './vendas.html' },
+        { id: 'clientes', href: './clientes.html' },
+        { id: 'configuracoes', href: './configuracoes.html' }
+        ];
 
         const actionCodeSettings = {
            url: 'https://bronzify.costhastudiodesoftwares.com/', 
@@ -160,24 +171,38 @@
     const staffRef = doc(db, "staff_members", user.uid);
     const staffDoc = await getDoc(staffRef);
 
-    if (staffDoc.exists()) {
-        // --- CAMINHO DO FUNCIONÁRIO ---
-        console.log("Usuário é um funcionário. Redirecionando...");
-        const adminId = staffDoc.data().adminId; // Pega o ID do chefe
+   if (staffDoc.exists()) {
+    // --- CAMINHO DO FUNCIONÁRIO (COM REDIRECIONAMENTO INTELIGENTE) ---
+    console.log("Usuário é um funcionário. Verificando permissões para redirecionar...");
+    const adminId = staffDoc.data().adminId;
+    const permissionsRef = doc(db, "businesses", adminId, "user_permissions", user.uid);
+    const permissionsDoc = await getDoc(permissionsRef);
+    const userPermissions = permissionsDoc.exists() ? permissionsDoc.data().permissions : {};
 
-        // Busca as permissões específicas do funcionário
-        const permissionsRef = doc(db, "businesses", adminId, "user_permissions", user.uid);
-        const permissionsDoc = await getDoc(permissionsRef);
-        const userPermissions = permissionsDoc.exists() ? permissionsDoc.data().permissions : {};
+    sessionStorage.setItem('businessId', adminId);
+    sessionStorage.setItem('userPermissions', JSON.stringify(userPermissions));
+    sessionStorage.setItem('acessoLiberado', 'true');
 
-        // Salva o ID do ADMIN e as PERMISSÕES na sessão para as outras páginas usarem
-        sessionStorage.setItem('businessId', adminId);
-        sessionStorage.setItem('userPermissions', JSON.stringify(userPermissions));
-        sessionStorage.setItem('acessoLiberado', 'true'); // Libera o acesso às páginas internas
+    // Lógica para encontrar a primeira página permitida
+    let redirectUrl = null;
+    for (const page of menuPages) {
+        // Se a permissão para a página não for 'false', encontramos nosso destino
+        if (userPermissions[page.id] !== false) {
+            redirectUrl = page.href;
+            break; // Para o loop assim que encontrar a primeira página permitida
+        }
+    }
 
-        window.location.href = './dashboard.html'; // Redireciona para o dashboard da empresa
-
+    if (redirectUrl) {
+        window.location.href = redirectUrl;
     } else {
+        // Caso de segurança: se o usuário não tiver NENHUMA permissão
+        alert("Você não tem permissão para acessar nenhuma página. Fale com seu administrador.");
+        signOut(auth);
+        loaderSection.classList.add('hidden');
+        loginSection.classList.remove('hidden');
+    }
+} else {
         // --- CAMINHO DO ADMINISTRADOR (LÓGICA ORIGINAL) ---
         console.log("Usuário é um administrador. Verificando plano...");
         const adminId = user.uid; // O admin é o dono do próprio negócio
@@ -384,4 +409,5 @@
     </script>
 </body>
 </html>
+
 
