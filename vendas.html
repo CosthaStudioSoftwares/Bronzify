@@ -3,6 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <script>
+    // --- TRANCA DE SEGURANÇA DE PÁGINA ---
+    try {
+        const permissionsString = sessionStorage.getItem('userPermissions');
+        // Pega o nome do arquivo atual (ex: 'dashboard') para usar como ID da permissão
+        const currentPageId = window.location.pathname.split('/').pop().replace('.html', '');
+
+        // Se não houver permissões salvas na sessão, o usuário não está logado corretamente.
+        if (!permissionsString) {
+            window.location.href = './index.html';
+        } else {
+            const permissions = JSON.parse(permissionsString);
+            // Um objeto de permissões vazio significa que é o admin, que tem acesso a tudo.
+            const isAdmin = Object.keys(permissions).length === 0;
+
+            // A permissão é negada se o usuário NÃO for admin E a permissão para a página atual for 'false'.
+            if (!isAdmin && permissions[currentPageId] === false) {
+                // Sobrescreve todo o conteúdo da página com a mensagem de Acesso Negado.
+                document.write(`
+                    <html lang="pt-BR">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Acesso Negado</title>
+                        <script src="https://cdn.tailwindcss.com"><\/script>
+                        <script src="https://unpkg.com/lucide@latest"><\/script>
+                        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+                        <style>body { font-family: 'Poppins', sans-serif; } h1 { font-family: 'Playfair Display', serif; }</style>
+                    </head>
+                    <body class="bg-gray-100 flex items-center justify-center h-screen">
+                        <div class="text-center bg-white p-12 rounded-2xl shadow-lg max-w-lg mx-auto">
+                            <i data-lucide="shield-alert" class="mx-auto w-16 h-16 text-red-500"></i>
+                            <h1 class="text-4xl mt-4 text-gray-800">Acesso Negado</h1>
+                            <p class="text-gray-600 mt-2">Você não tem permissão para acessar esta página. Por favor, contate o administrador do sistema.</p>
+                            <a href="./dashboard.html" class="mt-6 inline-block bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600">Voltar para a Página Inicial</a>
+                        </div>
+                        <script>lucide.createIcons();<\/script>
+                    </body>
+                    </html>
+                `);
+            }
+        }
+    } catch (e) {
+        // Em caso de qualquer erro, redireciona para o login por segurança.
+        console.error("Erro na verificação de permissão:", e);
+        window.location.href = './index.html';
+    }
+</script>
+    <script>
         if (sessionStorage.getItem('acessoLiberado') !== 'true') {
             window.location.href = 'dashboard.html';
         }
@@ -323,5 +371,6 @@
 </script>
 </body>
 </html>
+
 
 
