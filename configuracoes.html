@@ -430,30 +430,14 @@
             if(deleteBtn) handleDeleteUser(deleteBtn.dataset.id);
         });
 
-        // SUBSTITUA a sua função handleDeleteUser por esta:
-async function handleDeleteUser(userId) {
-    console.log("1. Tentando deletar usuário com ID:", userId); // Espião 1
-
-    if (!userId) {
-        console.error("ERRO: O ID do usuário está vazio ou indefinido!");
-        return;
-    }
-
-    if (await showConfirm('Tem certeza que deseja remover as permissões deste usuário?')) {
+       async function handleDeleteUser(userId) {
+    if (await showConfirm('...')) {
         try {
-            console.log("2. Confirmação recebida. Deletando do caminho:", `businesses/${businessId}/user_permissions/${userId}`); // Espião 2
-            
             await deleteDoc(doc(db, "businesses", businessId, "user_permissions", userId));
-            
-            console.log("3. Operação deleteDoc concluída sem erros."); // Espião 3
             showNotification('Usuário removido!', 'success');
-
         } catch (error) { 
-            console.error("4. ERRO ao deletar usuário:", error); // Espião de Erro
             showNotification('Erro ao remover usuário.', 'error'); 
         }
-    } else {
-        console.log("Operação cancelada pelo usuário.");
     }
 }
         
@@ -497,6 +481,7 @@ async function handleDeleteUser(userId) {
     </script>
 </body>
 </html>
+
 
 
 
