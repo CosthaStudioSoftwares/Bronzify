@@ -130,6 +130,10 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const actionCodeSettings = {
+        url: 'https://bronzify.costhastudiodesoftwares.com/', 
+        handleCodeInApp: true
+     };
 
         // --- LÓGICA DE NAVEGAÇÃO ---
         const loaderSection = document.getElementById('loader-section');
@@ -208,7 +212,7 @@
             createUserWithEmailAndPassword(auth, email, password)
                 .then((userCredential) => {
                     const user = userCredential.user;
-                    sendEmailVerification(user);
+                    sendEmailVerification(user, actionCodeSettings);
                     alert('Conta criada! Você ganhou 5 dias de teste grátis. Um e-mail de verificação foi enviado. Você será redirecionado para o painel em instantes.');
                     
                     // ✅ LÓGICA CORRIGIDA: Espera o plano de teste ser criado no Firestore
@@ -237,7 +241,7 @@
         resetForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const email = resetForm['reset-email'].value;
-            sendPasswordResetEmail(auth, email)
+            sendPasswordResetEmail(auth, email, actionCodeSettings)
                 .then(() => {
                     alert('Link para redefinição de senha enviado! Verifique seu e-mail.');
                 })
@@ -281,3 +285,4 @@
     </script>
 </body>
 </html>
+
