@@ -21,7 +21,6 @@
         h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
         .sidebar-link:hover, .sidebar-link.active { background-color: #FADADD; color: #B76E79; }
         .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1.25rem; border-radius: 0.75rem; color: #4A5568; transition: all 0.3s ease; font-weight: 500; }
-        .sidebar-link:hover, .sidebar-link.active { background-color: #FADADD; color: #B76E79; }
         .sidebar-link svg { margin-right: 0.75rem; }
         .sidebar-mobile { transform: translateX(-100%); transition: transform 0.3s ease-in-out; }
         .sidebar-mobile.open { transform: translateX(0); }        
@@ -43,7 +42,6 @@
             </header>
 
             <div class="space-y-8">
-                <!-- Configurações do Caixa -->
                 <div class="bg-white p-6 rounded-2xl shadow-md">
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-2xl text-gray-800">Itens e Produtos do Caixa</h3>
@@ -52,7 +50,6 @@
                         </button>
                     </div>
                     <div id="items-list-container" class="space-y-2">
-                        <!-- Categoria Tipos de Bronze -->
                         <div>
                             <div data-accordion-trigger="bronze-items" class="flex justify-between items-center cursor-pointer border-b p-2 hover:bg-gray-50 rounded-t-lg">
                                 <h4 class="font-semibold text-lg text-gray-700">Tipos de Bronze</h4>
@@ -62,7 +59,6 @@
                                 <div id="bronze-items" class="space-y-3 p-4 border border-t-0 rounded-b-lg"></div>
                             </div>
                         </div>
-                        <!-- Categoria Consumo -->
                         <div>
                             <div data-accordion-trigger="consumable-items" class="flex justify-between items-center cursor-pointer border-b p-2 hover:bg-gray-50 rounded-t-lg">
                                 <h4 class="font-semibold text-lg text-gray-700">Consumo</h4>
@@ -72,7 +68,6 @@
                                 <div id="consumable-items" class="space-y-3 p-4 border border-t-0 rounded-b-lg"></div>
                             </div>
                         </div>
-                        <!-- Categoria Adicionais -->
                         <div>
                             <div data-accordion-trigger="extra-items" class="flex justify-between items-center cursor-pointer border-b p-2 hover:bg-gray-50 rounded-t-lg">
                                 <h4 class="font-semibold text-lg text-gray-700">Adicionais</h4>
@@ -85,7 +80,6 @@
                     </div>
                 </div>
 
-                <!-- Configurações de Usuários -->
                 <div class="bg-white p-6 rounded-2xl shadow-md">
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-2xl text-gray-800">Usuários e Permissões</h3>
@@ -94,15 +88,13 @@
                         </button>
                     </div>
                     <div id="users-list-container" class="space-y-3">
-                        <!-- Lista de usuários será inserida aqui -->
-                    </div>
+                        </div>
                 </div>
             </div>
         </main>
            </div>
     </div>
 
-    <!-- Modal de Itens do Caixa -->
     <div id="item-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
             <h3 id="item-modal-title" class="text-2xl text-gray-800 mb-6">Cadastrar Novo Item</h3>
@@ -116,7 +108,6 @@
         </div>
     </div>
 
-    <!-- Modal de Usuários -->
     <div id="user-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-8">
             <h3 id="user-modal-title" class="text-2xl text-gray-800 mb-6">Convidar Novo Usuário</h3>
@@ -132,16 +123,14 @@
                         <input type="text" id="user-role" class="w-full px-4 py-2 border rounded-lg" placeholder="Ex: Recepcionista">
                     </div>
                 </div>
-                <p class="text-xs text-gray-500">Importante: Adicione este e-mail na aba "Authentication" do seu painel Firebase antes de convidar.</p>
                 <div>
                     <label class="block text-gray-600 mb-2">Permissões de Acesso</label>
                     <div id="permissions-container" class="grid grid-cols-2 gap-2 p-4 border rounded-lg bg-gray-50">
-                        <!-- Checkboxes de permissão serão inseridos aqui -->
-                    </div>
+                        </div>
                 </div>
                 <div class="flex justify-end gap-4 pt-4">
                     <button type="button" id="cancel-user-btn" class="px-6 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Cancelar</button>
-                    <button type="submit" class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Salvar Permissões</button>
+                    <button type="submit" class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Salvar</button>
                 </div>
             </form>
         </div>
@@ -156,10 +145,14 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 
+        // ORDEM CORRIGIDA:
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const functions = getFunctions(app, 'southamerica-east1');
+        const inviteUser = httpsCallable(functions, 'inviteUser');
 
         let currentUser = null;
         let allProducts = [];
@@ -382,8 +375,9 @@
             }
         }
         
-        document.getElementById('cancel-user-btn').addEventListener('click', () => userModal.classList.add('hidden'));
+        document.getElementById('cancel-user-btn').addEventListener('click', () => userModal.classList.add('hidden');
 
+        // LÓGICA ATUALIZADA
         userForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = userForm.querySelector('#user-id').value;
@@ -395,26 +389,36 @@
             });
 
             const userData = { email, role, permissions };
-            const usersRef = collection(db, "businesses", currentUser.uid, "user_permissions");
 
-            try {
-                if (id) {
+            // Se 'id' existe, estamos apenas editando permissões, não criando um usuário.
+            if (id) {
+                try {
+                    const usersRef = collection(db, "businesses", currentUser.uid, "user_permissions");
                     await updateDoc(doc(usersRef, id), userData);
                     showNotification('Permissões atualizadas!', 'success');
-                } else {
-                    await addDoc(usersRef, userData);
-                    await sendPasswordResetEmail(auth, email);
-                    showNotification('Convite enviado! O usuário receberá um e-mail para definir a senha.', 'success');
+                    userModal.classList.add('hidden');
+                } catch(error) {
+                    console.error("Erro ao atualizar permissões:", error);
+                    showNotification(`Erro ao atualizar: ${error.message}`, 'error');
                 }
+                return; // Termina a função aqui para edições.
+            }
+
+            // Lógica para CONVIDAR um NOVO usuário
+            try {
+                // Chama a Cloud Function para criar o usuário e salvar as permissões
+                await inviteUser(userData);
+
+                // Envia o e-mail para o usuário criar a senha
+                await sendPasswordResetEmail(auth, email);
+
+                showNotification('Convite enviado! O usuário receberá um e-mail para definir a senha.', 'success');
                 userModal.classList.add('hidden');
             } catch(error) {
-                console.error("Erro ao salvar usuário:", error);
-                showNotification(`Erro: ${error.code === 'auth/user-not-found' ? 'E-mail não cadastrado no Firebase.' : error.message}`, 'error');
+                console.error("Erro ao convidar usuário:", error);
+                showNotification(`Erro: ${error.message}`, 'error');
             }
         });
-
     </script>
 </body>
 </html>
-
-
