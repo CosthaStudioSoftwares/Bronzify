@@ -97,11 +97,15 @@
             </main>
         </div>
     </div>
-
-    <div id="payment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden"></div>
-    <div id="admin-password-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden"></div>
-    <div id="help-alert-modal" class="fixed bottom-8 right-8 bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-50 hidden opacity-0 transition-opacity duration-300"></div>
-    <div id="payment-success-toast" class="toast-success fixed bottom-8 right-8 bg-green-500 text-white p-4 rounded-xl shadow-lg flex items-center gap-3 z-[100]"></div>
+    
+    <div id="payment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        </div>
+    <div id="admin-password-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        </div>
+    <div id="help-alert-modal" class="fixed bottom-8 right-8 bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-50 hidden opacity-0 transition-opacity duration-300">
+        </div>
+    <div id="payment-success-toast" class="toast-success fixed bottom-8 right-8 bg-green-500 text-white p-4 rounded-xl shadow-lg flex items-center gap-3 z-[100]">
+        </div>
 
     <script> lucide.createIcons(); const { jsPDF } = window.jspdf; </script>
     <script src="./config.js"></script>
@@ -121,10 +125,12 @@
         // VARIÁVEIS GLOBAIS
         let currentUser = null;
         let businessId = null; 
+        let isAdmin = false; 
         let isAdminModeActive = false;
         let dashboardDataCache = null;
         let synth = null;
         let currentHelpRequestId = null;
+        let unsubscribeUserPlan = null;
 
         // ELEMENTOS DA UI
         const renewBtn = document.getElementById('renew-btn');
@@ -155,68 +161,72 @@
         
         document.body.addEventListener('click', async () => { if (!synth && typeof Tone !== 'undefined') { await Tone.start(); synth = new Tone.Synth().toDestination(); }}, { once: true });
 
-        // LÓGICA DE INICIALIZAÇÃO CORRIGIDA
+        // --- LÓGICA DE INICIALIZAÇÃO CORRIGIDA ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
                 businessId = sessionStorage.getItem('businessId');
+                isAdmin = currentUser.uid === businessId;
 
                 if (!businessId) {
-                    console.error("Business ID não encontrado na sessão. Fazendo logout.");
                     signOut(auth);
                     window.location.href = 'index.html';
                     return;
                 }
                 
                 sessionStorage.setItem('acessoLiberado', 'true');
-                await checkUserPlan(user);
-
+                initializePage();
             } else {
                 window.location.href = 'index.html';
             }
         });
         
-        async function checkUserPlan(user) {
-            const userProfileRef = doc(db, "users", businessId); 
-            try {
-                onSnapshot(userProfileRef, (docSnap) => {
-                    if (user.uid !== businessId) {
-                        renewBtn.style.display = 'none';
-                        adminModeBtn.style.display = 'none';
-                    }
-
-                    if (docSnap.exists() && docSnap.data().plan?.expiresAt) {
-                        updateSubscriptionCard(docSnap.data());
-                        const expiresAtDate = docSnap.data().plan.expiresAt.toDate();
-                        const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                        
-                        if (user.uid === businessId && diffDays <= 0) {
-                            window.location.href = './assinatura.html';
-                            return;
-                        }
-                        
-                        if (document.body.classList.contains('opacity-0')) {
-                             initializeDashboard(user);
-                             document.body.classList.remove('opacity-0');
-                        }
-                    } else if (user.uid === businessId) { 
-                        window.location.href = './assinatura.html';
-                    } else { 
-                         if (document.body.classList.contains('opacity-0')) {
-                             initializeDashboard(user);
-                             document.body.classList.remove('opacity-0');
-                        }
-                    }
-                });
-            } catch (error) {
-                console.error("Erro crítico ao verificar o plano:", error);
-                document.body.innerHTML = `<div class="w-full h-screen flex items-center justify-center text-center p-4"><div><h1 class="text-2xl text-red-600">Erro Crítico</h1><p class="text-gray-700 mt-2">Não foi possível carregar os dados.</p></div></div>`;
+        async function initializePage() {
+            // Esconde botões de admin para funcionários
+            if (!isAdmin) {
+                renewBtn.style.display = 'none';
+                adminModeBtn.style.display = 'none';
+                
+                // Para funcionários, não precisamos verificar o plano, apenas mostramos um status genérico e iniciamos
+                document.getElementById('subscription-card-title').textContent = "Acesso de Funcionário";
+                document.getElementById('subscription-days').textContent = "Ativo";
+                document.getElementById('subscription-status-text').textContent = `Membro da equipe.`;
+                
+                await initializeDashboard();
                 document.body.classList.remove('opacity-0');
+                return;
             }
+
+            // A lógica abaixo só roda para o admin
+            const userProfileRef = doc(db, "users", businessId);
+            try {
+                const docSnap = await getDoc(userProfileRef);
+                if (docSnap.exists() && docSnap.data().plan?.expiresAt) {
+                    updateSubscriptionCard(docSnap.data());
+                    const expiresAtDate = docSnap.data().plan.expiresAt.toDate();
+                    const diffDays = Math.ceil((expiresAtDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                    if (diffDays <= 0) {
+                        window.location.href = './assinatura.html';
+                        return;
+                    }
+                } else {
+                    window.location.href = './assinatura.html';
+                    return;
+                }
+            } catch(error) {
+                console.error("Erro ao verificar plano do admin:", error);
+                document.body.innerHTML = `<div class="w-full h-screen flex items-center justify-center text-center p-4"><div><h1 class="text-2xl text-red-600">Erro Crítico</h1><p class="text-gray-700 mt-2">Não foi possível carregar dados do plano.</p></div></div>`;
+                return;
+            }
+
+            await initializeDashboard();
+            document.body.classList.remove('opacity-0');
         }
         
-        async function initializeDashboard(user) {
-            await checkAdminPasswordSetup(user);
+        async function initializeDashboard() {
+            if (isAdmin) {
+                await checkAdminPasswordSetup();
+            }
             await fetchDashboardData();
             listenForHelpRequests();
         }
@@ -346,8 +356,8 @@
             }
         });
 
-        async function checkAdminPasswordSetup(user) {
-             const adminPassRef = doc(db, "admin_passwords", user.uid);
+        async function checkAdminPasswordSetup() {
+             const adminPassRef = doc(db, "admin_passwords", currentUser.uid);
              try{
                 const docSnap = await getDoc(adminPassRef);
                 if (!docSnap.exists()) {
@@ -366,7 +376,6 @@
             const paymentDetailsEl = document.getElementById("payment-methods-details");
             const chartContainer = document.getElementById("chart-container");
             const adminModeText = document.getElementById("admin-mode-text");
-            const adminModeIcon = adminModeBtn.querySelector("i");
             const appointmentsTitle = document.getElementById("appointments-title");
             const dailyAppointmentsEl = document.getElementById("daily-appointments");
             const paymentDetailsTitle = document.getElementById("payment-details-title");
@@ -391,16 +400,14 @@
                     (dashboardDataCache.isFilteredPeriod ? '<p class="text-gray-500">Nenhuma venda no período.</p>' : '<p class="text-gray-500">Nenhuma venda hoje.</p>');
 
                 chartContainer.style.opacity = 1;
-                adminModeIcon.setAttribute("data-lucide", "eye-off");
-                adminModeText.textContent = "Desativar Modo ADM";
+                adminModeBtn.innerHTML = `<i data-lucide="eye-off"></i><span class="hidden sm:inline">Desativar Modo ADM</span>`;
             } else {
                 monthlyRevenueEl.textContent = "R$ *******";
                 dailyRevenueEl.textContent = "R$ *******";
                 dailyAppointmentsEl.textContent = "***";
                 paymentDetailsEl.innerHTML = '<p class="text-gray-500">Dados ocultos. Ative o modo ADM.</p>';
                 chartContainer.style.opacity = 0;
-                adminModeIcon.setAttribute("data-lucide", "eye");
-                adminModeText.textContent = "Ativar Modo ADM";
+                adminModeBtn.innerHTML = `<i data-lucide="eye"></i><span class="hidden sm:inline">Ativar Modo ADM</span>`;
                 appointmentsTitle.textContent = "Atendimentos no Dia";
                 paymentDetailsTitle.textContent = "Faturamento Diário por Pagamento";
             }
@@ -424,7 +431,8 @@
             e.preventDefault();
             if (currentUser && confirm("Isso enviará um link para o seu e-mail para redefinir sua senha de LOGIN PRINCIPAL. Deseja continuar?")) {
                 try {
-                    await sendPasswordResetEmail(auth, currentUser.email);
+                    const actionCodeSettings = { url: window.location.origin + '/index.html', handleCodeInApp: true };
+                    await sendPasswordResetEmail(auth, currentUser.email, actionCodeSettings);
                     alert("Enviamos um link para o seu e-mail. Siga as instruções para redefinir sua senha de login.");
                     adminPasswordModal.classList.add("hidden");
                 } catch (error) {
@@ -478,7 +486,7 @@
                 alert("Por favor, ative o Modo ADM para poder usar os filtros.");
             }
         });
-
+        
         document.getElementById("download-btn").addEventListener("click", () => {
             if (!isAdminModeActive || !dashboardDataCache) {
                 return alert("Ative o Modo ADM para baixar o relatório.");
