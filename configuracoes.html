@@ -204,6 +204,7 @@
         let currentUser = null;
         let allProducts = [];
         let allUsers = [];
+        let businessId = null; 
 
         const menuItems = [
             { id: 'dashboard', name: 'Dashboard' }, { id: 'configuracoes', name: 'Configurações' },
@@ -219,12 +220,22 @@
          };
 
         onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                listenForProducts();
-                listenForUsers();
-            } else { window.location.href = './index.html'; }
-        });
+    if (user) {
+        currentUser = user;
+        businessId = sessionStorage.getItem('businessId'); // Pega o ID da empresa
+
+        // Se não encontrar o ID da empresa, volta para o login por segurança
+        if (!businessId) {
+            window.location.href = './index.html';
+            return;
+        }
+
+        listenForProducts();
+        listenForUsers();
+    } else { 
+        window.location.href = './index.html'; 
+    }
+});
 
         document.getElementById('items-list-container').addEventListener('click', (e) => {
             const trigger = e.target.closest('[data-accordion-trigger]');
@@ -247,7 +258,7 @@
         const itemForm = document.getElementById('item-form');
         
         function listenForProducts() {
-            const productsRef = collection(db, "businesses", currentUser.uid, "products");
+            const productsRef = collection(db, "businesses", businessId, "products");
             const q = query(productsRef, orderBy("name"));
             onSnapshot(q, (snapshot) => {
                 allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -308,7 +319,7 @@
         async function handleDeleteItem(id) {
             if (!currentUser || !await showConfirm('Tem certeza que deseja excluir este item?')) return;
             try {
-                await deleteDoc(doc(db, "businesses", currentUser.uid, "products", id));
+                await deleteDoc(doc(db, "businesses", businessId, "products", id));
                 showNotification('Item excluído!', 'success');
             } catch (error) { showNotification('Erro ao excluir item.', 'error'); }
         }
@@ -331,7 +342,7 @@
                 category: itemForm.querySelector('#item-category').value
             };
             try {
-                const productsRef = collection(db, "businesses", currentUser.uid, "products");
+                const productsRef = collection(db, "businesses", businessId, "products");
                 if (id) {
                     await updateDoc(doc(productsRef, id), itemData);
                     showNotification("Item atualizado!", 'success');
@@ -349,7 +360,7 @@
         const permissionsContainer = document.getElementById('permissions-container');
 
         function listenForUsers() {
-            const usersRef = collection(db, "businesses", currentUser.uid, "user_permissions");
+        const usersRef = collection(db, "businesses", businessId, "user_permissions");
             onSnapshot(query(usersRef), (snapshot) => {
                 allUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderUserList();
@@ -422,7 +433,8 @@
         async function handleDeleteUser(userId) {
             if (await showConfirm('Tem certeza que deseja remover as permissões deste usuário?')) {
                 try {
-                    await deleteDoc(doc(db, "businesses", currentUser.uid, "user_permissions", userId));
+                    await deleteDoc(doc(db, "businesses", businessId, "user_permissions", userId));
+
                     showNotification('Usuário removido!', 'success');
                 } catch (error) { showNotification('Erro ao remover usuário.', 'error'); }
             }
@@ -444,7 +456,7 @@
 
             if (id) {
                 try {
-                    const usersRef = collection(db, "businesses", currentUser.uid, "user_permissions");
+                    const usersRef = collection(db, "businesses", businessId, "user_permissions");
                     await updateDoc(doc(usersRef, id), userData);
                     showNotification('Permissões atualizadas!', 'success');
                     userModal.classList.add('hidden');
@@ -468,6 +480,7 @@
     </script>
 </body>
 </html>
+
 
 
 
