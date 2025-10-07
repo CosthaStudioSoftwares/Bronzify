@@ -163,17 +163,23 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        let currentUser = null;
+        let currentUser = null, businessId = null;
         let synth = null; // Adicionado para o som
 
         onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                listenForWaitingClients();
-            } else {
-                window.location.href = './index.html';
-            }
-        });
+    if (user) {
+        currentUser = user;
+        businessId = sessionStorage.getItem('businessId'); // Pega o ID da empresa
+
+        if (!businessId) {
+            window.location.href = './index.html';
+            return;
+        }
+        listenForWaitingClients();
+    } else {
+        window.location.href = './index.html';
+    }
+});
 
         // --- FUNÇÕES DE ÁUDIO (ADICIONADAS) ---
         async function initializeAudio() {
@@ -204,7 +210,7 @@
                 await initializeAudio();
                 playNotificationSound();
 
-                const helpRequestsRef = collection(db, "businesses", currentUser.uid, "help_requests");
+                const helpRequestsRef = collection(db, "businesses", businessId, "help_requests");
                 await addDoc(helpRequestsRef, {
                     page: "Ordem de Chegada",
                     createdAt: Timestamp.now()
@@ -241,7 +247,7 @@
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
 
-            const salesRef = collection(db, "businesses", currentUser.uid, "sales");
+            const salesRef = collection(db, "businesses", businessId, "sales");
             const q = query(
                 salesRef,
                 orderBy("createdAt", "asc")
@@ -292,7 +298,7 @@
             const callButton = e.target.closest('.call-client-btn');
             if (callButton) {
                 const saleId = callButton.dataset.id;
-                const saleRef = doc(db, "businesses", currentUser.uid, "sales", saleId);
+                const saleRef = doc(db, "businesses", businessId, "sales", saleId);
                 
                 try {
                     const itemToRemove = document.getElementById(`sale-${saleId}`);
@@ -324,5 +330,6 @@
     </script>
 </body>
 </html>
+
 
 
