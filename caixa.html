@@ -1048,7 +1048,7 @@
         cancellationModal.classList.add('hidden');
         
         // Recarrega os dados dos clientes para refletir a devolução do pacote
-        await loadAllClients(); 
+        await loadInitialData(); 
 
     } catch (error) {
         console.error("Erro ao cancelar venda:", error);
@@ -1083,4 +1083,5 @@
     </script>
 </body>
 </html>
+
 
