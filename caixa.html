@@ -6,50 +6,24 @@
     // --- TRANCA DE SEGURANÇA DE PÁGINA ---
     try {
         const permissionsString = sessionStorage.getItem('userPermissions');
-        // Pega o nome do arquivo atual (ex: 'dashboard') para usar como ID da permissão
         const currentPageId = window.location.pathname.split('/').pop().replace('.html', '');
 
-        // Se não houver permissões salvas na sessão, o usuário não está logado corretamente.
         if (!permissionsString) {
             window.location.href = './index.html';
         } else {
             const permissions = JSON.parse(permissionsString);
-            // Um objeto de permissões vazio significa que é o admin, que tem acesso a tudo.
             const isAdmin = Object.keys(permissions).length === 0;
 
-            // A permissão é negada se o usuário NÃO for admin E a permissão para a página atual for 'false'.
             if (!isAdmin && permissions[currentPageId] === false) {
-                // Sobrescreve todo o conteúdo da página com a mensagem de Acesso Negado.
                 document.write(`
-                    <html lang="pt-BR">
-                    <head>
-                        <meta charset="UTF-8">
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <title>Acesso Negado</title>
-                        <script src="https://cdn.tailwindcss.com"><\/script>
-                        <script src="https://unpkg.com/lucide@latest"><\/script>
-                        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
-                        <style>body { font-family: 'Poppins', sans-serif; } h1 { font-family: 'Playfair Display', serif; }</style>
-                    </head>
-                    <body class="bg-gray-100 flex items-center justify-center h-screen">
-                        <div class="text-center bg-white p-12 rounded-2xl shadow-lg max-w-lg mx-auto">
-                            <i data-lucide="shield-alert" class="mx-auto w-16 h-16 text-red-500"></i>
-                            <h1 class="text-4xl mt-4 text-gray-800">Acesso Negado</h1>
-                            <p class="text-gray-600 mt-2">Você não tem permissão para acessar esta página. Por favor, contate o administrador do sistema.</p>
-                            <a href="./dashboard.html" class="mt-6 inline-block bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600">Voltar para a Página Inicial</a>
-                        </div>
-                        <script>lucide.createIcons();<\/script>
-                    </body>
-                    </html>
-                `);
+                    <html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Acesso Negado</title><script src="https://cdn.tailwindcss.com"><\/script><script src="https://unpkg.com/lucide@latest"><\/script><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet"><style>body { font-family: 'Poppins', sans-serif; } h1 { font-family: 'Playfair Display', serif; }</style></head><body class="bg-gray-100 flex items-center justify-center h-screen"><div class="text-center bg-white p-12 rounded-2xl shadow-lg max-w-lg mx-auto"><i data-lucide="shield-alert" class="mx-auto w-16 h-16 text-red-500"></i><h1 class="text-4xl mt-4 text-gray-800">Acesso Negado</h1><p class="text-gray-600 mt-2">Você não tem permissão para acessar esta página. Por favor, contate o administrador do sistema.</p><a href="./dashboard.html" class="mt-6 inline-block bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600">Voltar para a Página Inicial</a></div><script>lucide.createIcons();<\/script></body></html>`);
             }
         }
     } catch (e) {
-        // Em caso de qualquer erro, redireciona para o login por segurança.
         console.error("Erro na verificação de permissão:", e);
         window.location.href = './index.html';
     }
-</script>
+    </script>
     
     <script>
         if (sessionStorage.getItem('acessoLiberado') !== 'true') {
@@ -104,10 +78,10 @@
                     <h2 class="text-3xl lg:text-4xl text-gray-800">Frente de Caixa</h2>
                     <div class="hidden lg:flex items-center gap-2 border-l pl-4 ml-4">
                         <button id="cash-flow-btn" class="flex items-center gap-2 p-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-lg">
-                           <i data-lucide="arrow-right-left" class="w-4 h-4"></i> <span>Abertura/Fechamento</span>
+                            <i data-lucide="arrow-right-left" class="w-4 h-4"></i> <span>Abertura/Fechamento</span>
                         </button>
                        <button id="show-daily-sales-btn" class="flex items-center gap-2 p-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-lg">
-                           <i data-lucide="history" class="w-4 h-4"></i> <span>Atendimentos do Dia</span>
+                            <i data-lucide="history" class="w-4 h-4"></i> <span>Atendimentos do Dia</span>
                        </button>
                     </div>
                 </div>
@@ -129,23 +103,20 @@
                 
                 <div id="main-content" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div class="lg:col-span-2 space-y-6">
+
                         <div class="bg-white p-6 rounded-2xl shadow-md">
                             <h3 class="text-2xl text-gray-800 mb-4">1. Selecionar Cliente</h3>
                             <div class="relative">
                                 <input type="text" id="client-search" placeholder="Digite o nome ou telefone da cliente..." class="w-full p-2 border rounded-lg">
                                 <div id="search-results" class="absolute z-40 w-full bg-white border rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
                             </div>
-                            <div id="selected-client-display" class="mt-4 hidden flex-col items-start gap-3 bg-rose-50 p-3 rounded-lg">
-    <div class="flex items-center gap-2">
-        <p class="font-semibold text-gray-700">Cliente: <span id="selected-client-name"></span></p>
-        <div id="birthday-alert" class="hidden items-center gap-1 text-sm text-pink-600 font-semibold">
-            <i data-lucide="cake" class="w-4 h-4"></i>
-            <span>Aniversariante do mês!</span>
-        </div>
-    </div>
-    
-    <div id="active-packages-display" class="hidden flex-wrap gap-2"></div>
-</div>
+                            <div id="selected-client-display" class="mt-4 hidden items-center gap-3 bg-rose-50 p-3 rounded-lg">
+                                <p class="font-semibold text-gray-700">Cliente: <span id="selected-client-name"></span></p>
+                                <div id="birthday-alert" class="hidden items-center gap-1 text-sm text-pink-600 font-semibold"><i data-lucide="cake" class="w-4 h-4"></i><span>Aniversariante do mês!</span></div>
+                            </div>
+                        </div>
+
+                        <div id="active-packages-display" class="hidden flex-wrap gap-2 -mt-4 mb-2 mx-2"></div>
 
                         <div class="bg-white p-6 rounded-2xl shadow-md">
                             <h3 class="text-2xl text-gray-800 mb-4">2. Serviços e Produtos</h3>
@@ -189,6 +160,7 @@
                             </div>
                         </div>
                     </div>
+
                     <div class="lg:col-span-1">
                         <div class="bg-white p-6 rounded-2xl shadow-md lg:sticky top-8">
                             <h3 class="text-2xl text-gray-800 mb-4">3. Resumo da Venda</h3>
@@ -264,6 +236,7 @@
             </div>
         </div>
     </div>
+
     <div id="incoming-orders-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-8">
             <h3 class="text-2xl text-gray-800 mb-6">Pedidos Online Pendentes</h3>
@@ -271,6 +244,7 @@
             <button id="close-orders-modal-btn" class="w-full mt-6 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Fechar</button>
         </div>
     </div>
+
     <div id="password-qr-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 text-center">
             <h3 class="text-2xl text-gray-800 mb-2">Venda Concluída!</h3>
@@ -281,6 +255,7 @@
             <button id="close-qr-modal-btn" class="w-full mt-6 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold">Fechar</button>
         </div>
     </div>
+
     <div id="daily-sales-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl p-8">
             <h3 class="text-2xl text-gray-800 mb-6">Atendimentos do Dia</h3>
@@ -302,6 +277,7 @@
             <button id="close-daily-sales-btn" class="w-full mt-6 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Fechar</button>
         </div>
     </div>
+
     <div id="cancellation-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[60] hidden">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
             <h3 class="text-2xl text-gray-800 mb-4">Cancelar Venda</h3>
@@ -351,20 +327,18 @@
         };
 
         onAuthStateChanged(auth, (user) => {
-    if (user) {
-        currentUser = user;
-        businessId = sessionStorage.getItem('businessId'); // Pega o ID da empresa
-
-        if (!businessId) {
-            window.location.href = 'index.html';
-            return;
-        }
-
-        checkCashRegisterStatus();
-        loadInitialData();
-        document.body.addEventListener('click', async () => { if (!synth) { await Tone.start(); synth = new Tone.Synth().toDestination(); }}, { once: true });
-    } else { window.location.href = 'index.html'; }
-});
+            if (user) {
+                currentUser = user;
+                businessId = sessionStorage.getItem('businessId');
+                if (!businessId) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+                checkCashRegisterStatus();
+                loadInitialData();
+                document.body.addEventListener('click', async () => { if (!synth) { await Tone.start(); synth = new Tone.Synth().toDestination(); }}, { once: true });
+            } else { window.location.href = 'index.html'; }
+        });
 
         async function loadInitialData() {
             const clientsRef = collection(db, "businesses", businessId, "clients");
@@ -381,33 +355,27 @@
         const cashFlowModal = document.getElementById('cash-flow-modal');
         const mainContentOverlay = document.getElementById('main-content-overlay');
         mainContentOverlay.addEventListener('click', () => { renderControlPanel(); cashFlowModal.classList.remove('hidden'); });
-        // REMOVA a função checkCashRegisterStatus antiga e SUBSTITUA por esta:
 
-async function checkCashRegisterStatus() {
-    const mainContentOverlay = document.getElementById('main-content-overlay');
-    
-    // Consulta no Firestore por um turno que esteja com status "open"
-    const shiftsRef = collection(db, "businesses", businessId, "cash_shifts");
-    const q = query(shiftsRef, where("status", "==", "open"));
-    
-    try {
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-            // Se encontrou um caixa aberto
-            const shiftDoc = querySnapshot.docs[0]; // Pega o primeiro (só deve haver um)
-            currentCashShift = { id: shiftDoc.id, ...shiftDoc.data() }; // Salva na variável global
-            
-            mainContentOverlay.classList.add('hidden'); // Libera a tela
-        } else {
-            // Se não encontrou nenhum caixa aberto
-            currentCashShift = null; // Garante que a variável esteja limpa
-            mainContentOverlay.classList.remove('hidden'); // Bloqueia a tela
+        async function checkCashRegisterStatus() {
+            const mainContentOverlay = document.getElementById('main-content-overlay');
+            const shiftsRef = collection(db, "businesses", businessId, "cash_shifts");
+            const q = query(shiftsRef, where("status", "==", "open"));
+            try {
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    const shiftDoc = querySnapshot.docs[0];
+                    currentCashShift = { id: shiftDoc.id, ...shiftDoc.data() };
+                    mainContentOverlay.classList.add('hidden');
+                } else {
+                    currentCashShift = null;
+                    mainContentOverlay.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error("Erro ao verificar status do caixa:", error);
+                mainContentOverlay.classList.remove('hidden');
+            }
         }
-    } catch (error) {
-        console.error("Erro ao verificar status do caixa:", error);
-        mainContentOverlay.classList.remove('hidden'); // Mantém bloqueado por segurança
-    }
-}
+
         document.getElementById('cash-flow-btn').addEventListener('click', () => { renderControlPanel(); cashFlowModal.classList.remove('hidden'); });
         document.getElementById('close-cash-flow-modal').addEventListener('click', () => cashFlowModal.classList.add('hidden'));
         document.getElementById('tab-control').addEventListener('click', (e) => {
@@ -424,18 +392,17 @@ async function checkCashRegisterStatus() {
         });
         
         function renderControlPanel() {
-    const controlPanel = document.getElementById('control-panel');
-    
-    // CORREÇÃO: Use a variável global 'currentCashShift'
-    if (currentCashShift && currentCashShift.status === 'open') { 
-        controlPanel.innerHTML = `<p class="mb-4">Caixa aberto por: <span class="font-bold">${currentCashShift.operatorName}</span></p><button id="close-cash-btn" class="w-full bg-red-500 text-white py-2 rounded-lg hover:bg-red-600">Fechar Caixa</button>`;
-        document.getElementById('close-cash-btn').addEventListener('click', handleCloseCash);
-    } else {
-        controlPanel.innerHTML = `<form id="open-cash-form" class="space-y-4"><div><label for="operator-name" class="font-semibold text-gray-700">Seu Nome</label><input type="text" id="operator-name" class="w-full p-2 border rounded-lg mt-1" required></div><div><label for="initial-change" class="font-semibold text-gray-700">Valor de Troco Inicial</label><input type="text" id="initial-change" class="w-full p-2 border rounded-lg mt-1" placeholder="R$ 0,00" required></div><button type="submit" class="w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600">Abrir Caixa</button></form>`;
-        document.getElementById('initial-change').addEventListener('input', (e) => { let v = e.target.value.replace(/\D/g, ''); e.target.value = v ? (parseInt(v) / 100).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}) : ''; });
-        document.getElementById('open-cash-form').addEventListener('submit', handleOpenCash);
-    }
-}
+            const controlPanel = document.getElementById('control-panel');
+            if (currentCashShift && currentCashShift.status === 'open') {
+                controlPanel.innerHTML = `<p class="mb-4">Caixa aberto por: <span class="font-bold">${currentCashShift.operatorName}</span></p><button id="close-cash-btn" class="w-full bg-red-500 text-white py-2 rounded-lg hover:bg-red-600">Fechar Caixa</button>`;
+                document.getElementById('close-cash-btn').addEventListener('click', handleCloseCash);
+            } else {
+                controlPanel.innerHTML = `<form id="open-cash-form" class="space-y-4"><div><label for="operator-name" class="font-semibold text-gray-700">Seu Nome</label><input type="text" id="operator-name" class="w-full p-2 border rounded-lg mt-1" required></div><div><label for="initial-change" class="font-semibold text-gray-700">Valor de Troco Inicial</label><input type="text" id="initial-change" class="w-full p-2 border rounded-lg mt-1" placeholder="R$ 0,00" required></div><button type="submit" class="w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600">Abrir Caixa</button></form>`;
+                document.getElementById('initial-change').addEventListener('input', (e) => { let v = e.target.value.replace(/\D/g, ''); e.target.value = v ? (parseInt(v) / 100).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}) : ''; });
+                document.getElementById('open-cash-form').addEventListener('submit', handleOpenCash);
+            }
+        }
+
         async function handleOpenCash(e) {
             e.preventDefault();
             const operatorName = document.getElementById('operator-name').value;
@@ -443,7 +410,7 @@ async function checkCashRegisterStatus() {
             const newShift = { operatorName, initialChange, openTime: Timestamp.now(), status: 'open' };
             try {
                 const shiftRef = doc(collection(db, "businesses", businessId, "cash_shifts"));
-                await setDoc(shiftRef, newShift);                
+                await setDoc(shiftRef, newShift);
                 showNotification('Caixa aberto com sucesso!', 'success');
                 cashFlowModal.classList.add('hidden');
                 await checkCashRegisterStatus();
@@ -451,140 +418,98 @@ async function checkCashRegisterStatus() {
         }
         
         async function handleCloseCash() {
-    const patioSalesRef = query(collection(db, "businesses", businessId, "sales"), where("status", "==", "called"));
-    const patioSnapshot = await getDocs(patioSalesRef);
-
-    let confirmationMessage = 'Deseja realmente fechar o caixa agora?';
-    if (!patioSnapshot.empty) {
-        confirmationMessage = `Atenção: ${patioSnapshot.size} cliente(s) ainda estão no pátio. Deseja mesmo fechar o caixa?`;
-    }
-
-    const confirmed = await showConfirm(confirmationMessage, 'Confirmar Fechamento', 'Sim, Fechar');
-    if (!confirmed) return;
-
-    if (!currentCashShift) {
-        showNotification('Erro: Nenhum caixa aberto encontrado para fechar.', 'error');
-        return;
-    }
-
-    const openTime = currentCashShift.openTime.toDate();
-    const salesRef = query(collection(db, "businesses", businessId, "sales"), where("createdAt", ">=", openTime));
-
-    try {
-        const salesSnapshot = await getDocs(salesRef);
-        let totalClients = 0;
-        const paymentTotals = {};
-        const canceledSales = [];
-        
-        salesSnapshot.forEach(doc => {
-            const sale = doc.data();
-            if (sale.createdAt.toDate() >= openTime) {
-                if (sale.status === 'cancelled') {
-                    canceledSales.push(sale);
-                } else {
-                    totalClients++;
-                    const method = sale.paymentMethod || 'N/A';
-                    paymentTotals[method] = (paymentTotals[method] || 0) + sale.total;
-                }
+            const patioSalesRef = query(collection(db, "businesses", businessId, "sales"), where("status", "==", "called"));
+            const patioSnapshot = await getDocs(patioSalesRef);
+            let confirmationMessage = 'Deseja realmente fechar o caixa agora?';
+            if (!patioSnapshot.empty) {
+                confirmationMessage = `Atenção: ${patioSnapshot.size} cliente(s) ainda estão no pátio. Deseja mesmo fechar o caixa?`;
             }
-        });
+            const confirmed = await showConfirm(confirmationMessage, 'Confirmar Fechamento', 'Sim, Fechar');
+            if (!confirmed) return;
+            if (!currentCashShift) {
+                showNotification('Erro: Nenhum caixa aberto encontrado para fechar.', 'error');
+                return;
+            }
+            const openTime = currentCashShift.openTime.toDate();
+            const salesRef = query(collection(db, "businesses", businessId, "sales"), where("createdAt", ">=", openTime));
+            try {
+                const salesSnapshot = await getDocs(salesRef);
+                let totalClients = 0;
+                const paymentTotals = {};
+                const canceledSales = [];
+                salesSnapshot.forEach(doc => {
+                    const sale = doc.data();
+                    if (sale.createdAt.toDate() >= openTime) {
+                        if (sale.status === 'cancelled') {
+                            canceledSales.push(sale);
+                        } else {
+                            totalClients++;
+                            const method = sale.paymentMethod || 'N/A';
+                            paymentTotals[method] = (paymentTotals[method] || 0) + sale.total;
+                        }
+                    }
+                });
+                const totalSalesValue = Object.values(paymentTotals).reduce((sum, value) => sum + value, 0);
+                const closingData = {
+                    closeTime: Timestamp.now(),
+                    totalClients: totalClients,
+                    paymentTotals: paymentTotals,
+                    totalSalesValue: totalSalesValue,
+                    status: 'closed',
+                    canceledSalesCount: canceledSales.length
+                };
+                const reportData = { ...currentCashShift, ...closingData, canceledSales };
+                await updateDoc(doc(db, "businesses", businessId, "cash_shifts", currentCashShift.id), closingData);
+                showNotification('Caixa fechado com sucesso!', 'info');
+                cashFlowModal.classList.add('hidden');
+                await checkCashRegisterStatus();
+                displayReportModal(reportData);
+            } catch (error) {
+                console.error("Erro ao fechar caixa:", error);
+                showNotification('Erro ao fechar o caixa.', 'error');
+            }
+        }
 
-        // --- NOVA LINHA ADICIONADA AQUI ---
-        const totalSalesValue = Object.values(paymentTotals).reduce((sum, value) => sum + value, 0);
-
-        const closingData = {
-            closeTime: Timestamp.now(),
-            totalClients: totalClients,
-            paymentTotals: paymentTotals,
-            totalSalesValue: totalSalesValue, // <-- NOVO CAMPO ADICIONADO
-            status: 'closed',
-            canceledSalesCount: canceledSales.length
-        };
-        
-        const reportData = { ...currentCashShift, ...closingData, canceledSales };
-
-        await updateDoc(doc(db, "businesses", businessId, "cash_shifts", currentCashShift.id), closingData);
-        
-        showNotification('Caixa fechado com sucesso!', 'info');
-        cashFlowModal.classList.add('hidden');
-        await checkCashRegisterStatus();
-        displayReportModal(reportData);
-    } catch (error) {
-        console.error("Erro ao fechar caixa:", error);
-        showNotification('Erro ao fechar o caixa.', 'error');
-    }
-}
-       function displayReportModal(report) {
-    const contentEl = document.getElementById('report-content-modal');
-    let paymentHtml = '';
-    for (const [method, total] of Object.entries(report.paymentTotals || {})) {
-        paymentHtml += `<div class="flex justify-between"><span>${method}:</span><span class="font-semibold">${total.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></div>`;
-    }
-
-    let canceledSalesHtml = '';
-    if (report.canceledSales && report.canceledSales.length > 0) {
-        canceledSalesHtml += '<hr class="my-2"><p class="font-bold">Vendas Canceladas:</p>';
-        report.canceledSales.forEach(sale => {
-            canceledSalesHtml += `<div class="text-sm border-t pt-1 mt-1"><p>${sale.clientName} - <span class="text-red-600">${(sale.total || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></p><p class="text-xs text-gray-500">Motivo: ${sale.cancellationReason || 'Não informado'}</p></div>`;
-        });
-    }
-
-    const totalCash = (report.paymentTotals?.['Dinheiro'] || 0) + (report.initialChange || 0);
-    const openTimeDate = report.openTime.toDate ? report.openTime.toDate() : new Date(report.openTime);
-    const closeTimeDate = report.closeTime.toDate ? report.closeTime.toDate() : new Date(report.closeTime);
-
-    // CORREÇÃO APLICADA AQUI DENTRO
-    contentEl.innerHTML = `<p><strong>Operador:</strong> ${report.operatorName}</p>
-                           <p><strong>Abertura:</strong> ${openTimeDate.toLocaleString('pt-BR')}</p>
-                           <p><strong>Fechamento:</strong> ${closeTimeDate.toLocaleString('pt-BR')}</p>
-                           <hr class="my-2">
-                           <p><strong>Total de Atendimentos:</strong> ${report.totalClients}</p>
-                           <div class="mt-2 border-t pt-2">${paymentHtml}</div>
-                           
-                           <div class="flex justify-between font-bold mt-2 border-t pt-2">
-                               <span>Total em Vendas:</span>
-                               <span>${(report.totalSalesValue || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span>
-                           </div>
-                           
-                           <hr class="my-2">
-                           <div class="flex justify-between">
-                               <span>Troco Inicial:</span>
-                               <span>${(report.initialChange || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span>
-                           </div>
-                           <div class="flex justify-between text-lg font-bold mt-2">
-                               <span>Total em Caixa (Dinheiro):</span>
-                               <span>${totalCash.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span>
-                           </div>
-                           ${canceledSalesHtml}`;
-    
-    document.getElementById('report-modal').classList.remove('hidden');
-    document.getElementById('close-report-modal').onclick = () => document.getElementById('report-modal').classList.add('hidden');
-    document.getElementById('download-report-btn').onclick = () => generateReportPDF(report);
-}
+        function displayReportModal(report) {
+            const contentEl = document.getElementById('report-content-modal');
+            let paymentHtml = '';
+            for (const [method, total] of Object.entries(report.paymentTotals || {})) {
+                paymentHtml += `<div class="flex justify-between"><span>${method}:</span><span class="font-semibold">${total.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></div>`;
+            }
+            let canceledSalesHtml = '';
+            if (report.canceledSales && report.canceledSales.length > 0) {
+                canceledSalesHtml += '<hr class="my-2"><p class="font-bold">Vendas Canceladas:</p>';
+                report.canceledSales.forEach(sale => {
+                    canceledSalesHtml += `<div class="text-sm border-t pt-1 mt-1"><p>${sale.clientName} - <span class="text-red-600">${(sale.total || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></p><p class="text-xs text-gray-500">Motivo: ${sale.cancellationReason || 'Não informado'}</p></div>`;
+                });
+            }
+            const totalCash = (report.paymentTotals?.['Dinheiro'] || 0) + (report.initialChange || 0);
+            const openTimeDate = report.openTime.toDate ? report.openTime.toDate() : new Date(report.openTime);
+            const closeTimeDate = report.closeTime.toDate ? report.closeTime.toDate() : new Date(report.closeTime);
+            contentEl.innerHTML = `<p><strong>Operador:</strong> ${report.operatorName}</p><p><strong>Abertura:</strong> ${openTimeDate.toLocaleString('pt-BR')}</p><p><strong>Fechamento:</strong> ${closeTimeDate.toLocaleString('pt-BR')}</p><hr class="my-2"><p><strong>Total de Atendimentos:</strong> ${report.totalClients}</p><div class="mt-2 border-t pt-2">${paymentHtml}</div><div class="flex justify-between font-bold mt-2 border-t pt-2"><span>Total em Vendas:</span><span>${(report.totalSalesValue || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></div><hr class="my-2"><div class="flex justify-between"><span>Troco Inicial:</span><span>${(report.initialChange || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></div><div class="flex justify-between text-lg font-bold mt-2"><span>Total em Caixa (Dinheiro):</span><span>${totalCash.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></div>${canceledSalesHtml}`;
+            document.getElementById('report-modal').classList.remove('hidden');
+            document.getElementById('close-report-modal').onclick = () => document.getElementById('report-modal').classList.add('hidden');
+            document.getElementById('download-report-btn').onclick = () => generateReportPDF(report);
+        }
 
         function generateReportPDF(report) {
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF();
-
             const openTimeDate = report.openTime.toDate ? report.openTime.toDate() : new Date(report.openTime);
             const closeTimeDate = report.closeTime.toDate ? report.closeTime.toDate() : new Date(report.closeTime);
-
             pdf.setFontSize(18); pdf.text("Relatório de Fechamento de Caixa", 14, 22);
             pdf.setFontSize(11); pdf.setTextColor(100);
             pdf.text(`Operador: ${report.operatorName}`, 14, 30);
             pdf.text(`Abertura: ${openTimeDate.toLocaleString('pt-BR')}`, 14, 36);
             pdf.text(`Fechamento: ${closeTimeDate.toLocaleString('pt-BR')}`, 14, 42);
-            
             const summaryBody = [
-                    ['Total de Atendimentos', report.totalClients.toString()],
-                    ...Object.entries(report.paymentTotals || {}).map(([method, total]) => [method, total.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})]),
-                    ['Total em Vendas', (report.totalSalesValue || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})],
-                    ['Troco Inicial', (report.initialChange || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})],
-                    ['Total em Caixa (Dinheiro)', ((report.paymentTotals?.['Dinheiro'] || 0) + (report.initialChange || 0)).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})]
+                ['Total de Atendimentos', report.totalClients.toString()],
+                ...Object.entries(report.paymentTotals || {}).map(([method, total]) => [method, total.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})]),
+                ['Total em Vendas', (report.totalSalesValue || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})],
+                ['Troco Inicial', (report.initialChange || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})],
+                ['Total em Caixa (Dinheiro)', ((report.paymentTotals?.['Dinheiro'] || 0) + (report.initialChange || 0)).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})]
             ];
             pdf.autoTable({ head: [['Resumo Financeiro', 'Valor']], body: summaryBody, startY: 50, headStyles: {fillColor: [183,110,121]} });
-            
-            // Nova seção para vendas canceladas
             if (report.canceledSales && report.canceledSales.length > 0) {
                 const canceledHead = [['Horário', 'Cliente', 'Valor', 'Pagamento', 'Motivo']];
                 const canceledBody = report.canceledSales.map(sale => [
@@ -594,21 +519,16 @@ async function checkCashRegisterStatus() {
                     sale.paymentMethod,
                     sale.cancellationReason || 'N/A'
                 ]);
-
-                // Define a posição do título e o escreve no PDF
                 const titleY = pdf.autoTable.previous.finalY + 15;
                 pdf.setFontSize(14);
                 pdf.text('Vendas Canceladas no Período', 14, titleY);
-
-                // Cria a tabela logo abaixo do título
                 pdf.autoTable({
                     head: canceledHead,
                     body: canceledBody,
-                    startY: titleY + 5, // Posição inicial da tabela
-                    headStyles: { fillColor: [220, 53, 69] } // Cor vermelha para destacar
+                    startY: titleY + 5,
+                    headStyles: { fillColor: [220, 53, 69] }
                 });
             }
-
             pdf.save(`fechamento_caixa_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`);
         }
         
@@ -618,14 +538,11 @@ async function checkCashRegisterStatus() {
                 showNotification("Por favor, selecione uma data.", "info");
                 return;
             }
-
             const [year, month, day] = date.split('-').map(Number);
             const startOfDay = Timestamp.fromDate(new Date(year, month - 1, day, 0, 0, 0));
             const endOfDay = Timestamp.fromDate(new Date(year, month - 1, day, 23, 59, 59));
-
             const historyRef = collection(db, "businesses", businessId, "cash_shifts");
             const q = query(historyRef, where("openTime", ">=", startOfDay), where("openTime", "<=", endOfDay), where("status", "==", "closed"), orderBy("openTime", "desc"));
-            
             try {
                 const snapshot = await getDocs(q);
                 const resultsEl = document.getElementById('history-results');
@@ -649,15 +566,18 @@ async function checkCashRegisterStatus() {
         });
 
         document.getElementById('history-results').addEventListener('click', async (e) => {
-            if(e.target.classList.contains('view-report-btn')) {
+            if (e.target.classList.contains('view-report-btn')) {
                 const shiftId = e.target.dataset.shiftId;
                 const shiftDoc = await getDoc(doc(db, "businesses", businessId, "cash_shifts", shiftId));
                 if (shiftDoc.exists()) {
                     const shiftData = shiftDoc.data();
+                    if (!shiftData.totalSalesValue && shiftData.paymentTotals) {
+                        shiftData.totalSalesValue = Object.values(shiftData.paymentTotals).reduce((sum, value) => sum + value, 0);
+                    }
                     const openTime = shiftData.openTime.toDate();
                     const closeTime = shiftData.closeTime.toDate();
-                    const salesRef = query(collection(db, "businesses", businessId, "sales"), 
-                        where("createdAt", ">=", openTime), 
+                    const salesRef = query(collection(db, "businesses", businessId, "sales"),
+                        where("createdAt", ">=", openTime),
                         where("createdAt", "<=", closeTime),
                         where("status", "==", "cancelled")
                     );
@@ -668,7 +588,6 @@ async function checkCashRegisterStatus() {
             }
         });
         
-        // --- LÓGICA DE BUSCA E SELEÇÃO DE ITENS ---
         Object.values(ui).forEach(el => {
             if (el && el.tagName === 'INPUT') {
                 el.addEventListener('input', handleSearch);
@@ -686,26 +605,26 @@ async function checkCashRegisterStatus() {
             const searchTerm = input.value.trim().toLowerCase();
             let results = [], container, type = input.id;
             switch(type) {
-                case 'client-search': 
-                    container = ui.searchResults; 
-                    if (searchTerm.length < 2) { container.classList.add('hidden'); return; } 
-                    results = allClients.filter(c => (c.name || '').toLowerCase().includes(searchTerm) || (c.phone && c.phone.includes(searchTerm))); 
+                case 'client-search':
+                    container = ui.searchResults;
+                    if (searchTerm.length < 2) { container.classList.add('hidden'); return; }
+                    results = allClients.filter(c => (c.name || '').toLowerCase().includes(searchTerm) || (c.phone && c.phone.includes(searchTerm)));
                     break;
-                case 'bronze-search': 
-                    container = ui.bronzeSearchResults; 
-                    results = allProducts.filter(p => p.category === 'bronze' && p.name.toLowerCase().includes(searchTerm)); 
+                case 'bronze-search':
+                    container = ui.bronzeSearchResults;
+                    results = allProducts.filter(p => p.category === 'bronze' && p.name.toLowerCase().includes(searchTerm));
                     break;
-                case 'consumable-search': 
-                    container = ui.consumableSearchResults; 
-                    results = allProducts.filter(p => p.category === 'consumable' && p.name.toLowerCase().includes(searchTerm)); 
+                case 'consumable-search':
+                    container = ui.consumableSearchResults;
+                    results = allProducts.filter(p => p.category === 'consumable' && p.name.toLowerCase().includes(searchTerm));
                     break;
-                case 'stock-search': 
-                    container = ui.stockSearchResults; 
-                    results = allStockItems.filter(p => p.name.toLowerCase().includes(searchTerm)); 
+                case 'stock-search':
+                    container = ui.stockSearchResults;
+                    results = allStockItems.filter(p => p.name.toLowerCase().includes(searchTerm));
                     break;
-                case 'extra-search': 
-                    container = ui.extraSearchResults; 
-                    results = allProducts.filter(p => p.category === 'extra' && p.name.toLowerCase().includes(searchTerm)); 
+                case 'extra-search':
+                    container = ui.extraSearchResults;
+                    results = allProducts.filter(p => p.category === 'extra' && p.name.toLowerCase().includes(searchTerm));
                     break;
             }
             renderSearchResults(results, container, type);
@@ -713,8 +632,8 @@ async function checkCashRegisterStatus() {
 
         function renderSearchResults(results, container, type) {
             container.innerHTML = '';
-            if (results.length === 0) { 
-                container.innerHTML = `<div class="p-3 text-gray-500">${type === 'client-search' ? 'Nenhum cliente encontrado.' : 'Nenhum item encontrado.'}</div>`; 
+            if (results.length === 0) {
+                container.innerHTML = `<div class="p-3 text-gray-500">${type === 'client-search' ? 'Nenhum cliente encontrado.' : 'Nenhum item encontrado.'}</div>`;
             } else {
                 results.slice(0, 10).forEach(result => {
                     const itemEl = document.createElement('div');
@@ -755,7 +674,7 @@ async function checkCashRegisterStatus() {
             } else if (!selectedItems.has(uniqueId)) {
                 selectedItems.set(uniqueId, { id: item.id, name: isPackage ? `${item.name} (Pacote)` : item.name, price: isPackage ? item.price * 3 : item.price, quantity: 1, isPackage, type, isPackageUsage: false });
             }
-            renderSelectedItems(); 
+            renderSelectedItems();
             calculateTotal();
             [ui.bronzeSearch, ui.consumableSearch, ui.stockSearch, ui.extraSearch].forEach(input => input.value = '');
             document.querySelectorAll('[id$="-search-results"]').forEach(c => c.classList.add('hidden'));
@@ -830,48 +749,37 @@ async function checkCashRegisterStatus() {
         });
         ui.discountInput.addEventListener('input', calculateTotal);
 
-       function selectClient(client) {
-    selectedClient = client;
-    ui.clientSearch.value = client.name;
-    document.getElementById('search-results').classList.add('hidden');
-    document.getElementById('selected-client-name').textContent = client.name;
-    
-    // Mostra o painel do cliente selecionado
-    document.getElementById('selected-client-display').style.display = 'flex';
-    
-    // Lógica para o alerta de aniversário (já existente)
-    const birthdayAlertEl = document.getElementById('birthday-alert');
-    if (client.birthdate) {
-        const birthDate = new Date(client.birthdate + 'T00:00:00');
-        birthdayAlertEl.style.display = birthDate.getMonth() === new Date().getMonth() ? 'flex' : 'none';
-    } else {
-        birthdayAlertEl.style.display = 'none';
-    }
-
-    // --- NOVO CÓDIGO PARA PACOTES COMEÇA AQUI ---
-
-    const packagesContainer = document.getElementById('active-packages-display');
-    packagesContainer.innerHTML = ''; // Limpa pacotes anteriores
-    packagesContainer.classList.add('hidden'); // Esconde por padrão
-
-    if (client.packages) {
-        // Filtra apenas os pacotes que têm 1 ou mais sessões
-        const activePackages = Object.entries(client.packages).filter(([name, count]) => count > 0);
-
-        if (activePackages.length > 0) {
-            // Cria o HTML para cada pacote ativo
-            const packagesHtml = activePackages.map(([name, count]) => 
-                `<span class="text-xs bg-green-100 text-green-800 font-medium px-2.5 py-0.5 rounded-full">${name}: ${count}</span>`
-            ).join('');
+        function selectClient(client) {
+            selectedClient = client;
+            ui.clientSearch.value = client.name;
+            document.getElementById('search-results').classList.add('hidden');
+            document.getElementById('selected-client-name').textContent = client.name;
+            document.getElementById('selected-client-display').style.display = 'flex';
             
-            packagesContainer.innerHTML = packagesHtml;
-            packagesContainer.classList.remove('hidden'); // Mostra o container de pacotes
-        }
-    }
-    // --- NOVO CÓDIGO PARA PACOTES TERMINA AQUI ---
+            const birthdayAlertEl = document.getElementById('birthday-alert');
+            if (client.birthdate) {
+                const birthDate = new Date(client.birthdate + 'T00:00:00');
+                birthdayAlertEl.style.display = birthDate.getMonth() === new Date().getMonth() ? 'flex' : 'none';
+            } else {
+                birthdayAlertEl.style.display = 'none';
+            }
 
-    lucide.createIcons();
-}
+            const packagesContainer = document.getElementById('active-packages-display');
+            packagesContainer.innerHTML = '';
+            packagesContainer.classList.add('hidden');
+
+            if (client.packages) {
+                const activePackages = Object.entries(client.packages).filter(([name, count]) => count > 0);
+                if (activePackages.length > 0) {
+                    const packagesHtml = activePackages.map(([name, count]) => 
+                        `<span class="text-xs bg-green-100 text-green-800 font-medium px-2.5 py-0.5 rounded-full">${name}: ${count}</span>`
+                    ).join('');
+                    packagesContainer.innerHTML = packagesHtml;
+                    packagesContainer.classList.remove('hidden');
+                }
+            }
+            lucide.createIcons();
+        }
 
         function listenForIncomingOrders(){
             const q = query(collection(db,"businesses", businessId,"incoming_orders"),where("status","==","pending"));
@@ -912,7 +820,6 @@ async function checkCashRegisterStatus() {
         document.getElementById("incoming-orders-list").addEventListener("click",async e=>{
             const orderId=e.target.dataset.id;
             if(!orderId) return;
-
             const orderRef = doc(db,"businesses", businessId,"incoming_orders",orderId);
             if(e.target.classList.contains("load-order-btn")){
                 const orderData = pendingOrders.find(o=>o.id===orderId);
@@ -951,19 +858,17 @@ async function checkCashRegisterStatus() {
             const totalValue = parseFloat(ui.total.textContent.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
             const saleItems = Array.from(selectedItems.values());
             const isServiceSale = saleItems.some(item => item.type !== 'stock');
-            if (saleItems.length === 0) { showNotification('Nenhum item selecionado.', 'info'); return; }
+            if (saleItems.length === 0) { showNotification('Nenhum item selecionado.', 'info'); saveBtn.disabled = false; saveBtn.textContent = 'Salvar Venda'; return; }
             if (totalValue <= 0 && !saleItems.some(i => i.isPackageUsage)) {
-                showNotification('O valor da venda não pode ser zero.', 'info'); return;
+                showNotification('O valor da venda não pode ser zero.', 'info'); saveBtn.disabled = false; saveBtn.textContent = 'Salvar Venda'; return;
             }
             const existingSale = editingSaleId ? dailySales.find(s => s.id === editingSaleId) : null;
             let password = null;
-if (isServiceSale) {
-    // Se for venda de serviço, gera a senha normalmente
-    password = editingSaleId ? existingSale.password : await getNextPassword();
-} else if (editingSaleId) {
-    // Se for edição de uma venda antiga (que pode ter senha), mantém a senha
-    password = existingSale.password;
-}
+            if (isServiceSale) {
+                password = editingSaleId ? existingSale.password : await getNextPassword();
+            } else if (editingSaleId) {
+                password = existingSale.password;
+            }
             const createdAt = editingSaleId ? existingSale.createdAt : Timestamp.now();
             const salePayload = {
                 clientName: selectedClient ? selectedClient.name : ui.clientSearch.value || "Cliente Avulso",
@@ -981,7 +886,7 @@ if (isServiceSale) {
                     const clientRef = doc(db, "businesses", businessId, "clients", selectedClient.id);
                     const packageUpdates = {};
                     saleItems.forEach(item => {
-                        if (item.isPackage) packageUpdates[`packages.${item.name.replace(' (Pacote)', '')}`] = increment(2);
+                        if (item.isPackage) packageUpdates[`packages.${item.name.replace(' (Pacote)', '')}`] = increment(3); // Alterado para 3
                         if (item.isPackageUsage) packageUpdates[`packages.${item.name.replace(' (Uso de Pacote)', '')}`] = increment(-1);
                     });
                     if (Object.keys(packageUpdates).length > 0) batch.update(clientRef, packageUpdates);
@@ -998,33 +903,33 @@ if (isServiceSale) {
                     batch.update(doc(db, "businesses", businessId, "incoming_orders", loadedOnlineOrder.id), { status: 'completed' });
                 }
                 await batch.commit();
-                
                 if (!editingSaleId && isServiceSale) {
                     document.getElementById('modal-password').textContent = password;
                     const qrContainer = document.getElementById('qrcode-container');
                     qrContainer.innerHTML = '';
-                    new QRCode(qrContainer, { text: `...businessId=${businessId}&id=${saleRef.id}`, width: 160, height: 160 });
+                    new QRCode(qrContainer, { text: `https://seusite.com/status?businessId=${businessId}&id=${saleRef.id}`, width: 160, height: 160 });
                     document.getElementById('password-qr-modal').classList.remove('hidden');
                 }
                 showNotification(editingSaleId ? 'Venda atualizada!' : 'Venda salva!', 'success');
                 resetSaleForm();
+            } catch(e){ console.error(e); showNotification('Erro ao salvar a venda.', 'error'); }
+            finally {
                 saveBtn.disabled = false;
                 saveBtn.textContent = 'Salvar Venda';
-            } catch(e){ console.error(e); showNotification('Erro ao salvar a venda.', 'error');
-                      saveBtn.disabled = false;
-                      saveBtn.textContent = 'Salvar Venda';
-                      }
+            }
         });
         
         function resetSaleForm(){
-             selectedClient = null; loadedOnlineOrder = null; editingSaleId = null;
-             ui.clientSearch.value = '';
-             document.getElementById('selected-client-display').style.display = 'none';
-             document.getElementById('order-details').classList.add('hidden');
-             selectedItems.clear();
-             renderSelectedItems();
-             calculateTotal();
-             document.getElementById('save-sale-btn').textContent = 'Salvar Venda';
+            selectedClient = null; loadedOnlineOrder = null; editingSaleId = null;
+            ui.clientSearch.value = '';
+            document.getElementById('selected-client-display').style.display = 'none';
+            document.getElementById('active-packages-display').classList.add('hidden'); // Limpa pacotes
+            document.getElementById('order-details').classList.add('hidden');
+            selectedItems.clear();
+            renderSelectedItems();
+            ui.discountInput.value = ''; // Limpa desconto
+            calculateTotal();
+            document.getElementById('save-sale-btn').textContent = 'Salvar Venda';
         }
 
         async function getNextPassword() {
@@ -1032,7 +937,10 @@ if (isServiceSale) {
             const todayId = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
             const counterRef = doc(db, "businesses", businessId, "dailyCounters", todayId);
             const counterSnap = await getDoc(counterRef);
-            let nextNumber = counterSnap.exists() ? counterSnap.data().lastPassword + 1 : 1;
+            let nextNumber = 1;
+            if (counterSnap.exists()) {
+                nextNumber = counterSnap.data().lastPassword + 1;
+            }
             await setDoc(counterRef, { lastPassword: nextNumber }, { merge: true });
             return String(nextNumber).padStart(3, '0');
         }
@@ -1049,14 +957,14 @@ if (isServiceSale) {
                     const isCancelled = sale.status === 'cancelled';
                     row.className = `border-b ${isCancelled ? 'bg-red-50 text-gray-400 line-through' : 'hover:bg-gray-50'}`;
                     row.innerHTML = `<td class="p-2 font-mono">${sale.password || 'N/A'}</td>
-                                     <td class="p-2 font-semibold">${sale.clientName} ${isCancelled ? `<span class="text-xs text-red-600 font-normal block">(${sale.cancellationReason || 'Cancelado'})</span>` : ''}</td>
-                                     <td class="p-2">${sale.createdAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</td>
-                                     <td class="p-2">${(sale.total || 0).toLocaleString('pt-BR', {style:'currency', currency: 'BRL'})}</td>
-                                     <td class="p-2">${sale.paymentMethod}</td>
-                                     <td class="p-2 flex items-center gap-2">
+                                      <td class="p-2 font-semibold">${sale.clientName} ${isCancelled ? `<span class="text-xs text-red-600 font-normal block">(${sale.cancellationReason || 'Cancelado'})</span>` : ''}</td>
+                                      <td class="p-2">${sale.createdAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</td>
+                                      <td class="p-2">${(sale.total || 0).toLocaleString('pt-BR', {style:'currency', currency: 'BRL'})}</td>
+                                      <td class="p-2">${sale.paymentMethod}</td>
+                                      <td class="p-2 flex items-center gap-2">
                                           <button class="edit-sale-btn p-1 text-gray-500 hover:text-blue-600 ${isCancelled ? 'hidden' : ''}" data-id="${sale.id}"><i data-lucide="pencil" class="w-4 h-4 pointer-events-none"></i></button>
                                           <button class="delete-sale-btn p-1 text-gray-500 hover:text-red-600 ${isCancelled ? 'hidden' : ''}" data-id="${sale.id}"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button>
-                                     </td>`;
+                                      </td>`;
                 });
                 lucide.createIcons();
             });
@@ -1075,67 +983,48 @@ if (isServiceSale) {
         const cancellationModal = document.getElementById('cancellation-modal');
         document.getElementById('cancel-cancellation-btn').addEventListener('click', () => cancellationModal.classList.add('hidden'));
         document.getElementById('cancellation-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const saleId = e.target.querySelector('#cancellation-sale-id').value;
-    const reason = e.target.querySelector('#cancellation-reason').value;
-    if (!reason) { showNotification('Por favor, informe o motivo.', 'error'); return; }
-
-    const saleRef = doc(db, "businesses", businessId, "sales", saleId);
-
-    try {
-        // 1. Busca os detalhes da venda que será cancelada
-        const saleToCancelDoc = await getDoc(saleRef);
-        if (!saleToCancelDoc.exists()) {
-            showNotification('Erro: Venda não encontrada.', 'error');
-            return;
-        }
-        const saleToCancel = saleToCancelDoc.data();
-
-        // 2. Inicia um "pacote" de operações para garantir que tudo aconteça de uma vez
-        const batch = writeBatch(db);
-
-        // 3. Percorre os itens da venda e prepara a devolução ao estoque
-        saleToCancel.items.forEach(item => {
-            // Verifica se o item é do tipo 'stock' e se ele tem um ID
-            if (item.type === 'stock' && item.id) {
-                const stockItemRef = doc(db, "businesses", businessId, "stock_items", item.id);
-                // Adiciona a quantidade de volta ao estoque
-                batch.update(stockItemRef, { quantity: increment(item.quantity) });
+            e.preventDefault();
+            const saleId = e.target.querySelector('#cancellation-sale-id').value;
+            const reason = e.target.querySelector('#cancellation-reason').value;
+            if (!reason) { showNotification('Por favor, informe o motivo.', 'error'); return; }
+            const saleRef = doc(db, "businesses", businessId, "sales", saleId);
+            try {
+                const saleToCancelDoc = await getDoc(saleRef);
+                if (!saleToCancelDoc.exists()) {
+                    showNotification('Erro: Venda não encontrada.', 'error');
+                    return;
+                }
+                const saleToCancel = saleToCancelDoc.data();
+                const batch = writeBatch(db);
+                saleToCancel.items.forEach(item => {
+                    if (item.type === 'stock' && item.id) {
+                        const stockItemRef = doc(db, "businesses", businessId, "stock_items", item.id);
+                        batch.update(stockItemRef, { quantity: increment(item.quantity) });
+                    }
+                });
+                batch.update(saleRef, { status: 'cancelled', cancellationReason: reason });
+                await batch.commit();
+                showNotification('Venda cancelada e estoque atualizado!', 'success');
+                cancellationModal.classList.add('hidden');
+            } catch (error) {
+                console.error("Erro ao cancelar venda:", error);
+                showNotification('Erro ao cancelar a venda.', 'error');
             }
         });
-
-        // 4. Prepara a atualização do status da venda
-        batch.update(saleRef, { status: 'cancelled', cancellationReason: reason });
-
-        // 5. Executa todas as operações (devolução e cancelamento) de uma vez
-        await batch.commit();
-
-        showNotification('Venda cancelada e estoque atualizado!', 'success');
-        cancellationModal.classList.add('hidden');
-
-    } catch (error) {
-        console.error("Erro ao cancelar venda:", error);
-        showNotification('Erro ao cancelar a venda.', 'error');
-    }
-});
         
         function handleEditSale(saleId) {
             const saleToEdit = dailySales.find(s => s.id === saleId);
             if (!saleToEdit) return;
             resetSaleForm();
-            
             editingSaleId = saleId;
             document.getElementById('save-sale-btn').textContent = 'Atualizar Venda';
-            
             const client = allClients.find(c => c.id === saleToEdit.clientId);
             if(client) selectClient(client);
             else ui.clientSearch.value = saleToEdit.clientName;
-
             saleToEdit.items.forEach(item => {
                 const uniqueId = item.isPackage ? `${item.id}-package` : item.isPackageUsage ? `${item.id}-usage-${Date.now()}` : item.id;
                 selectedItems.set(uniqueId, { ...item });
             });
-            
             renderSelectedItems();
             calculateTotal();
             dailySalesModal.classList.add('hidden');
@@ -1150,8 +1039,3 @@ if (isServiceSale) {
     </script>
 </body>
 </html>
-
-
-
-
-
