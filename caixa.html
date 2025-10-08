@@ -76,7 +76,7 @@
         .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1.25rem; border-radius: 0.75rem; color: #4A5568; transition: all 0.3s ease; font-weight: 500; }
         .sidebar-link:hover, .sidebar-link.active { background-color: #FADADD; color: #B76E79; }
         .sidebar-link svg { margin-right: 0.75rem; }
-        .sidebar-mobile { transform: translateX(-100%); transition: transform 0.3s ease-in-out; z-index: 60; }
+        .sidebar-mobile { transform: translateX(-100%); transition: transform 0.3s ease-in-out; }
         .sidebar-mobile.open { transform: translateX(0); }
         .notification-badge { animation: pulse 1.5s infinite; }
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
@@ -98,7 +98,7 @@
     <div class="flex h-screen bg-gray-50">
         <div class="flex-1 flex flex-col overflow-hidden">
         <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
-            <header class="flex justify-between items-center mb-8 relative z-50">
+            <header class="flex justify-between items-center mb-8">
                 <div class="flex items-center gap-4">
                     <button id="open-menu-btn" class="lg:hidden p-2 -ml-2"><i data-lucide="menu" class="w-6 h-6 text-gray-800"></i></button>
                     <h2 class="text-3xl lg:text-4xl text-gray-800">Frente de Caixa</h2>
@@ -1066,17 +1066,3 @@ if (isServiceSale) {
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
