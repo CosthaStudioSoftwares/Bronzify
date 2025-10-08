@@ -984,11 +984,26 @@ if (item.isPackage && item.packageSessions) {
                 }
                 await batch.commit();
                 if (!editingSaleId && isServiceSale) {
-                    document.getElementById('modal-password').textContent = password;
-                    const qrContainer = document.getElementById('qrcode-container');
-                    qrContainer.innerHTML = '';
-                    new QRCode(qrContainer, { text: `https://seusite.com/status?businessId=${businessId}&id=${saleRef.id}`, width: 160, height: 160 });
-                    document.getElementById('password-qr-modal').classList.remove('hidden');
+                    // --- SUBSTITUA PELO BLOCO ABAIXO ---
+
+document.getElementById('modal-password').textContent = password;
+const qrContainer = document.getElementById('qrcode-container');
+qrContainer.innerHTML = '';
+
+// 1. Construir a URL correta dinamicamente (lógica do código antigo)
+const urlParaQRCode = `${window.location.origin}/status-cliente.html?businessId=${businessId}&id=${saleRef.id}`;
+
+// Adicionando um log para facilitar a depuração no futuro
+console.log("URL gerada para o QR Code:", urlParaQRCode);
+
+// 2. Gerar o QR Code com a URL correta
+new QRCode(qrContainer, { 
+    text: urlParaQRCode, 
+    width: 160, 
+    height: 160 
+});
+
+document.getElementById('password-qr-modal').classList.remove('hidden');
                 }
                 showNotification(editingSaleId ? 'Venda atualizada!' : 'Venda salva!', 'success');
                 resetSaleForm();
@@ -1169,6 +1184,7 @@ if (item.isPackage && item.packageSessions) {
     </script>
 </body>
 </html>
+
 
 
 
