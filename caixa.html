@@ -946,7 +946,7 @@ if (item.category === 'bronze') {
                 subtotal: parseFloat(ui.subtotal.textContent.replace(/[^\d,]/g, '').replace(',', '.')) || 0,
                 discount: parseFloat(ui.discountApplied.textContent.replace(/[^\d,]/g, '').replace(',', '.')) || 0,
                 paymentMethod: document.getElementById('payment-method').value,
-                items: saleItems.map(i => ({ name: i.name, price: i.price, quantity: i.quantity, isPackage: i.isPackage || false, isPackageUsage: i.isPackageUsage || false, type: i.type, id: i.id, packageSessions: i.packageSessions })),
+                items: saleItems.map(i => ({ name: i.name, price: i.price, quantity: i.quantity, isPackage: i.isPackage || false, isPackageUsage: i.isPackageUsage || false, type: i.type, id: i.id, packageSessions: i.packageSessions || null })),
                 createdAt: createdAt, status: isServiceSale ? 'waiting' : 'finished', password: password
             };
             try {
@@ -1169,6 +1169,7 @@ if (item.isPackage && item.packageSessions) {
     </script>
 </body>
 </html>
+
 
 
 
