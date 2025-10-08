@@ -176,6 +176,16 @@
         const monthSelect = document.getElementById('filter-month');
         const yearSelect = document.getElementById('filter-year');
         const ctx = document.getElementById('servicesChart').getContext('2d');
+        const paymentModal = document.getElementById('payment-modal');
+        const paymentForm = document.getElementById('payment-form');
+        const nameInput = document.getElementById('name-input');
+        const cpfInput = document.getElementById('cpf-input');
+        const phoneInput = document.getElementById('phone-input');
+        const paymentError = document.getElementById('payment-error');
+        const cancelPaymentBtn = document.getElementById('cancel-payment-btn');
+        const helpAlertModal = document.getElementById('help-alert-modal');
+        const helpAlertMessage = document.getElementById('help-alert-message');
+        const closeHelpAlertBtn = document.getElementById('close-help-alert');
         const servicesChart = new Chart(ctx, { type: 'pie', data: { labels: [], datasets: [{ label: 'Vendas', data: [], backgroundColor: ['#B76E79', '#D49A9A', '#FADADD', '#A9606C', '#C98B8B', '#E3BDBD'], borderColor: '#FFF9F9', borderWidth: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } });
         
         const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -380,12 +390,163 @@
         
         document.getElementById("filter-apply").addEventListener("click", () => fetchDashboardData(true));
         
-        document.getElementById("download-btn").addEventListener("click", () => { /* ... sua lógica de download ... */ });
-        document.getElementById("share-btn").addEventListener("click", async () => { /* ... sua lógica de compartilhamento ... */ });
-        renewBtn.addEventListener('click', () => { /* ... sua lógica de renovação ... */ });
-        cancelPaymentBtn.addEventListener('click', () => { /* ... sua lógica de cancelar pagamento ... */ });
-        paymentForm.addEventListener('submit', async (e) => { /* ... sua lógica de submeter pagamento ... */ });
+        document.getElementById("download-btn").addEventListener("click", () => {
+       // ATENÇÃO: A verificação mudou. Agora só checamos se os dados existem.
+       if (!dashboardDataCache) {
+        alert("Os dados ainda não foram carregados. Por favor, aguarde um momento e tente novamente.");
+        return;
+       }
+
+      const pdf = new jsPDF();
+      const periodo = monthSelect.options[monthSelect.selectedIndex].text + " de " + yearSelect.value;
+    
+     pdf.setFontSize(18);
+     pdf.text("Relatório de Faturamento - Bronzify", 14, 22);
+     pdf.setFontSize(11);
+     pdf.setTextColor(100);
+     pdf.text(`Período do Relatório: ${periodo}`, 14, 30);
+
+      const resumoData = [
+        ["Faturamento do Período", dashboardDataCache.monthlyRevenue.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})],
+        ["Faturamento de Hoje", dashboardDataCache.dailyRevenue.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})],
+        [
+            dashboardDataCache.isFilteredPeriod ? "Atendimentos no Período" : "Atendimentos Hoje",
+            dashboardDataCache.isFilteredPeriod ? dashboardDataCache.periodAppointments : dashboardDataCache.dailyAppointments
+        ]
+     ];
+      pdf.autoTable({
+        head: [['Resumo Financeiro', 'Valor']],
+        body: resumoData,
+        startY: 40,
+        headStyles: { fillColor: [183, 110, 121] }
+     });
+
+    const pagamentos = dashboardDataCache.isFilteredPeriod ? dashboardDataCache.periodPaymentMethodTotals : dashboardDataCache.dailyPaymentMethodTotals;
+    const pagamentosTitle = dashboardDataCache.isFilteredPeriod ? "Faturamento por Pagamento no Período" : "Faturamento Diário por Pagamento";
+    const pagamentosBody = Object.entries(pagamentos).map(([key, value]) => [key, value.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})]);
+    if (pagamentosBody.length > 0) {
+        pdf.autoTable({
+            head: [[pagamentosTitle, 'Total']],
+            body: pagamentosBody,
+            startY: pdf.autoTable.previous.finalY + 10,
+            headStyles: { fillColor: [183, 110, 121] }
+        });
+    }
+
+    const servicosBody = Object.entries(dashboardDataCache.serviceCounts).map(([key, value]) => [key, value]);
+    if (servicosBody.length > 0) {
+        pdf.autoTable({
+            head: [['Serviços Realizados no Período', 'Quantidade']],
+            body: servicosBody,
+            startY: pdf.autoTable.previous.finalY + 10,
+            headStyles: { fillColor: [183, 110, 121] }
+        });
+    }
+
+    pdf.save(`relatorio_vendas_bronzify_${yearSelect.value}_${monthSelect.options[monthSelect.selectedIndex].text}.pdf`);
+});
+        
+        document.getElementById("share-btn").addEventListener("click", async () => {
+    if (!dashboardDataCache) {
+        alert("Aguarde os dados carregarem para compartilhar o relatório.");
+        return;
+    }
+
+    const periodo = monthSelect.options[monthSelect.selectedIndex].text + " de " + yearSelect.value;
+    
+    let textoRelatorio = `*Relatório Bronzify - ${periodo}*\n\n`;
+    textoRelatorio += `*Faturamento:* ${dashboardDataCache.monthlyRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n`;
+    textoRelatorio += dashboardDataCache.isFilteredPeriod 
+        ? `*Atendimentos no Período:* ${dashboardDataCache.periodAppointments}\n\n` 
+        : `*Atendimentos (hoje):* ${dashboardDataCache.dailyAppointments}\n\n`;
+
+    textoRelatorio += "*Serviços mais realizados:*\n";
+    for (const servico in dashboardDataCache.serviceCounts) {
+        textoRelatorio += `- ${servico}: ${dashboardDataCache.serviceCounts[servico]}\n`;
+    }
+
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: `Relatório Bronzify - ${periodo}`,
+                text: textoRelatorio,
+            });
+        } catch (error) {
+            console.error("Erro ao compartilhar:", error);
+        }
+    } else {
+        alert("Função de compartilhamento não suportada neste navegador. Tente em um celular.");
+    }
+});
+        
+        renewBtn.addEventListener('click', () => {
+        // Esta função preenche os dados do formulário se eles já existirem no perfil do usuário
+       if (currentUser && currentUser.displayName) {
+        // As variáveis nameInput, etc., devem estar definidas no seu código
+        // Se não estiverem, você precisará adicionar as definições que estão no código original
+        nameInput.value = currentUser.displayName; 
+    }
+    // A linha mais importante: remove a classe 'hidden' para mostrar o modal de pagamento
+    paymentModal.classList.remove('hidden');
+});
+        
+        cancelPaymentBtn.addEventListener('click', () => {
+    paymentModal.classList.add('hidden');
+    paymentForm.reset();
+    paymentError.textContent = '';
+});
+        
+        paymentForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const clickedButton = e.submitter;
+    const paymentMethod = clickedButton.dataset.method;
+
+    if (!paymentMethod) return;
+
+    paymentError.textContent = '';
+    let userName = nameInput.value.trim();
+    let cpfCnpj = cpfInput.value.replace(/\D/g, '');
+    let phone = phoneInput.value.replace(/\D/g, '');
+
+    if (cpfCnpj.length === 11 && !validaCPF(cpfCnpj)) {
+        paymentError.textContent = 'CPF inválido. Por favor, verifique o número.';
+        return;
+    } else if (cpfCnpj.length === 14 && !validaCNPJ(cpfCnpj)) {
+        paymentError.textContent = 'CNPJ inválido. Por favor, verifique o número.';
+        return;
+    }
+
+    if (userName.length < 3 || (cpfCnpj.length !== 11 && cpfCnpj.length !== 14) || phone.length < 10) {
+        paymentError.textContent = 'Dados inválidos. Verifique todos os campos.';
+        return;
+    }
+
+    const originalContent = clickedButton.innerHTML;
+    document.querySelectorAll('.payment-submit-btn').forEach(btn => btn.disabled = true);
+    clickedButton.innerHTML = '<div class="loader mx-auto h-6 w-6"></div>';
+
+    try {
+        const createAsaasPaymentLink = httpsCallable(functions, 'createAsaasPaymentLink');
+        const result = await createAsaasPaymentLink({ userName, cpfCnpj, phone, metodo: paymentMethod });
+        
+        if (result.data.success) {
+            window.location.href = result.data.paymentUrl;
+        } else {
+            throw new Error(result.data.message || "Não foi possível gerar o link.");
+        }
+    } catch (error) {
+        console.error("Erro ao iniciar pagamento:", error);
+        paymentError.textContent = `Erro: ${error.message}`;
+        document.querySelectorAll('.payment-submit-btn').forEach(btn => {
+            btn.disabled = false;
+            if(btn.dataset.method === paymentMethod) {
+                btn.innerHTML = originalContent;
+            }
+        });
+    }
+});
     </script>
 </body>
 </html>
+
 
