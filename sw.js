@@ -16,28 +16,23 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-// --- LÓGICA MELHORADA PARA NOTIFICAÇÕES EM SEGUNDO PLANO ---
+// Lógica para notificações em segundo plano
 messaging.onBackgroundMessage((payload) => {
-  console.log("[sw.js] Mensagem de DADOS recebida em segundo plano: ", payload);
+  console.log("[sw.js] Mensagem recebida em segundo plano: ", payload);
 
-  // --- ALTERAÇÃO PRINCIPAL AQUI ---
-  // Lemos os detalhes da notificação a partir de 'payload.data'
   const notificationTitle = payload.data.title;
   const notificationOptions = {
     body: payload.data.body,
     icon: payload.data.icon,
-    // Guarda o URL para ser usado quando a notificação for clicada
     data: {
         url: payload.data.click_action
     }
   };
 
-  self.waitUntil(
-    self.registration.showNotification(notificationTitle, notificationOptions)
-  );
+  self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// --- GESTOR DE EVENTOS PARA O CLIQUE NA NOTIFICAÇÃO (SEM ALTERAÇÕES) ---
+// Evento de clique na notificação
 self.addEventListener('notificationclick', (event) => {
   console.log('[sw.js] Notificação clicada.');
   
@@ -63,29 +58,48 @@ self.addEventListener('notificationclick', (event) => {
 });
 
 
-// --- SUA LÓGICA DE CACHE (MANTIDA) ---
-const CACHE_NAME = 'bronzify-cache-v2';
+// --- LÓGICA DE CACHE ATUALIZADA ---
+const CACHE_NAME = 'bronzify-cache-v5'; // <-- VERSÃO INCREMENTADA
 const URLS_TO_CACHE = [
-  '/', '/index.html', '/ativacao.html', '/caixa.html', '/clientes.html',
-  '/dashboard.html', '/ordem-chegada.html', '/patio.html', '/vendas.html',
-  '/config.js', '/layout.js', '/utils.js', 'https://cdn.tailwindcss.com',
-  'https://unpkg.com/lucide@latest',
-  'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap'
+  './',
+  './index.html',
+  './pedido.html',        // ADICIONADO
+  './status-cliente.html',// ADICIONADO
+  './assinatura.html',
+  './configuracoes.html',
+  './estoque.html',
+  './caixa.html',
+  './clientes.html',
+  './dashboard.html',
+  './ordem-chegada.html',
+  './patio.html',
+  './vendas.html',
+  './config.js',
+  './layout.js',
+  './utils.js'
 ];
 
+// Evento de instalação do Service Worker
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(URLS_TO_CACHE))
+    caches.open(CACHE_NAME).then(cache => {
+      console.log('Cache aberto. Adicionando URLs ao cache:', URLS_TO_CACHE);
+      return cache.addAll(URLS_TO_CACHE);
+    }).catch(error => {
+      console.error('Falha ao adicionar URLs ao cache:', error);
+    })
   );
   self.skipWaiting();
 });
 
+// Evento de ativação (limpa caches antigos)
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheName !== CACHE_NAME) {
+            console.log('Deletando cache antigo:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -95,6 +109,7 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
+// Evento de fetch (responde com cache ou rede)
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   event.respondWith(
