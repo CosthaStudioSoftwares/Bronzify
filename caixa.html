@@ -956,12 +956,14 @@ if (item.category === 'bronze') {
                     const packageUpdates = {};
                    // SUBSTITUA PELO NOVO TRECHO
 saleItems.forEach(item => {
-    if (item.isPackage && item.packageSessions) { // Verificamos se é um pacote com sessões definidas
-        // Extrai o nome base do serviço. Ex: "Bronze Natural (Pacote 2 sessões)" vira "Bronze Natural"
-        const packageName = item.name.split(' (Pacote')[0];
-        // Usa o número de sessões que salvamos no item!
-        packageUpdates[`packages.${packageName}`] = increment(item.packageSessions);
-    }
+    // Bloco corrigido
+if (item.isPackage && item.packageSessions) { 
+    const packageName = item.name.split(' (Pacote')[0];
+    // LÓGICA CORRIGIDA AQUI:
+    // Creditamos o pacote (2 ou 3) e já debitamos 1 pelo uso imediato.
+    const sessoesRestantes = item.packageSessions - 1;
+    packageUpdates[`packages.${packageName}`] = increment(sessoesRestantes);
+}
     if (item.isPackageUsage) {
         const packageName = item.name.replace(' (Uso de Pacote)', '');
         packageUpdates[`packages.${packageName}`] = increment(-1);
@@ -1095,11 +1097,14 @@ saleItems.forEach(item => {
                 }
                 // Se o item cancelado foi a COMPRA de um pacote, REMOVE as 3 sessões
                 // Bloco corrigido
-if (item.isPackage && item.packageSessions) { // Verificamos se é um pacote e se tem a info das sessões
-    // Extrai o nome base do serviço
-    const packageName = item.name.split(' (Pacote')[0]; 
-    // Usa o número de sessões do item para devolver a quantidade exata!
-    packageUpdates[`packages.${packageName}`] = increment(-item.packageSessions);
+
+                // Bloco corrigido do cancelamento
+if (item.isPackage && item.packageSessions) {
+    const packageName = item.name.split(' (Pacote')[0];
+    // LÓGICA CORRIGIDA AQUI:
+    // Removemos apenas o saldo que foi efetivamente creditado (total - 1).
+    const sessoesCreditadas = item.packageSessions - 1;
+    packageUpdates[`packages.${packageName}`] = increment(-sessoesCreditadas);
 }
             });
 
@@ -1164,6 +1169,7 @@ if (item.isPackage && item.packageSessions) { // Verificamos se é um pacote e s
     </script>
 </body>
 </html>
+
 
 
 
