@@ -266,7 +266,7 @@
                 .then((userCredential) => {
                     const user = userCredential.user;
                     sendEmailVerification(user, actionCodeSettings);
-                    alert('Conta criada! Você ganhou 5 dias de teste grátis. Um e-mail de verificação foi enviado. Você será redirecionado para o painel em instantes.');
+                    alert('Conta criada! Você ganhou 7 dias de teste grátis. Um e-mail de verificação foi enviado. Você será redirecionado para o painel em instantes.');
                     
                     const userProfileRef = doc(db, "users", user.uid);
                     const unsubscribe = onSnapshot(userProfileRef, (docSnap) => {
@@ -409,5 +409,6 @@
     </script>
 </body>
 </html>
+
 
 
