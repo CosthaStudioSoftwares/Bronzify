@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         </aside>
 
-        <div id="mobile-sidebar" class="fixed inset-0 z-40 flex lg:hidden sidebar-mobile">
+        <div id="mobile-sidebar" class="fixed inset-0 z-50 flex lg:hidden sidebar-mobile">
             <aside class="w-64 bg-white shadow-lg flex-shrink-0 flex flex-col">
                 <div class="p-6 flex justify-between items-center">
                     <h1 class="text-3xl text-center text-[#B76E79]">Bronzify</h1>
@@ -111,3 +111,4 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
     }
 });
+
