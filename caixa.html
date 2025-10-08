@@ -667,10 +667,13 @@ function showPackageOptions(itemName) {
                 <h3 class="text-2xl text-gray-800 mb-2">Confirmar Pacote</h3>
                 <p class="text-gray-600 mb-6">O serviço "${itemName}" pode ser um pacote. Deseja adicionar quantas sessões?</p>
                 <div class="flex flex-col gap-3">
-                    <button id="btn-3-sessions" class="w-full bg-gradient-to-r from-pink-500 to-[#B76E79] text-white py-3 rounded-lg font-bold text-lg">3 Sessões</button>
-                    <button id="btn-2-sessions" class="w-full bg-gray-500 text-white py-2 rounded-lg font-semibold">2 Sessões</button>
-                    <button id="btn-cancel-package" class="w-full mt-2 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Cancelar</button>
-                </div>
+    <button id="btn-1-session" class="w-full bg-rose-500 text-white py-2 rounded-lg font-semibold">1 Sessão (Avulsa)</button>
+    <hr class="my-2"/>
+    <p class="text-sm text-gray-500 -mt-2">ou compre um pacote:</p>
+    <button id="btn-3-sessions" class="w-full bg-gradient-to-r from-pink-500 to-[#B76E79] text-white py-2 rounded-lg font-bold">Pacote 3 Sessões</button>
+    <button id="btn-2-sessions" class="w-full bg-gray-500 text-white py-2 rounded-lg font-semibold">Pacote 2 Sessões</button>
+    <button id="btn-cancel-package" class="w-full mt-4 py-2 text-gray-600 rounded-lg hover:bg-gray-100 text-sm">Cancelar</button>
+</div>
             </div>
         `;
 
@@ -684,8 +687,10 @@ function showPackageOptions(itemName) {
         };
 
         // Adiciona os eventos aos botões
-        document.getElementById('btn-3-sessions').onclick = () => closeModal(3);
+        document.getElementById('btn-1-session').onclick = () => closeModal(1);
         document.getElementById('btn-2-sessions').onclick = () => closeModal(2);
+        document.getElementById('btn-3-sessions').onclick = () => closeModal(3);
+        
         document.getElementById('btn-cancel-package').onclick = () => closeModal(null);
     });
 }
@@ -711,27 +716,44 @@ if (item.category === 'bronze') {
     // Se não usou um pacote existente, pergunta se quer comprar um novo
     const sessionsCount = await showPackageOptions(item.name);
 
-    if (!sessionsCount) {
-         // Usuário clicou em "Cancelar", então não faz nada.
-         // Se quisesse adicionar uma sessão única ao cancelar, o código iria aqui.
-         // Por enquanto, apenas paramos.
-    } else {
-        // Usuário escolheu 2 ou 3 sessões
-        const uniqueId = `${item.id}-package-${sessionsCount}`;
-        const packageName = `${item.name} (Pacote ${sessionsCount} sessões)`;
-        const packagePrice = item.price * sessionsCount;
+    // Bloco CORRIGIDO
+if (!sessionsCount) {
+    // Usuário clicou em "Cancelar", então não faz nada.
+    return; // Retornar aqui para garantir que o resto do código não seja executado
 
-        selectedItems.set(uniqueId, {
-            id: item.id,
-            name: packageName,
-            price: packagePrice,
-            quantity: 1,
-            isPackage: true,
-            packageSessions: sessionsCount, // Propriedade nova e crucial!
-            type: 'bronze',
-            isPackageUsage: false
+} else if (sessionsCount === 1) {
+    // NOVO: Usuário escolheu 1 sessão avulsa.
+    // Adicionamos o item normalmente, sem ser pacote.
+    const uniqueId = item.id;
+    if (!selectedItems.has(uniqueId)) { // Evita adicionar o mesmo item duas vezes
+        selectedItems.set(uniqueId, { 
+            id: item.id, 
+            name: item.name, 
+            price: item.price, 
+            quantity: 1, 
+            isPackage: false, // Importante: não é um pacote
+            type: 'bronze', 
+            isPackageUsage: false 
         });
     }
+
+} else {
+    // Usuário escolheu pacote de 2 ou 3 sessões (lógica que já funciona)
+    const uniqueId = `${item.id}-package-${sessionsCount}`;
+    const packageName = `${item.name} (Pacote ${sessionsCount} sessões)`;
+    const packagePrice = item.price * sessionsCount;
+
+    selectedItems.set(uniqueId, {
+        id: item.id,
+        name: packageName,
+        price: packagePrice,
+        quantity: 1,
+        isPackage: true,
+        packageSessions: sessionsCount,
+        type: 'bronze',
+        isPackageUsage: false
+    });
+}
 
 } else {
     // Lógica original para todos os outros tipos de itens (consumo, estoque, etc.)
@@ -1184,6 +1206,7 @@ if (item.isPackage && item.packageSessions) {
     </script>
 </body>
 </html>
+
 
 
 
