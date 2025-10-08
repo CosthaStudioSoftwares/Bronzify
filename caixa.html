@@ -135,11 +135,17 @@
                                 <input type="text" id="client-search" placeholder="Digite o nome ou telefone da cliente..." class="w-full p-2 border rounded-lg">
                                 <div id="search-results" class="absolute z-40 w-full bg-white border rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
                             </div>
-                            <div id="selected-client-display" class="mt-4 hidden items-center gap-3 bg-rose-50 p-3 rounded-lg">
-                                <p class="font-semibold text-gray-700">Cliente: <span id="selected-client-name"></span></p>
-                                <div id="birthday-alert" class="hidden items-center gap-1 text-sm text-pink-600 font-semibold"><i data-lucide="cake" class="w-4 h-4"></i><span>Aniversariante do mês!</span></div>
-                            </div>
-                        </div>
+                            <div id="selected-client-display" class="mt-4 hidden flex-col items-start gap-3 bg-rose-50 p-3 rounded-lg">
+    <div class="flex items-center gap-2">
+        <p class="font-semibold text-gray-700">Cliente: <span id="selected-client-name"></span></p>
+        <div id="birthday-alert" class="hidden items-center gap-1 text-sm text-pink-600 font-semibold">
+            <i data-lucide="cake" class="w-4 h-4"></i>
+            <span>Aniversariante do mês!</span>
+        </div>
+    </div>
+    
+    <div id="active-packages-display" class="hidden flex-wrap gap-2"></div>
+</div>
 
                         <div class="bg-white p-6 rounded-2xl shadow-md">
                             <h3 class="text-2xl text-gray-800 mb-4">2. Serviços e Produtos</h3>
@@ -824,21 +830,48 @@ async function checkCashRegisterStatus() {
         });
         ui.discountInput.addEventListener('input', calculateTotal);
 
-        function selectClient(client) {
-            selectedClient = client;
-            ui.clientSearch.value = client.name;
-            document.getElementById('search-results').classList.add('hidden');
-            document.getElementById('selected-client-name').textContent = client.name;
-            document.getElementById('selected-client-display').style.display = 'flex';
-            const birthdayAlertEl = document.getElementById('birthday-alert');
-            if (client.birthdate) {
-                 const birthDate = new Date(client.birthdate + 'T00:00:00');
-                 birthdayAlertEl.style.display = birthDate.getMonth() === new Date().getMonth() ? 'flex' : 'none';
-            } else {
-                 birthdayAlertEl.style.display = 'none';
-            }
-            lucide.createIcons();
+       function selectClient(client) {
+    selectedClient = client;
+    ui.clientSearch.value = client.name;
+    document.getElementById('search-results').classList.add('hidden');
+    document.getElementById('selected-client-name').textContent = client.name;
+    
+    // Mostra o painel do cliente selecionado
+    document.getElementById('selected-client-display').style.display = 'flex';
+    
+    // Lógica para o alerta de aniversário (já existente)
+    const birthdayAlertEl = document.getElementById('birthday-alert');
+    if (client.birthdate) {
+        const birthDate = new Date(client.birthdate + 'T00:00:00');
+        birthdayAlertEl.style.display = birthDate.getMonth() === new Date().getMonth() ? 'flex' : 'none';
+    } else {
+        birthdayAlertEl.style.display = 'none';
+    }
+
+    // --- NOVO CÓDIGO PARA PACOTES COMEÇA AQUI ---
+
+    const packagesContainer = document.getElementById('active-packages-display');
+    packagesContainer.innerHTML = ''; // Limpa pacotes anteriores
+    packagesContainer.classList.add('hidden'); // Esconde por padrão
+
+    if (client.packages) {
+        // Filtra apenas os pacotes que têm 1 ou mais sessões
+        const activePackages = Object.entries(client.packages).filter(([name, count]) => count > 0);
+
+        if (activePackages.length > 0) {
+            // Cria o HTML para cada pacote ativo
+            const packagesHtml = activePackages.map(([name, count]) => 
+                `<span class="text-xs bg-green-100 text-green-800 font-medium px-2.5 py-0.5 rounded-full">${name}: ${count}</span>`
+            ).join('');
+            
+            packagesContainer.innerHTML = packagesHtml;
+            packagesContainer.classList.remove('hidden'); // Mostra o container de pacotes
         }
+    }
+    // --- NOVO CÓDIGO PARA PACOTES TERMINA AQUI ---
+
+    lucide.createIcons();
+}
 
         function listenForIncomingOrders(){
             const q = query(collection(db,"businesses", businessId,"incoming_orders"),where("status","==","pending"));
@@ -1117,6 +1150,7 @@ if (isServiceSale) {
     </script>
 </body>
 </html>
+
 
 
 
