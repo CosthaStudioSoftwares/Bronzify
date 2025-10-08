@@ -372,6 +372,7 @@
 
         const cashFlowModal = document.getElementById('cash-flow-modal');
         const mainContentOverlay = document.getElementById('main-content-overlay');
+        mainContentOverlay.addEventListener('click', () => { renderControlPanel(); cashFlowModal.classList.remove('hidden'); });
         function checkCashRegisterStatus() {
             const cashRegister = JSON.parse(sessionStorage.getItem('cashRegister'));
             if (cashRegister && cashRegister.status === 'open') mainContentOverlay.classList.add('hidden');
@@ -1064,6 +1065,7 @@ if (isServiceSale) {
     </script>
 </body>
 </html>
+
 
 
 
