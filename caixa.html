@@ -326,6 +326,7 @@
         const db = getFirestore(app);
 
         let currentUser = null, businessId = null, selectedClient = null, loadedOnlineOrder = null, synth = null, editingSaleId = null, discountType = 'value';
+        let currentCashShift = null;
         let allClients = [], allProducts = [], allStockItems = [], pendingOrders = [], dailySales = [];
         let selectedItems = new Map();
         
@@ -374,11 +375,33 @@
         const cashFlowModal = document.getElementById('cash-flow-modal');
         const mainContentOverlay = document.getElementById('main-content-overlay');
         mainContentOverlay.addEventListener('click', () => { renderControlPanel(); cashFlowModal.classList.remove('hidden'); });
-        function checkCashRegisterStatus() {
-            const cashRegister = JSON.parse(sessionStorage.getItem('cashRegister'));
-            if (cashRegister && cashRegister.status === 'open') mainContentOverlay.classList.add('hidden');
-            else mainContentOverlay.classList.remove('hidden');
+        // REMOVA a função checkCashRegisterStatus antiga e SUBSTITUA por esta:
+
+async function checkCashRegisterStatus() {
+    const mainContentOverlay = document.getElementById('main-content-overlay');
+    
+    // Consulta no Firestore por um turno que esteja com status "open"
+    const shiftsRef = collection(db, "businesses", businessId, "cash_shifts");
+    const q = query(shiftsRef, where("status", "==", "open"));
+    
+    try {
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            // Se encontrou um caixa aberto
+            const shiftDoc = querySnapshot.docs[0]; // Pega o primeiro (só deve haver um)
+            currentCashShift = { id: shiftDoc.id, ...shiftDoc.data() }; // Salva na variável global
+            
+            mainContentOverlay.classList.add('hidden'); // Libera a tela
+        } else {
+            // Se não encontrou nenhum caixa aberto
+            currentCashShift = null; // Garante que a variável esteja limpa
+            mainContentOverlay.classList.remove('hidden'); // Bloqueia a tela
         }
+    } catch (error) {
+        console.error("Erro ao verificar status do caixa:", error);
+        mainContentOverlay.classList.remove('hidden'); // Mantém bloqueado por segurança
+    }
+}
         document.getElementById('cash-flow-btn').addEventListener('click', () => { renderControlPanel(); cashFlowModal.classList.remove('hidden'); });
         document.getElementById('close-cash-flow-modal').addEventListener('click', () => cashFlowModal.classList.add('hidden'));
         document.getElementById('tab-control').addEventListener('click', (e) => {
@@ -395,17 +418,18 @@
         });
         
         function renderControlPanel() {
-            const controlPanel = document.getElementById('control-panel');
-            const cashRegister = JSON.parse(sessionStorage.getItem('cashRegister'));
-            if (cashRegister && cashRegister.status === 'open') {
-                controlPanel.innerHTML = `<p class="mb-4">Caixa aberto por: <span class="font-bold">${cashRegister.operatorName}</span></p><button id="close-cash-btn" class="w-full bg-red-500 text-white py-2 rounded-lg hover:bg-red-600">Fechar Caixa</button>`;
-                document.getElementById('close-cash-btn').addEventListener('click', handleCloseCash);
-            } else {
-                controlPanel.innerHTML = `<form id="open-cash-form" class="space-y-4"><div><label for="operator-name" class="font-semibold text-gray-700">Seu Nome</label><input type="text" id="operator-name" class="w-full p-2 border rounded-lg mt-1" required></div><div><label for="initial-change" class="font-semibold text-gray-700">Valor de Troco Inicial</label><input type="text" id="initial-change" class="w-full p-2 border rounded-lg mt-1" placeholder="R$ 0,00" required></div><button type="submit" class="w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600">Abrir Caixa</button></form>`;
-                document.getElementById('initial-change').addEventListener('input', (e) => { let v = e.target.value.replace(/\D/g, ''); e.target.value = v ? (parseInt(v) / 100).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}) : ''; });
-                document.getElementById('open-cash-form').addEventListener('submit', handleOpenCash);
-            }
-        }
+    const controlPanel = document.getElementById('control-panel');
+    
+    // CORREÇÃO: Use a variável global 'currentCashShift'
+    if (currentCashShift && currentCashShift.status === 'open') { 
+        controlPanel.innerHTML = `<p class="mb-4">Caixa aberto por: <span class="font-bold">${currentCashShift.operatorName}</span></p><button id="close-cash-btn" class="w-full bg-red-500 text-white py-2 rounded-lg hover:bg-red-600">Fechar Caixa</button>`;
+        document.getElementById('close-cash-btn').addEventListener('click', handleCloseCash);
+    } else {
+        controlPanel.innerHTML = `<form id="open-cash-form" class="space-y-4"><div><label for="operator-name" class="font-semibold text-gray-700">Seu Nome</label><input type="text" id="operator-name" class="w-full p-2 border rounded-lg mt-1" required></div><div><label for="initial-change" class="font-semibold text-gray-700">Valor de Troco Inicial</label><input type="text" id="initial-change" class="w-full p-2 border rounded-lg mt-1" placeholder="R$ 0,00" required></div><button type="submit" class="w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600">Abrir Caixa</button></form>`;
+        document.getElementById('initial-change').addEventListener('input', (e) => { let v = e.target.value.replace(/\D/g, ''); e.target.value = v ? (parseInt(v) / 100).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}) : ''; });
+        document.getElementById('open-cash-form').addEventListener('submit', handleOpenCash);
+    }
+}
         async function handleOpenCash(e) {
             e.preventDefault();
             const operatorName = document.getElementById('operator-name').value;
@@ -413,72 +437,75 @@
             const newShift = { operatorName, initialChange, openTime: Timestamp.now(), status: 'open' };
             try {
                 const shiftRef = doc(collection(db, "businesses", businessId, "cash_shifts"));
-                await setDoc(shiftRef, newShift);
-                sessionStorage.setItem('cashRegister', JSON.stringify({ ...newShift, shiftId: shiftRef.id, openTime: newShift.openTime.toMillis() }));
+                await setDoc(shiftRef, newShift);                
                 showNotification('Caixa aberto com sucesso!', 'success');
                 cashFlowModal.classList.add('hidden');
-                checkCashRegisterStatus();
+                await checkCashRegisterStatus();
             } catch (error) { console.error("Erro ao abrir caixa:", error); showNotification('Erro ao abrir caixa.', 'error'); }
         }
         
         async function handleCloseCash() {
-            const patioSalesRef = query(collection(db, "businesses", businessId, "sales"), where("status", "==", "called"));
-            const patioSnapshot = await getDocs(patioSalesRef);
+    const patioSalesRef = query(collection(db, "businesses", businessId, "sales"), where("status", "==", "called"));
+    const patioSnapshot = await getDocs(patioSalesRef);
 
-            let confirmationMessage = 'Deseja realmente fechar o caixa agora?';
-            if (!patioSnapshot.empty) {
-                confirmationMessage = `Atenção: ${patioSnapshot.size} cliente(s) ainda estão no pátio. Deseja mesmo fechar o caixa?`;
+    let confirmationMessage = 'Deseja realmente fechar o caixa agora?';
+    if (!patioSnapshot.empty) {
+        confirmationMessage = `Atenção: ${patioSnapshot.size} cliente(s) ainda estão no pátio. Deseja mesmo fechar o caixa?`;
+    }
+
+    const confirmed = await showConfirm(confirmationMessage, 'Confirmar Fechamento', 'Sim, Fechar');
+    if (!confirmed) return;
+
+    if (!currentCashShift) {
+        showNotification('Erro: Nenhum caixa aberto encontrado para fechar.', 'error');
+        return;
+    }
+
+    const openTime = currentCashShift.openTime.toDate();
+    const salesRef = query(collection(db, "businesses", businessId, "sales"), where("createdAt", ">=", openTime));
+
+    try {
+        const salesSnapshot = await getDocs(salesRef);
+        let totalClients = 0;
+        const paymentTotals = {};
+        const canceledSales = [];
+        
+        salesSnapshot.forEach(doc => {
+            const sale = doc.data();
+            if (sale.createdAt.toDate() >= openTime) {
+                if (sale.status === 'cancelled') {
+                    canceledSales.push(sale);
+                } else {
+                    totalClients++;
+                    const method = sale.paymentMethod || 'N/A';
+                    paymentTotals[method] = (paymentTotals[method] || 0) + sale.total;
+                }
             }
+        });
 
-            const confirmed = await showConfirm(confirmationMessage, 'Confirmar Fechamento', 'Sim, Fechar');
-            if (!confirmed) return;
-            
-            const cashRegister = JSON.parse(sessionStorage.getItem('cashRegister'));
-            const openTime = new Date(cashRegister.openTime);
-            const salesRef = query(collection(db, "businesses", businessId, "sales"), where("createdAt", ">=", openTime));
+        const closingData = {
+            closeTime: Timestamp.now(),
+            totalClients: totalClients,
+            paymentTotals: paymentTotals,
+            status: 'closed',
+            canceledSalesCount: canceledSales.length
+        };
+        
+        // Juntamos os dados do turno atual com os dados de fechamento para o relatório
+        const reportData = { ...currentCashShift, ...closingData, canceledSales };
 
-            
-            try {
-                const salesSnapshot = await getDocs(salesRef);
-                let totalClients = 0;
-                const paymentTotals = {};
-                const canceledSales = [];
-                
-                salesSnapshot.forEach(doc => {
-                    const sale = doc.data();
-                    if(sale.createdAt.toDate() >= openTime) {
-                        if(sale.status === 'cancelled') {
-                            canceledSales.push(sale);
-                        } else {
-                            totalClients++;
-                            const method = sale.paymentMethod || 'N/A';
-                            paymentTotals[method] = (paymentTotals[method] || 0) + sale.total;
-                        }
-                    }
-                });
-
-                const closingData = {
-                    closeTime: Timestamp.now(),
-                    totalClients: totalClients,
-                    paymentTotals: paymentTotals,
-                    status: 'closed',
-                    canceledSalesCount: canceledSales.length
-                };
-                
-                const reportData = { ...cashRegister, ...closingData, canceledSales };
-
-                await updateDoc(doc(db, "businesses", businessId, "cash_shifts", cashRegister.shiftId), closingData);
-                
-                sessionStorage.removeItem('cashRegister');
-                showNotification('Caixa fechado com sucesso!', 'info');
-                cashFlowModal.classList.add('hidden');
-                checkCashRegisterStatus();
-                displayReportModal(reportData);
-            } catch (error) {
-                console.error("Erro ao fechar caixa:", error);
-                showNotification('Erro ao fechar o caixa.', 'error');
-            }
-        }
+        // Atualizamos o documento do turno no Firestore usando o ID da variável global
+        await updateDoc(doc(db, "businesses", businessId, "cash_shifts", currentCashShift.id), closingData);
+        
+        showNotification('Caixa fechado com sucesso!', 'info');
+        cashFlowModal.classList.add('hidden');
+        await checkCashRegisterStatus(); // Atualiza a UI para o estado "fechado"
+        displayReportModal(reportData);
+    } catch (error) {
+        console.error("Erro ao fechar caixa:", error);
+        showNotification('Erro ao fechar o caixa.', 'error');
+    }
+}
 
         function displayReportModal(report) {
             const contentEl = document.getElementById('report-content-modal');
@@ -1066,5 +1093,6 @@ if (isServiceSale) {
     </script>
 </body>
 </html>
+
 
 
