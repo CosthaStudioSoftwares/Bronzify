@@ -650,30 +650,99 @@
             }
             container.classList.remove('hidden');
         }
+        /**
+ * Exibe um modal para o usuário escolher o número de sessões de um pacote.
+ * @param {string} itemName - O nome do serviço para exibir na mensagem.
+ * @returns {Promise<number|null>} Retorna uma Promise que resolve com o número de sessões (2 ou 3) ou null se cancelado.
+ */
+function showPackageOptions(itemName) {
+    return new Promise(resolve => {
+        // Cria os elementos do modal
+        const modalOverlay = document.createElement('div');
+        modalOverlay.id = 'package-options-modal';
+        modalOverlay.className = 'fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[70]';
+        
+        modalOverlay.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 text-center">
+                <h3 class="text-2xl text-gray-800 mb-2">Confirmar Pacote</h3>
+                <p class="text-gray-600 mb-6">O serviço "${itemName}" pode ser um pacote. Deseja adicionar quantas sessões?</p>
+                <div class="flex flex-col gap-3">
+                    <button id="btn-3-sessions" class="w-full bg-gradient-to-r from-pink-500 to-[#B76E79] text-white py-3 rounded-lg font-bold text-lg">3 Sessões</button>
+                    <button id="btn-2-sessions" class="w-full bg-gray-500 text-white py-2 rounded-lg font-semibold">2 Sessões</button>
+                    <button id="btn-cancel-package" class="w-full mt-2 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Cancelar</button>
+                </div>
+            </div>
+        `;
+
+        // Adiciona o modal ao corpo da página
+        document.body.appendChild(modalOverlay);
+
+        // Função para fechar e resolver a promise
+        const closeModal = (sessions) => {
+            modalOverlay.remove();
+            resolve(sessions);
+        };
+
+        // Adiciona os eventos aos botões
+        document.getElementById('btn-3-sessions').onclick = () => closeModal(3);
+        document.getElementById('btn-2-sessions').onclick = () => closeModal(2);
+        document.getElementById('btn-cancel-package').onclick = () => closeModal(null);
+    });
+}
         
         async function addItemToSale(item) {
-            let isPackage = false;
-            if (item.category === 'bronze') {
-                if (selectedClient) {
-                    const remainingSessions = selectedClient.packages?.[item.name] || 0;
-                    if (remainingSessions > 0) {
-                        const usePackage = await showConfirm(`Esta cliente tem ${remainingSessions} sessão(ões) de ${item.name}. Deseja usar uma agora?`, 'Usar Pacote?', 'Sim, Usar');
-                        if(usePackage) {
-                            const uniqueId = `${item.id}-usage-${Date.now()}`;
-                            selectedItems.set(uniqueId, { id: item.id, name: `${item.name} (Uso de Pacote)`, price: 0, quantity: 1, isPackage: false, isPackageUsage: true, type: 'bronze' });
-                            renderSelectedItems(); calculateTotal(); return;
-                        }
-                    }
-                }
-                 isPackage = await showConfirm(`O serviço "${item.name}" é um pacote de 3 sessões?`, 'Confirmar Pacote', 'Sim, é Pacote');
+            // COLE ESTE NOVO BLOCO NO LUGAR DO ANTIGO
+if (item.category === 'bronze') {
+    // Primeiro, verifica se a cliente já tem um pacote deste serviço
+    if (selectedClient) {
+        const remainingSessions = selectedClient.packages?.[item.name] || 0;
+        if (remainingSessions > 0) {
+            const usePackage = await showConfirm(`Esta cliente tem ${remainingSessions} sessão(ões) de ${item.name}. Deseja usar uma agora?`, 'Usar Pacote?', 'Sim, Usar');
+            if (usePackage) {
+                const uniqueId = `${item.id}-usage-${Date.now()}`;
+                selectedItems.set(uniqueId, { id: item.id, name: `${item.name} (Uso de Pacote)`, price: 0, quantity: 1, isPackage: false, isPackageUsage: true, type: 'bronze' });
+                renderSelectedItems();
+                calculateTotal();
+                return; // Para a execução aqui pois já adicionou o item
             }
-            const uniqueId = isPackage ? `${item.id}-package` : item.id;
-            const type = item.type || item.category;
-            if (selectedItems.has(uniqueId) && (type === 'consumable' || type === 'stock')) {
-                selectedItems.get(uniqueId).quantity++;
-            } else if (!selectedItems.has(uniqueId)) {
-                selectedItems.set(uniqueId, { id: item.id, name: isPackage ? `${item.name} (Pacote)` : item.name, price: isPackage ? item.price * 3 : item.price, quantity: 1, isPackage, type, isPackageUsage: false });
-            }
+        }
+    }
+
+    // Se não usou um pacote existente, pergunta se quer comprar um novo
+    const sessionsCount = await showPackageOptions(item.name);
+
+    if (!sessionsCount) {
+         // Usuário clicou em "Cancelar", então não faz nada.
+         // Se quisesse adicionar uma sessão única ao cancelar, o código iria aqui.
+         // Por enquanto, apenas paramos.
+    } else {
+        // Usuário escolheu 2 ou 3 sessões
+        const uniqueId = `${item.id}-package-${sessionsCount}`;
+        const packageName = `${item.name} (Pacote ${sessionsCount} sessões)`;
+        const packagePrice = item.price * sessionsCount;
+
+        selectedItems.set(uniqueId, {
+            id: item.id,
+            name: packageName,
+            price: packagePrice,
+            quantity: 1,
+            isPackage: true,
+            packageSessions: sessionsCount, // Propriedade nova e crucial!
+            type: 'bronze',
+            isPackageUsage: false
+        });
+    }
+
+} else {
+    // Lógica original para todos os outros tipos de itens (consumo, estoque, etc.)
+    const uniqueId = item.id;
+    const type = item.type || item.category;
+    if (selectedItems.has(uniqueId) && (type === 'consumable' || type === 'stock')) {
+        selectedItems.get(uniqueId).quantity++;
+    } else if (!selectedItems.has(uniqueId)) {
+        selectedItems.set(uniqueId, { id: item.id, name: item.name, price: item.price, quantity: 1, isPackage: false, type, isPackageUsage: false });
+    }
+}
             renderSelectedItems();
             calculateTotal();
             [ui.bronzeSearch, ui.consumableSearch, ui.stockSearch, ui.extraSearch].forEach(input => input.value = '');
@@ -877,7 +946,7 @@
                 subtotal: parseFloat(ui.subtotal.textContent.replace(/[^\d,]/g, '').replace(',', '.')) || 0,
                 discount: parseFloat(ui.discountApplied.textContent.replace(/[^\d,]/g, '').replace(',', '.')) || 0,
                 paymentMethod: document.getElementById('payment-method').value,
-                items: saleItems.map(i => ({ name: i.name, price: i.price, quantity: i.quantity, isPackage: i.isPackage || false, isPackageUsage: i.isPackageUsage || false, type: i.type, id: i.id })),
+                items: saleItems.map(i => ({ name: i.name, price: i.price, quantity: i.quantity, isPackage: i.isPackage || false, isPackageUsage: i.isPackageUsage || false, type: i.type, id: i.id, packageSessions: i.packageSessions })),
                 createdAt: createdAt, status: isServiceSale ? 'waiting' : 'finished', password: password
             };
             try {
@@ -885,10 +954,19 @@
                 if (selectedClient) {
                     const clientRef = doc(db, "businesses", businessId, "clients", selectedClient.id);
                     const packageUpdates = {};
-                    saleItems.forEach(item => {
-                        if (item.isPackage) packageUpdates[`packages.${item.name.replace(' (Pacote)', '')}`] = increment(3); // Alterado para 3
-                        if (item.isPackageUsage) packageUpdates[`packages.${item.name.replace(' (Uso de Pacote)', '')}`] = increment(-1);
-                    });
+                   // SUBSTITUA PELO NOVO TRECHO
+saleItems.forEach(item => {
+    if (item.isPackage && item.packageSessions) { // Verificamos se é um pacote com sessões definidas
+        // Extrai o nome base do serviço. Ex: "Bronze Natural (Pacote 2 sessões)" vira "Bronze Natural"
+        const packageName = item.name.split(' (Pacote')[0];
+        // Usa o número de sessões que salvamos no item!
+        packageUpdates[`packages.${packageName}`] = increment(item.packageSessions);
+    }
+    if (item.isPackageUsage) {
+        const packageName = item.name.replace(' (Uso de Pacote)', '');
+        packageUpdates[`packages.${packageName}`] = increment(-1);
+    }
+});
                     if (Object.keys(packageUpdates).length > 0) batch.update(clientRef, packageUpdates);
                 }
                 saleItems.forEach(item => {
@@ -1016,10 +1094,13 @@
                     packageUpdates[`packages.${packageName}`] = increment(1);
                 }
                 // Se o item cancelado foi a COMPRA de um pacote, REMOVE as 3 sessões
-                if (item.isPackage) {
-                    const packageName = item.name.replace(' (Pacote)', '');
-                    packageUpdates[`packages.${packageName}`] = increment(-3);
-                }
+                // Bloco corrigido
+if (item.isPackage && item.packageSessions) { // Verificamos se é um pacote e se tem a info das sessões
+    // Extrai o nome base do serviço
+    const packageName = item.name.split(' (Pacote')[0]; 
+    // Usa o número de sessões do item para devolver a quantidade exata!
+    packageUpdates[`packages.${packageName}`] = increment(-item.packageSessions);
+}
             });
 
             // Se houver alguma atualização de pacote para fazer, adiciona ao batch
@@ -1083,5 +1164,6 @@
     </script>
 </body>
 </html>
+
 
 
