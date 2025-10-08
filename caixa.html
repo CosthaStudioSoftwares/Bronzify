@@ -84,7 +84,7 @@
         .quantity-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .quantity-input { -moz-appearance: textfield; }
         #main-content-overlay {
-            position: absolute;
+            position: fixed;
             inset: 0;
             background-color: rgba(249, 250, 251, 0.8);
             backdrop-filter: blur(4px);
@@ -120,12 +120,7 @@
             </header>
             
             <div class="relative">
-                <div id="main-content-overlay" class="flex items-center justify-center rounded-2xl">
-                    <div class="text-center">
-                        <i data-lucide="lock" class="w-12 h-12 mx-auto text-gray-400"></i>
-                        <p class="mt-4 font-semibold text-gray-600">O caixa está fechado. Clique em "Abertura/Fechamento" para começar.</p>
-                    </div>
-                </div>
+               
                 
                 <div id="main-content" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div class="lg:col-span-2 space-y-6">
@@ -223,6 +218,12 @@
         </main>
         </div>
     </div>
+    <div id="main-content-overlay" class="flex items-center justify-center rounded-2xl hidden">
+    <div class="text-center">
+        <i data-lucide="lock" class="w-12 h-12 mx-auto text-gray-400"></i>
+        <p class="mt-4 font-semibold text-gray-600">O caixa está fechado. Clique em "Abertura/Fechamento" para começar.</p>
+    </div>
+</div>
 
     <div id="cash-flow-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-8">
@@ -375,10 +376,13 @@
         const mainContentOverlay = document.getElementById('main-content-overlay');
         mainContentOverlay.addEventListener('click', () => { renderControlPanel(); cashFlowModal.classList.remove('hidden'); });
         function checkCashRegisterStatus() {
-            const cashRegister = JSON.parse(sessionStorage.getItem('cashRegister'));
-            if (cashRegister && cashRegister.status === 'open') mainContentOverlay.classList.add('hidden');
-            else mainContentOverlay.classList.remove('hidden');
-        }
+    const cashRegister = JSON.parse(sessionStorage.getItem('cashRegister'));
+    if (cashRegister && cashRegister.status === 'open') {
+        mainContentOverlay.classList.add('hidden'); // Esconde o overlay
+    } else {
+        mainContentOverlay.classList.remove('hidden'); // Mostra o overlay
+    }
+}
         document.getElementById('cash-flow-btn').addEventListener('click', () => { renderControlPanel(); cashFlowModal.classList.remove('hidden'); });
         document.getElementById('close-cash-flow-modal').addEventListener('click', () => cashFlowModal.classList.add('hidden'));
         document.getElementById('tab-control').addEventListener('click', (e) => {
@@ -1066,6 +1070,7 @@ if (isServiceSale) {
     </script>
 </body>
 </html>
+
 
 
 
