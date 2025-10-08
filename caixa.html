@@ -483,55 +483,78 @@ async function checkCashRegisterStatus() {
             }
         });
 
+        // --- NOVA LINHA ADICIONADA AQUI ---
+        const totalSalesValue = Object.values(paymentTotals).reduce((sum, value) => sum + value, 0);
+
         const closingData = {
             closeTime: Timestamp.now(),
             totalClients: totalClients,
             paymentTotals: paymentTotals,
+            totalSalesValue: totalSalesValue, // <-- NOVO CAMPO ADICIONADO
             status: 'closed',
             canceledSalesCount: canceledSales.length
         };
         
-        // Juntamos os dados do turno atual com os dados de fechamento para o relatório
         const reportData = { ...currentCashShift, ...closingData, canceledSales };
 
-        // Atualizamos o documento do turno no Firestore usando o ID da variável global
         await updateDoc(doc(db, "businesses", businessId, "cash_shifts", currentCashShift.id), closingData);
         
         showNotification('Caixa fechado com sucesso!', 'info');
         cashFlowModal.classList.add('hidden');
-        await checkCashRegisterStatus(); // Atualiza a UI para o estado "fechado"
+        await checkCashRegisterStatus();
         displayReportModal(reportData);
     } catch (error) {
         console.error("Erro ao fechar caixa:", error);
         showNotification('Erro ao fechar o caixa.', 'error');
     }
 }
+       function displayReportModal(report) {
+    const contentEl = document.getElementById('report-content-modal');
+    let paymentHtml = '';
+    for (const [method, total] of Object.entries(report.paymentTotals || {})) {
+        paymentHtml += `<div class="flex justify-between"><span>${method}:</span><span class="font-semibold">${total.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></div>`;
+    }
 
-        function displayReportModal(report) {
-            const contentEl = document.getElementById('report-content-modal');
-            let paymentHtml = '';
-            for (const [method, total] of Object.entries(report.paymentTotals || {})) {
-                paymentHtml += `<div class="flex justify-between"><span>${method}:</span><span class="font-semibold">${total.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></div>`;
-            }
+    let canceledSalesHtml = '';
+    if (report.canceledSales && report.canceledSales.length > 0) {
+        canceledSalesHtml += '<hr class="my-2"><p class="font-bold">Vendas Canceladas:</p>';
+        report.canceledSales.forEach(sale => {
+            canceledSalesHtml += `<div class="text-sm border-t pt-1 mt-1"><p>${sale.clientName} - <span class="text-red-600">${(sale.total || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></p><p class="text-xs text-gray-500">Motivo: ${sale.cancellationReason || 'Não informado'}</p></div>`;
+        });
+    }
 
-            let canceledSalesHtml = '';
-            if (report.canceledSales && report.canceledSales.length > 0) {
-                canceledSalesHtml += '<hr class="my-2"><p class="font-bold">Vendas Canceladas:</p>';
-                report.canceledSales.forEach(sale => {
-                    canceledSalesHtml += `<div class="text-sm border-t pt-1 mt-1"><p>${sale.clientName} - <span class="text-red-600">${(sale.total || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></p><p class="text-xs text-gray-500">Motivo: ${sale.cancellationReason || 'Não informado'}</p></div>`;
-                });
-            }
+    const totalCash = (report.paymentTotals?.['Dinheiro'] || 0) + (report.initialChange || 0);
+    const openTimeDate = report.openTime.toDate ? report.openTime.toDate() : new Date(report.openTime);
+    const closeTimeDate = report.closeTime.toDate ? report.closeTime.toDate() : new Date(report.closeTime);
 
-            const totalCash = (report.paymentTotals?.['Dinheiro'] || 0) + (report.initialChange || 0);
-            const openTimeDate = report.openTime.toDate ? report.openTime.toDate() : new Date(report.openTime);
-            const closeTimeDate = report.closeTime.toDate ? report.closeTime.toDate() : new Date(report.closeTime);
-
-            contentEl.innerHTML = `<p><strong>Operador:</strong> ${report.operatorName}</p><p><strong>Abertura:</strong> ${openTimeDate.toLocaleString('pt-BR')}</p><p><strong>Fechamento:</strong> ${closeTimeDate.toLocaleString('pt-BR')}</p><hr class="my-2"><p><strong>Total de Atendimentos:</strong> ${report.totalClients}</p><div class="mt-2 border-t pt-2">${paymentHtml}</div><hr class="my-2"><div class="flex justify-between"><span>Troco Inicial:</span><span>${(report.initialChange || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></div><div class="flex justify-between text-lg font-bold mt-2"><span>Total em Caixa (Dinheiro):</span><span>${totalCash.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span></div>${canceledSalesHtml}`;
-            
-            document.getElementById('report-modal').classList.remove('hidden');
-            document.getElementById('close-report-modal').onclick = () => document.getElementById('report-modal').classList.add('hidden');
-            document.getElementById('download-report-btn').onclick = () => generateReportPDF(report);
-        }
+    // CORREÇÃO APLICADA AQUI DENTRO
+    contentEl.innerHTML = `<p><strong>Operador:</strong> ${report.operatorName}</p>
+                           <p><strong>Abertura:</strong> ${openTimeDate.toLocaleString('pt-BR')}</p>
+                           <p><strong>Fechamento:</strong> ${closeTimeDate.toLocaleString('pt-BR')}</p>
+                           <hr class="my-2">
+                           <p><strong>Total de Atendimentos:</strong> ${report.totalClients}</p>
+                           <div class="mt-2 border-t pt-2">${paymentHtml}</div>
+                           
+                           <div class="flex justify-between font-bold mt-2 border-t pt-2">
+                               <span>Total em Vendas:</span>
+                               <span>${(report.totalSalesValue || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span>
+                           </div>
+                           
+                           <hr class="my-2">
+                           <div class="flex justify-between">
+                               <span>Troco Inicial:</span>
+                               <span>${(report.initialChange || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span>
+                           </div>
+                           <div class="flex justify-between text-lg font-bold mt-2">
+                               <span>Total em Caixa (Dinheiro):</span>
+                               <span>${totalCash.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</span>
+                           </div>
+                           ${canceledSalesHtml}`;
+    
+    document.getElementById('report-modal').classList.remove('hidden');
+    document.getElementById('close-report-modal').onclick = () => document.getElementById('report-modal').classList.add('hidden');
+    document.getElementById('download-report-btn').onclick = () => generateReportPDF(report);
+}
 
         function generateReportPDF(report) {
             const { jsPDF } = window.jspdf;
@@ -549,6 +572,7 @@ async function checkCashRegisterStatus() {
             const summaryBody = [
                     ['Total de Atendimentos', report.totalClients.toString()],
                     ...Object.entries(report.paymentTotals || {}).map(([method, total]) => [method, total.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})]),
+                    ['Total em Vendas', (report.totalSalesValue || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})],
                     ['Troco Inicial', (report.initialChange || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})],
                     ['Total em Caixa (Dinheiro)', ((report.paymentTotals?.['Dinheiro'] || 0) + (report.initialChange || 0)).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})]
             ];
@@ -1093,6 +1117,7 @@ if (isServiceSale) {
     </script>
 </body>
 </html>
+
 
 
 
