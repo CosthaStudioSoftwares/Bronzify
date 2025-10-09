@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aguardando sua vez - Bronzify</title>
+    <link rel="manifest" href="./manifest-cliente.json">
+    <meta name="theme-color" content="#B76E79">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <style> /* Seu CSS aqui */ </style>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+    <div id="no-sale-state" class="hidden text-center">
+        <div class="bg-white p-8 rounded-2xl shadow-lg">
+            <img src="./apple-touch-icon.png" alt="Logo Bronzify" class="w-24 h-24 mx-auto mb-4 rounded-full shadow-md">
+            <h2 class="text-2xl text-gray-800 mt-4">Bem-vinda!</h2>
+            <p class="text-gray-600 mt-2">Leia o QR Code no nosso estabelecimento para acompanhar a sua senha por aqui.</p>
+        </div>
+    </div>
+
+
+    <script>lucide.createIcons();</script>
+    <script type="module">
+        // Importe o Firebase como antes
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        // ... outros imports
+
+        // ... Sua firebaseConfig ...
+
+        // LÓGICA PRINCIPAL MODIFICADA
+        async function main() {
+            // ... (registro do service worker, etc.)
+
+            // A MUDANÇA ESTÁ AQUI
+            const saleId = localStorage.getItem('currentSaleId');
+            const businessId = localStorage.getItem('currentBusinessId');
+
+            if (!saleId || !businessId) {
+                // Se não houver dados, mostre a mensagem inicial
+                showState('no-sale'); // Você precisará adaptar a função showState
+                return;
+            }
+            
+            // O RESTO DA SUA LÓGICA CONTINUA IGUAL
+            // Usando as variáveis saleId e businessId para ouvir o Firestore
+            // ... (onSnapshot, etc.)
+        }
+        main();
+    </script>
+</body>
+</html>
