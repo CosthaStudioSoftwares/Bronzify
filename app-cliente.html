@@ -8,48 +8,280 @@
     <meta name="theme-color" content="#B76E79">
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
-    <style> /* Seu CSS aqui */ </style>
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #FFF9F9; }
+        h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
+        .called-animation { animation: pulse-bg 1.5s infinite; }
+        @keyframes pulse-bg {
+            0% { background-color: #10B981; }
+            50% { background-color: #34D399; }
+            100% { background-color: #10B981; }
+        }
+    </style>
 </head>
 <body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
-    <div id="no-sale-state" class="hidden text-center">
-        <div class="bg-white p-8 rounded-2xl shadow-lg">
-            <img src="./apple-touch-icon.png" alt="Logo Bronzify" class="w-24 h-24 mx-auto mb-4 rounded-full shadow-md">
-            <h2 class="text-2xl text-gray-800 mt-4">Bem-vinda!</h2>
-            <p class="text-gray-600 mt-2">Leia o QR Code no nosso estabelecimento para acompanhar a sua senha por aqui.</p>
+    
+    <div id="status-container" class="w-full max-w-md text-center">
+        <div id="loading-state" class="text-center">
+            <i data-lucide="loader-2" class="w-16 h-16 text-gray-400 mx-auto animate-spin"></i>
+            <p class="mt-4 text-gray-600">A carregar informações...</p>
+        </div>
+
+        <div id="waiting-state" class="hidden">
+            <div class="bg-white p-8 rounded-2xl shadow-lg">
+                <img src="./apple-touch-icon.png" alt="Logo Bronzify" class="w-24 h-24 mx-auto mb-4 rounded-full shadow-md">
+                <h2 class="text-2xl text-gray-800">Olá, <span id="client-name" class="font-bold">Cliente</span>!</h2>
+                <p class="text-gray-600 mt-2">A sua senha para atendimento é:</p>
+                <p id="password-display" class="text-8xl font-bold text-[#B76E79] my-4 tracking-wider"></p>
+                <div id="notification-prompt" class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg mt-6 text-left">
+                    <div class="flex">
+                        <div class="py-1"><i data-lucide="bell-plus" class="w-6 h-6 text-amber-500 mr-4"></i></div>
+                        <div>
+                            <p class="font-semibold text-amber-800">Receba um alerta da sua vez!</p>
+                            <button id="enable-notifications-btn" class="text-sm text-amber-700 underline font-bold">Clique aqui para ativar as notificações.</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="called-state" class="hidden">
+            <div class="bg-emerald-500 p-8 rounded-2xl shadow-lg text-white called-animation">
+                <i data-lucide="party-popper" class="w-24 h-24 mx-auto animate-bounce"></i>
+                <h1 class="text-5xl font-bold mt-6">É a sua vez!</h1>
+                <p class="text-2xl mt-2">Senha <span id="called-password" class="font-bold"></span></p>
+                <p class="mt-8 text-lg bg-white/20 p-3 rounded-lg">Por favor, dirija-se à receção para iniciar o seu atendimento.</p>
+            </div>
+        </div>
+
+        <div id="error-state" class="hidden">
+            <div class="bg-white p-8 rounded-2xl shadow-lg">
+                <i data-lucide="frown" class="w-16 h-16 text-red-400 mx-auto"></i>
+                <h2 class="text-2xl text-gray-800 mt-4">Atendimento não encontrado</h2>
+                <p class="text-gray-600 mt-2">O link pode estar incorreto ou este atendimento já foi finalizado.</p>
+            </div>
+        </div>
+
+        <div id="no-sale-state" class="hidden text-center">
+            <div class="bg-white p-8 rounded-2xl shadow-lg">
+                <img src="./apple-touch-icon.png" alt="Logo Bronzify" class="w-24 h-24 mx-auto mb-4 rounded-full shadow-md">
+                <h2 class="text-2xl text-gray-800 mt-4">Bem-vinda!</h2>
+                <p class="text-gray-600 mt-2">Leia o QR Code no nosso estabelecimento para acompanhar a sua senha por aqui.</p>
+            </div>
         </div>
     </div>
 
+    <div id="audio-overlay" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 text-white text-center p-4">
+        <div>
+            <h2 class="text-3xl font-bold">Bem-vinda!</h2>
+            <p class="mt-2 mb-6">Para ativarmos o som de notificação, por favor, toque na tela.</p>
+            <button id="start-audio-btn" class="bg-[#B76E79] px-8 py-3 rounded-lg font-semibold text-lg hover:opacity-90">Tudo pronto!</button>
+        </div>
+    </div>
 
     <script>lucide.createIcons();</script>
     <script type="module">
-        // Importe o Firebase como antes
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        // ... outros imports
+        import { getFirestore, doc, onSnapshot, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 
-        // ... Sua firebaseConfig ...
+        const firebaseConfig = {
+            apiKey: "AIzaSyBgxaY8zFm8wwBzXEB9F4UpBZm4e8dLdEg",
+            authDomain: "bronzify-b2491.firebaseapp.com",
+            projectId: "bronzify-b2491",
+            storageBucket: "bronzify-b2491.appspot.com",
+            messagingSenderId: "399230151633",
+            appId: "1:399230151633:web:8839c2e384a9301d8ecef0"
+        };
 
-        // LÓGICA PRINCIPAL MODIFICADA
-        async function main() {
-            // ... (registro do service worker, etc.)
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const messaging = getMessaging(app);
+        let synth = null;
+        
+        // --- INÍCIO: FUNÇÕES DE AJUDA QUE ESTAVAM FALTANDO ---
+        const ui = {
+            loading: document.getElementById('loading-state'),
+            waiting: document.getElementById('waiting-state'),
+            called: document.getElementById('called-state'),
+            error: document.getElementById('error-state'),
+            'no-sale': document.getElementById('no-sale-state'),
+            clientName: document.getElementById('client-name'),
+            password: document.getElementById('password-display'),
+            calledPassword: document.getElementById('called-password'),
+            audioOverlay: document.getElementById('audio-overlay'),
+            startAudioBtn: document.getElementById('start-audio-btn'),
+            notificationPrompt: document.getElementById('notification-prompt'),
+            enableNotificationsBtn: document.getElementById('enable-notifications-btn'),
+        };
 
-            // A MUDANÇA ESTÁ AQUI
-            const saleId = localStorage.getItem('currentSaleId');
-            const businessId = localStorage.getItem('currentBusinessId');
-
-            if (!saleId || !businessId) {
-                // Se não houver dados, mostre a mensagem inicial
-                showState('no-sale'); // Você precisará adaptar a função showState
-                return;
-            }
+        const showState = (state) => {
+            // Esconde todos os containers principais
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('waiting-state').classList.add('hidden');
+            document.getElementById('called-state').classList.add('hidden');
+            document.getElementById('error-state').classList.add('hidden');
+            document.getElementById('no-sale-state').classList.add('hidden');
             
-            // O RESTO DA SUA LÓGICA CONTINUA IGUAL
-            // Usando as variáveis saleId e businessId para ouvir o Firestore
-            // ... (onSnapshot, etc.)
+            // Mostra o container do estado desejado
+            if (ui[state]) {
+                ui[state].classList.remove('hidden');
+            }
+        };
+
+        const playSound = () => synth && synth.triggerAttackRelease("G5", "8n", Tone.now());
+
+        const updatePrompt = (icon, color, text, subtext = "") => {
+            const subtextHTML = subtext ? `<p class="text-xs text-gray-600">${subtext}</p>` : "";
+            ui.notificationPrompt.innerHTML = `<div class="flex items-center"><i data-lucide="${icon}" class="w-5 h-5 text-${color}-600 mr-2"></i><div><p class="text-sm text-${color}-700 font-semibold">${text}</p>${subtextHTML}</div></div>`;
+            lucide.createIcons();
+        };
+        // --- FIM: FUNÇÕES DE AJUDA ---
+
+        async function getFCMToken() {
+            try {
+                const vapidKey = "BHlm-hpFYrWSyKzBw2R9h6xK0ib6FyqmAM31HHJxwZD8qlOsxh3TMTTXFSYTbCJbj3UaSH-yrJmzPaaUqpek-Jw";
+                const registration = await navigator.serviceWorker.ready;
+                const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
+                if (token) return token;
+                throw new Error("Não foi possível obter o token.");
+            } catch (err) {
+                console.error("Erro ao obter o token FCM:", err);
+                throw err;
+            }
         }
-        main();
+        
+        async function requestNotificationPermission(saleRef) {
+            ui.enableNotificationsBtn.disabled = true;
+            try {
+                if (Notification.permission === 'granted') {
+                    updatePrompt("loader-2 animate-spin", "amber", "A obter token...");
+                    const token = await getFCMToken();
+                    await updateDoc(saleRef, { fcmTokens: arrayUnion(token) });
+                    updatePrompt("check-circle", "green", "Tudo pronto! Você será notificada.");
+                    return;
+                }
+                if (Notification.permission === 'denied') {
+                    updatePrompt("ban", "red", "As notificações estão bloqueadas.", "Ative-as nas definições do seu navegador.");
+                    return;
+                }
+                updatePrompt("help-circle", "amber", "Por favor, autorize as notificações...");
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    updatePrompt("loader-2 animate-spin", "amber", "A obter token...");
+                    const token = await getFCMToken();
+                    await updateDoc(saleRef, { fcmTokens: arrayUnion(token) });
+                    updatePrompt("check-circle", "green", "Tudo pronto! Você será notificada.");
+                } else {
+                    updatePrompt("ban", "gray", "Você não ativou as notificações.");
+                }
+            } catch (err) {
+                updatePrompt("x-circle", "red", "Erro ao ativar notificações.", err.message);
+            }
+        }
+
+        // Substitua sua função main() inteira por esta:
+// =======================================================================
+// SUBSTITUA SUA FUNÇÃO main() EM app-cliente.html POR ESTA
+// =======================================================================
+async function main() {
+    // Ativa o botão de áudio imediatamente.
+    ui.startAudioBtn.onclick = async () => {
+        await Tone.start();
+        synth = new Tone.Synth().toDestination();
+        ui.audioOverlay.classList.add('hidden');
+        console.log("Contexto de áudio iniciado.");
+    };
+
+    // Registra o Service Worker.
+    if ('serviceWorker' in navigator) {
+        try {
+            await navigator.serviceWorker.register('/sw.js');
+            console.log("Service Worker registado com sucesso.");
+        } catch (err) {
+            console.error("Falha ao registar o Service Worker:", err);
+        }
+    }
+
+    // LÓGICA INTELIGENTE PARA OBTER OS DADOS
+    let saleId, businessId;
+    const params = new URLSearchParams(window.location.search);
+
+    // 1. Tenta pegar da URL primeiro (veio de um QR Code)
+    if (params.has('id') && params.has('businessId')) {
+        console.log("Dados encontrados na URL (QR Code).");
+        saleId = params.get('id');
+        businessId = params.get('businessId');
+        
+        // Salva no localStorage para quando o usuário reabrir o app pelo ícone
+        localStorage.setItem('currentSaleId', saleId);
+        localStorage.setItem('currentBusinessId', businessId);
+
+    } else {
+        // 2. Se não tem na URL, tenta pegar do localStorage (app aberto pelo ícone)
+        console.log("Dados não encontrados na URL, tentando localStorage.");
+        saleId = localStorage.getItem('currentSaleId');
+        businessId = localStorage.getItem('currentBusinessId');
+    }
+
+    // 3. Se não encontrou em lugar nenhum, mostra a tela inicial
+    if (!saleId || !businessId) {
+        console.log("Nenhum dado encontrado. Mostrando tela inicial.");
+        showState('no-sale');
+        return;
+    }
+
+    // Se chegou até aqui, temos os dados! Mostra o 'loading' e busca no Firestore.
+    console.log(`Iniciando monitoramento para Sale ID: ${saleId}`);
+    showState('loading');
+    
+    const saleRef = doc(db, "businesses", businessId, "sales", saleId);
+    
+    ui.enableNotificationsBtn.onclick = () => requestNotificationPermission(saleRef);
+    
+    onSnapshot(saleRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            document.title = `${data.password} - ${data.clientName}`;
+            if (data.status === 'waiting') {
+                ui.clientName.textContent = data.clientName;
+                ui.password.textContent = data.password;
+                showState('waiting');
+            } else if (data.status === 'called') {
+                ui.calledPassword.textContent = data.password;
+                showState('called');
+                playSound();
+            } else {
+                ui.error.querySelector('h2').textContent = "Atendimento Finalizado";
+                ui.error.querySelector('p').textContent = "Obrigado por utilizar os nossos serviços!";
+                ui.error.querySelector('i').setAttribute('data-lucide', 'check-circle-2');
+                lucide.createIcons();
+                showState('error');
+                localStorage.removeItem('currentSaleId'); // Limpa a senha finalizada
+                localStorage.removeItem('currentBusinessId');
+            }
+        } else {
+            showState('error');
+        }
+    }, (error) => {
+        console.error("Erro no onSnapshot:", error);
+        showState('error');
+    });
+}
+        main().catch(err => {
+            console.error("Erro fatal na função main:", err);
+            showState('error');
+        });
+
+        onMessage(messaging, (payload) => {
+            console.log("Mensagem recebida com a página aberta:", payload);
+            playSound();
+        });
     </script>
 </body>
 </html>
