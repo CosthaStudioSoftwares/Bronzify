@@ -1,0 +1,21 @@
+{
+  "name": "Fila de Espera Bronzify",
+  "short_name": "Fila Bronzify",
+  "start_url": "/app-cliente.html",
+  "display": "standalone",
+  "background_color": "#FFF9F9",
+  "theme_color": "#B76E79",
+  "description": "Acompanhe sua vez no atendimento da Bronzify.",
+  "icons": [
+    {
+      "src": "icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
