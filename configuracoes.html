@@ -199,7 +199,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, query, orderBy, onSnapshot, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, query, orderBy, onSnapshot, getDocs, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 
         const app = initializeApp(firebaseConfig);
@@ -299,36 +299,42 @@
                 <input type="checkbox" name="work-day" value="${i}" class="w-5 h-5 accent-[#B76E79]">
             </label>`).join('');
 
-        async function loadStudioSettings() {
-    // GERAÇÃO DO LINK: Ajustado para o caminho real do seu projeto
+       async function loadStudioSettings() {
+    if (!businessId) return;
+
+    // Configura o link exibido na tela
     const baseURL = "https://costhastudiosoftwares.github.io/Bronzify/agendar.html";
     document.getElementById('scheduling-url').value = `${baseURL}?businessId=${businessId}`;
 
     try {
-        // Busca direta pelo documento 'general'
-        const docRef = doc(db, "businesses", businessId, "settings", "general");
-        const docSnap = await getDoc(docRef); // Use getDoc em vez de getDocs para precisão
+        // Acessa o documento fixo 'general' dentro da pasta 'settings' do Studio
+        const settingsRef = doc(db, "businesses", businessId, "settings", "general");
+        const docSnap = await getDoc(settingsRef);
 
         if (docSnap.exists()) {
             const data = docSnap.data();
+            
+            // Preenche os campos de texto
             document.getElementById('studio-name').value = data.studioName || '';
             document.getElementById('msg-birthday').value = data.msgBirthday || '';
             document.getElementById('msg-return').value = data.msgReturn || '';
             
+            // Preenche a Agenda se ela existir
             if (data.agenda) {
                 document.getElementById('work-start').value = data.agenda.start || "";
                 document.getElementById('work-end').value = data.agenda.end || "";
                 document.getElementById('work-interval').value = data.agenda.interval || "60";
                 document.getElementById('work-slots').value = data.agenda.slots || "1";
                 
-                const selectedDays = data.agenda.days || [];
+                // Marca os checkboxes dos dias
+                const days = data.agenda.days || [];
                 document.querySelectorAll('input[name="work-day"]').forEach(check => {
-                    check.checked = selectedDays.includes(check.value);
+                    check.checked = days.includes(check.value);
                 });
             }
         }
-    } catch (e) { 
-        console.error("Erro ao carregar configurações:", e); 
+    } catch (e) {
+        console.error("Erro ao carregar as configurações salvas:", e);
     }
 }
         document.getElementById('save-studio-settings').addEventListener('click', async () => {
@@ -426,4 +432,5 @@
     </script>
 </body>
 </html>
+
 
