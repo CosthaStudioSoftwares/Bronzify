@@ -300,23 +300,37 @@
             </label>`).join('');
 
         async function loadStudioSettings() {
-            document.getElementById('scheduling-url').value = `https://costhastudiosoftwares.github.io/Bronzify/agendar.html?businessId=${businessId}`;
-            const snap = await getDocs(collection(db, "businesses", businessId, "settings"));
-            const data = snap.docs.find(d => d.id === "general")?.data();
-            if(data) {
-                document.getElementById('studio-name').value = data.studioName || '';
-                document.getElementById('msg-birthday').value = data.msgBirthday || '';
-                document.getElementById('msg-return').value = data.msgReturn || '';
-                if(data.agenda) {
-                    document.getElementById('work-start').value = data.agenda.start;
-                    document.getElementById('work-end').value = data.agenda.end;
-                    document.getElementById('work-interval').value = data.agenda.interval;
-                    document.getElementById('work-slots').value = data.agenda.slots;
-                    document.querySelectorAll('input[name="work-day"]').forEach(c => c.checked = data.agenda.days.includes(c.value));
-                }
+    // GERAÇÃO DO LINK: Ajustado para o caminho real do seu projeto
+    const baseURL = "https://costhastudiosoftwares.github.io/Bronzify/agendar.html";
+    document.getElementById('scheduling-url').value = `${baseURL}?businessId=${businessId}`;
+
+    try {
+        // Busca direta pelo documento 'general'
+        const docRef = doc(db, "businesses", businessId, "settings", "general");
+        const docSnap = await getDoc(docRef); // Use getDoc em vez de getDocs para precisão
+
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            document.getElementById('studio-name').value = data.studioName || '';
+            document.getElementById('msg-birthday').value = data.msgBirthday || '';
+            document.getElementById('msg-return').value = data.msgReturn || '';
+            
+            if (data.agenda) {
+                document.getElementById('work-start').value = data.agenda.start || "";
+                document.getElementById('work-end').value = data.agenda.end || "";
+                document.getElementById('work-interval').value = data.agenda.interval || "60";
+                document.getElementById('work-slots').value = data.agenda.slots || "1";
+                
+                const selectedDays = data.agenda.days || [];
+                document.querySelectorAll('input[name="work-day"]').forEach(check => {
+                    check.checked = selectedDays.includes(check.value);
+                });
             }
         }
-
+    } catch (e) { 
+        console.error("Erro ao carregar configurações:", e); 
+    }
+}
         document.getElementById('save-studio-settings').addEventListener('click', async () => {
             const data = {
                 studioName: document.getElementById('studio-name').value,
@@ -412,3 +426,4 @@
     </script>
 </body>
 </html>
+
