@@ -25,18 +25,24 @@
             <p class="text-gray-500 text-sm">Escolha o melhor horário para o seu bronze</p>
         </header>
 
-        <div id="step-1" class="bg-white p-6 rounded-3xl shadow-lg space-y-4">
-            <h3 class="font-bold text-gray-700 border-b pb-2">Seus Dados</h3>
-            <div>
-                <label class="text-xs text-gray-400 uppercase font-bold">Nome Completo</label>
-                <input type="text" id="client-name" placeholder="Como podemos te chamar?" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-[#B76E79] outline-none">
-            </div>
-            <div>
-                <label class="text-xs text-gray-400 uppercase font-bold">WhatsApp</label>
-                <input type="tel" id="client-phone" placeholder="(00) 0 0000-0000" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-[#B76E79] outline-none">
-            </div>
-        </div>
-
+       <div id="step-1" class="bg-white p-6 rounded-3xl shadow-lg space-y-4">
+    <h3 class="font-bold text-gray-700 border-b pb-2">Seus Dados</h3>
+    <div>
+        <label class="text-xs text-gray-400 uppercase font-bold">Nome Completo</label>
+        <input type="text" id="client-name" placeholder="Como podemos te chamar?" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-[#B76E79] outline-none">
+    </div>
+    <div>
+        <label class="text-xs text-gray-400 uppercase font-bold">WhatsApp</label>
+        <input type="tel" id="client-phone" placeholder="(00) 0 0000-0000" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-[#B76E79] outline-none">
+    </div>
+    
+    <div>
+        <label class="text-xs text-gray-400 uppercase font-bold">Tipo de Bronze</label>
+        <select id="service-select" class="w-full p-3 border rounded-xl outline-none bg-white focus:ring-2 focus:ring-[#B76E79]">
+            <option value="">Carregando tipos de bronze...</option>
+        </select>
+    </div>
+</div>
         <div id="step-2" class="bg-white p-6 rounded-3xl shadow-lg space-y-4">
             <h3 class="font-bold text-gray-700 border-b pb-2">Data e Hora</h3>
             <div>
@@ -86,20 +92,36 @@
             document.body.innerHTML = "<div class='p-10 text-center'>Link de agendamento inválido. Solicite um novo link ao studio.</div>";
         }
 
-        async function loadStudioData() {
+       async function loadStudioData() {
     try {
-        // Tentamos buscar o documento de configurações
+        // 1. Busca Nome e Configurações da Agenda
         const docRef = doc(db, "businesses", businessId, "settings", "general");
         const docSnap = await getDoc(docRef);
         
         if (docSnap.exists()) {
             studioSettings = docSnap.data();
-            console.log("Configurações carregadas:", studioSettings); // Verifique o console do navegador (F12)
             document.getElementById('studio-display-name').textContent = studioSettings.studioName || "Studio de Bronze";
         } else {
-            console.error("Documento de configurações não encontrado no Firebase!");
             document.getElementById('studio-display-name').textContent = "Studio não encontrado";
         }
+
+        // 2. BUSCA OS TIPOS DE BRONZE (NOVO)
+        const productsRef = collection(db, "businesses", businessId, "products");
+        // Filtra apenas pela categoria 'bronze' que você definiu em configurações
+        const q = query(productsRef, where("category", "==", "bronze"));
+        const querySnapshot = await getDocs(q);
+        
+        const select = document.getElementById('service-select');
+        select.innerHTML = '<option value="">Selecione o bronze desejado</option>';
+        
+        querySnapshot.forEach((doc) => {
+            const p = doc.data();
+            const option = document.createElement('option');
+            option.value = p.name; // Salva o nome do bronze
+            option.textContent = `${p.name} - R$ ${p.price.toFixed(2)}`;
+            select.appendChild(option);
+        });
+
     } catch (e) { 
         console.error("Erro ao carregar dados:", e); 
     }
@@ -154,17 +176,19 @@ function generateSlots(dateValue) {
             const name = document.getElementById('client-name').value;
             const phone = document.getElementById('client-phone').value;
             const date = document.getElementById('booking-date').value;
+            const service = document.getElementById('service-select').value;
 
-            if (!name || !phone || !date || !selectedSlot) {
-                alert("Por favor, preencha todos os campos e escolha um horário.");
-                return;
-            }
+           if (!name || !phone || !date || !selectedSlot || !service) {
+        alert("Por favor, preencha todos os campos, incluindo o tipo de bronze.");
+        return;
+    }
 
             try {
                 // Salva o agendamento na nova coleção "bookings"
                 await addDoc(collection(db, "businesses", businessId, "bookings"), {
                     clientName: name,
                     clientPhone: phone,
+                    service: service, // SALVA O TIPO DE BRONZE NO BANCO
                     date: date,
                     time: selectedSlot,
                     status: 'pendente',
@@ -192,3 +216,4 @@ function generateSlots(dateValue) {
 </body>
 
 </html>
+
