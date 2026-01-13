@@ -13,7 +13,7 @@
             const permissions = JSON.parse(permissionsString);
             const isAdmin = Object.keys(permissions).length === 0;
             if (!isAdmin && permissions[currentPageId] === false) {
-                document.write(`<html lang="pt-BR"><body style="font-family:sans-serif; text-align:center; padding-top:50px;"><h1>Acesso Negado</h1><p>Você não tem permissão para esta página.</p><a href="./dashboard.html">Voltar</a></body></html>`);
+                document.write(`<html lang="pt-BR"><body class="bg-gray-100 flex items-center justify-center h-screen"><div class="text-center bg-white p-12 rounded-2xl shadow-lg"><h1>Acesso Negado</h1><a href="./dashboard.html" class="text-blue-500">Voltar</a></div></body></html>`);
             }
         }
     } catch (e) { window.location.href = './index.html'; }
@@ -58,79 +58,85 @@
                             </button>
                         </div>
                         <div id="items-list-container" class="space-y-2">
-                            <div data-accordion-trigger="bronze-items" class="flex justify-between items-center cursor-pointer border-b p-2 hover:bg-gray-50">
+                            <div data-accordion-trigger="bronze-items" class="flex justify-between items-center cursor-pointer border-b p-4 hover:bg-gray-50 rounded-t-lg">
                                 <h4 class="font-semibold text-lg text-gray-700">Tipos de Bronze</h4>
-                                <i data-lucide="chevron-down"></i>
+                                <i data-lucide="chevron-down" class="transition-transform duration-300"></i>
                             </div>
                             <div id="bronze-items-panel" class="accordion-content max-h-0">
-                                <div id="bronze-items" class="space-y-3 p-4"></div>
+                                <div id="bronze-items" class="space-y-3 p-4 border border-t-0 rounded-b-lg"></div>
                             </div>
-                            <div data-accordion-trigger="consumable-items" class="flex justify-between items-center cursor-pointer border-b p-2 hover:bg-gray-50">
+
+                            <div data-accordion-trigger="consumable-items" class="flex justify-between items-center cursor-pointer border-b p-4 hover:bg-gray-50 rounded-t-lg mt-2">
                                 <h4 class="font-semibold text-lg text-gray-700">Consumo</h4>
-                                <i data-lucide="chevron-down"></i>
+                                <i data-lucide="chevron-down" class="transition-transform duration-300"></i>
                             </div>
                             <div id="consumable-items-panel" class="accordion-content max-h-0">
-                                <div id="consumable-items" class="space-y-3 p-4"></div>
+                                <div id="consumable-items" class="space-y-3 p-4 border border-t-0 rounded-b-lg"></div>
                             </div>
                         </div>
                     </div>
 
                     <div class="bg-white p-6 rounded-2xl shadow-md">
-                        <h3 class="text-2xl text-gray-800 mb-6">Identidade e Mensagens</h3>
+                        <h3 class="text-2xl text-gray-800 mb-6 border-b pb-2">Identidade e Marketing</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-gray-600 mb-2 font-medium">Nome do seu Studio</label>
-                                <input type="text" id="studio-name" class="w-full px-4 py-2 border rounded-lg focus:ring-[#B76E79]" placeholder="Ex: Studio Bronze Dourado">
+                                <input type="text" id="studio-name" class="w-full px-4 py-2 border rounded-lg focus:ring-[#B76E79]" placeholder="Ex: Studio Bronze Real">
                             </div>
                             <div>
-                                <label class="block text-gray-600 mb-2 font-medium">Link de Agendamento</label>
+                                <label class="block text-gray-600 mb-2 font-medium">Seu Link de Agendamento</label>
                                 <div class="flex gap-2">
-                                    <input type="text" id="scheduling-url" readonly class="w-full px-4 py-2 border rounded-lg bg-gray-50 text-sm">
+                                    <input type="text" id="scheduling-url" readonly class="w-full px-4 py-2 border rounded-lg bg-gray-50 text-sm overflow-hidden text-ellipsis">
                                     <button id="copy-url-btn" class="bg-gray-200 p-2 rounded-lg hover:bg-gray-300"><i data-lucide="copy" class="w-5 h-5"></i></button>
                                 </div>
                             </div>
                         </div>
                         <div class="mt-6 space-y-4">
                             <div>
-                                <label class="block text-gray-600 mb-2 font-medium">Mensagem de Aniversário</label>
-                                <textarea id="msg-birthday" rows="3" class="w-full px-4 py-2 border rounded-lg"></textarea>
-                                <p class="text-xs text-gray-400">Use [NOME] e [STUDIO] como variáveis.</p>
+                                <label class="block text-gray-600 mb-2 font-medium">Mensagem de Aniversário (WhatsApp)</label>
+                                <textarea id="msg-birthday" rows="3" class="w-full px-4 py-2 border rounded-lg focus:ring-[#B76E79]"></textarea>
+                                <p class="text-xs text-gray-400 mt-1 italic italic">Dica: Use [NOME] para citar a cliente.</p>
                             </div>
                             <div>
-                                <label class="block text-gray-600 mb-2 font-medium">Mensagem de Retorno</label>
-                                <textarea id="msg-return" rows="3" class="w-full px-4 py-2 border rounded-lg"></textarea>
+                                <label class="block text-gray-600 mb-2 font-medium">Mensagem de Retorno/Manutenção</label>
+                                <textarea id="msg-return" rows="3" class="w-full px-4 py-2 border rounded-lg focus:ring-[#B76E79]"></textarea>
                             </div>
-                            <button id="save-studio-settings" class="bg-[#B76E79] text-white px-6 py-2 rounded-lg hover:opacity-90">Salvar Identidade</button>
+                            <button id="save-studio-settings" class="bg-[#B76E79] text-white px-8 py-2 rounded-lg font-semibold hover:scale-105 transition-all shadow-md">Salvar Identidade</button>
                         </div>
                     </div>
 
                     <div class="bg-white p-6 rounded-2xl shadow-md">
-                        <h3 class="text-2xl text-gray-800 mb-6">Configuração da Agenda</h3>
+                        <h3 class="text-2xl text-gray-800 mb-6 border-b pb-2">Gestão de Horários</h3>
                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                             <div class="space-y-3">
-                                <h4 class="font-semibold text-gray-700 border-b pb-2">Dias de Funcionamento</h4>
+                                <h4 class="font-semibold text-gray-700">Dias que o Studio Abre</h4>
                                 <div id="working-days" class="grid grid-cols-1 gap-2"></div>
                             </div>
                             <div class="lg:col-span-2 space-y-4">
-                                <h4 class="font-semibold text-gray-700 border-b pb-2">Horários e Capacidade</h4>
-                                <div class="flex flex-wrap gap-4 items-end bg-gray-50 p-4 rounded-xl">
-                                    <input type="time" id="work-start" class="border rounded p-1"> às <input type="time" id="work-end" class="border rounded p-1">
-                                    <select id="work-interval" class="border rounded p-1">
-                                        <option value="30">30 min</option>
-                                        <option value="60">1 hora</option>
+                                <h4 class="font-semibold text-gray-700">Horários e Capacidade</h4>
+                                <div class="bg-gray-50 p-4 rounded-xl flex flex-wrap gap-4 items-center">
+                                    <div class="flex items-center gap-2">
+                                        <input type="time" id="work-start" class="border p-2 rounded"> até <input type="time" id="work-end" class="border p-2 rounded">
+                                    </div>
+                                    <select id="work-interval" class="border p-2 rounded">
+                                        <option value="30">A cada 30 min</option>
+                                        <option value="60">A cada 1 hora</option>
                                     </select>
-                                    <input type="number" id="work-slots" min="1" value="1" class="border rounded p-1 w-16" title="Vagas por hora">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-sm">Vagas/Hora:</span>
+                                        <input type="number" id="work-slots" min="1" class="border p-2 rounded w-16 text-center">
+                                    </div>
                                 </div>
-                                <button id="save-agenda-btn" class="w-full bg-[#B76E79] text-white py-3 rounded-xl font-bold">SALVAR CONFIGURAÇÕES DA AGENDA</button>
+                                <button id="save-agenda-btn" class="w-full bg-[#B76E79] text-white py-3 rounded-xl font-bold shadow-lg hover:opacity-90 transition-all">ATUALIZAR AGENDA</button>
                             </div>
                         </div>
                     </div>
 
                     <div class="bg-white p-6 rounded-2xl shadow-md mb-12">
                         <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-2xl text-gray-800">Usuários e Permissões</h3>
-                            <button id="add-user-btn" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center gap-2">
-                                <i data-lucide="user-plus"></i> <span>Convidar</span>
+                            <h3 class="text-2xl text-gray-800 font-bold">Equipe e Acessos</h3>
+                            <button id="add-user-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors">
+                                <i data-lucide="user-plus"></i> Convidar Membro
                             </button>
                         </div>
                         <div id="users-list-container" class="space-y-3"></div>
@@ -141,20 +147,29 @@
     </div>
 
     <div id="item-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl w-full max-w-md p-8">
-            <h3 id="item-modal-title" class="text-2xl mb-6">Item</h3>
+        <div class="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl">
+            <h3 id="item-modal-title" class="text-2xl mb-6 font-bold text-gray-800">Item do Caixa</h3>
             <form id="item-form" class="space-y-4">
                 <input type="hidden" id="item-id">
-                <input type="text" id="item-name" placeholder="Nome" class="w-full p-2 border rounded" required>
-                <input type="text" id="item-price" placeholder="R$ 0,00" class="w-full p-2 border rounded" required>
-                <select id="item-category" class="w-full p-2 border rounded">
-                    <option value="bronze">Bronze</option>
-                    <option value="consumable">Consumo</option>
-                    <option value="extra">Adicional</option>
-                </select>
-                <div class="flex justify-end gap-2">
-                    <button type="button" onclick="document.getElementById('item-modal').classList.add('hidden')" class="px-4 py-2">Cancelar</button>
-                    <button type="submit" class="bg-[#B76E79] text-white px-4 py-2 rounded">Salvar</button>
+                <div>
+                    <label class="text-sm text-gray-500">Nome do Produto/Serviço</label>
+                    <input type="text" id="item-name" class="w-full p-3 border rounded-lg" required>
+                </div>
+                <div>
+                    <label class="text-sm text-gray-500">Valor de Venda</label>
+                    <input type="text" id="item-price" placeholder="R$ 0,00" class="w-full p-3 border rounded-lg font-mono text-lg" required>
+                </div>
+                <div>
+                    <label class="text-sm text-gray-500">Categoria</label>
+                    <select id="item-category" class="w-full p-3 border rounded-lg">
+                        <option value="bronze">Tipo de Bronze</option>
+                        <option value="consumable">Consumo</option>
+                        <option value="extra">Adicional</option>
+                    </select>
+                </div>
+                <div class="flex justify-end gap-3 pt-4">
+                    <button type="button" id="close-item-modal" class="px-6 py-2 text-gray-500 font-medium">Cancelar</button>
+                    <button type="submit" class="bg-[#B76E79] text-white px-8 py-2 rounded-lg font-bold shadow-md">Salvar Item</button>
                 </div>
             </form>
         </div>
@@ -162,15 +177,16 @@
 
     <div id="user-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
         <div class="bg-white rounded-2xl w-full max-w-lg p-8">
-            <h3 id="user-modal-title" class="text-2xl mb-6">Convidar Usuário</h3>
+            <h3 id="user-modal-title" class="text-2xl mb-6 font-bold">Convidar para a Equipe</h3>
             <form id="user-form" class="space-y-4">
                 <input type="hidden" id="user-id">
-                <input type="email" id="user-email" placeholder="E-mail" class="w-full p-2 border rounded" required>
-                <input type="text" id="user-role" placeholder="Cargo" class="w-full p-2 border rounded">
-                <div id="permissions-container" class="grid grid-cols-2 gap-2 p-4 bg-gray-50 rounded"></div>
-                <div class="flex justify-end gap-2">
-                    <button type="button" onclick="document.getElementById('user-modal').classList.add('hidden')" class="px-4 py-2">Cancelar</button>
-                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Convidar</button>
+                <input type="email" id="user-email" placeholder="E-mail do colaborador" class="w-full p-3 border rounded-lg" required>
+                <input type="text" id="user-role" placeholder="Cargo (Ex: Atendente)" class="w-full p-3 border rounded-lg">
+                <label class="block text-sm font-semibold text-gray-600">Permissões de Acesso:</label>
+                <div id="permissions-container" class="grid grid-cols-2 gap-2 p-4 bg-gray-50 rounded-lg max-h-48 overflow-y-auto border"></div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" id="close-user-modal" class="px-6 py-2">Cancelar</button>
+                    <button type="submit" class="bg-blue-600 text-white px-8 py-2 rounded-lg font-bold shadow-md">Enviar Convite</button>
                 </div>
             </form>
         </div>
@@ -201,7 +217,7 @@
             { id: 'ordem-chegada', name: 'Ordem de Chegada' }, { id: 'patio', name: 'Pátio' }
         ];
 
-        // --- INICIALIZAÇÃO ---
+        // --- INICIALIZAÇÃO E CARREGAMENTO ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
@@ -213,136 +229,155 @@
             } else { window.location.href = './index.html'; }
         });
 
-        // --- AGENDA E MENSAGENS ---
-        const daysOfWeek = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-        const workingDaysContainer = document.getElementById('working-days');
-        daysOfWeek.forEach((day, index) => {
-            workingDaysContainer.innerHTML += `
-                <label class="flex items-center justify-between p-2 bg-gray-50 rounded-lg cursor-pointer">
-                    <span class="text-sm">${day}</span>
-                    <input type="checkbox" name="work-day" value="${index}" class="w-4 h-4 text-[#B76E79]">
-                </label>`;
-        });
-
-        async function loadStudioSettings() {
-            if (!businessId) return;
-            document.getElementById('scheduling-url').value = `${window.location.origin}/agendar.html?businessId=${businessId}`;
-
-            try {
-                const docSnap = await getDocs(collection(db, "businesses", businessId, "settings"));
-                const data = docSnap.docs.find(d => d.id === "general")?.data();
-                if (data) {
-                    document.getElementById('studio-name').value = data.studioName || '';
-                    document.getElementById('msg-birthday').value = data.msgBirthday || `Olá [NOME], a equipe do [STUDIO] deseja feliz aniversário!`;
-                    document.getElementById('msg-return').value = data.msgReturn || `Oi [NOME], hora de renovar seu bronze!`;
-                    if (data.agenda) {
-                        document.getElementById('work-start').value = data.agenda.start || "";
-                        document.getElementById('work-end').value = data.agenda.end || "";
-                        document.getElementById('work-interval').value = data.agenda.interval || "60";
-                        document.getElementById('work-slots').value = data.agenda.slots || "1";
-                        document.querySelectorAll('input[name="work-day"]').forEach(check => {
-                            check.checked = data.agenda.days.includes(check.value);
-                        });
-                    }
-                }
-            } catch (e) { console.error(e); }
-        }
-
-        document.getElementById('save-studio-settings').addEventListener('click', async () => {
-            const data = {
-                studioName: document.getElementById('studio-name').value,
-                msgBirthday: document.getElementById('msg-birthday').value,
-                msgReturn: document.getElementById('msg-return').value,
-                updatedAt: new Date()
-            };
-            try {
-                await setDoc(doc(db, "businesses", businessId, "settings", "general"), data, { merge: true });
-                showNotification("Identidade salva!", "success");
-            } catch (e) { showNotification("Erro ao salvar.", "error"); }
-        });
-
-        document.getElementById('save-agenda-btn').addEventListener('click', async () => {
-            const selectedDays = Array.from(document.querySelectorAll('input[name="work-day"]:checked')).map(cb => cb.value);
-            const agendaData = {
-                agenda: {
-                    days: selectedDays,
-                    start: document.getElementById('work-start').value,
-                    end: document.getElementById('work-end').value,
-                    interval: document.getElementById('work-interval').value,
-                    slots: document.getElementById('work-slots').value
-                }
-            };
-            try {
-                await setDoc(doc(db, "businesses", businessId, "settings", "general"), agendaData, { merge: true });
-                showNotification("Agenda configurada!", "success");
-            } catch (e) { showNotification("Erro ao salvar agenda.", "error"); }
-        });
-
-        document.getElementById('copy-url-btn').addEventListener('click', () => {
-            const urlInput = document.getElementById('scheduling-url');
-            navigator.clipboard.writeText(urlInput.value);
-            showNotification("Link copiado!", "success");
-        });
-
-        // --- ACCORDIONS ---
-        document.getElementById('items-list-container').addEventListener('click', (e) => {
-            const trigger = e.target.closest('[data-accordion-trigger]');
-            if (trigger) {
-                const panel = document.getElementById(trigger.dataset.accordionTrigger + '-panel');
-                panel.style.maxHeight = panel.style.maxHeight ? null : panel.scrollHeight + "px";
-            }
-        });
-
-        // --- PRODUTOS E USUÁRIOS (LÓGICA EXISTENTE) ---
+        // --- GESTÃO DE PRODUTOS ---
         function listenForProducts() {
             onSnapshot(query(collection(db, "businesses", businessId, "products"), orderBy("name")), (snap) => {
                 allProducts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderProducts();
             });
         }
+
         function renderProducts() {
-            const cont = { bronze: document.getElementById('bronze-items'), consumable: document.getElementById('consumable-items') };
-            Object.values(cont).forEach(c => { if(c) c.innerHTML = '' });
+            const containers = { bronze: document.getElementById('bronze-items'), consumable: document.getElementById('consumable-items') };
+            Object.values(containers).forEach(c => c.innerHTML = '');
+            
             allProducts.forEach(p => {
                 const el = document.createElement('div');
-                el.className = 'flex justify-between bg-gray-50 p-2 rounded';
-                el.innerHTML = `<span>${p.name} - R$ ${p.price}</span>
-                    <button onclick="handleDeleteProduct('${p.id}')" class="text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`;
-                if(cont[p.category]) cont[p.category].appendChild(el);
+                el.className = 'flex justify-between items-center bg-gray-50 p-3 rounded-lg border hover:bg-white transition-all';
+                const formattedPrice = (p.price || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                el.innerHTML = `
+                    <div><span class="font-bold text-gray-800">${p.name}</span><br><span class="text-sm text-gray-500">${formattedPrice}</span></div>
+                    <div class="flex gap-2">
+                        <button onclick="editProduct('${p.id}')" class="p-2 text-blue-500 hover:bg-blue-50 rounded-full"><i data-lucide="pencil" class="w-5 h-5"></i></button>
+                        <button onclick="deleteProduct('${p.id}')" class="p-2 text-red-500 hover:bg-red-50 rounded-full"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                    </div>`;
+                if(containers[p.category]) containers[p.category].appendChild(el);
             });
             lucide.createIcons();
         }
-        window.handleDeleteProduct = async (id) => {
-            if(confirm("Excluir item?")) await deleteDoc(doc(db, "businesses", businessId, "products", id));
+
+        window.deleteProduct = async (id) => {
+            if(confirm("Deseja realmente excluir este item?")) {
+                await deleteDoc(doc(db, "businesses", businessId, "products", id));
+                showNotification("Excluído!");
+            }
         };
 
-        document.getElementById('add-new-item-btn').addEventListener('click', () => {
-            document.getElementById('item-form').reset();
+        window.editProduct = (id) => {
+            const p = allProducts.find(item => item.id === id);
+            if(!p) return;
+            document.getElementById('item-id').value = p.id;
+            document.getElementById('item-name').value = p.name;
+            document.getElementById('item-price').value = p.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+            document.getElementById('item-category').value = p.category;
             document.getElementById('item-modal').classList.remove('hidden');
-        });
+        };
 
         document.getElementById('item-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const id = document.getElementById('item-id').value;
+            const price = parseFloat(document.getElementById('item-price').value.replace(/\D/g, '')) / 100;
             const data = {
                 name: document.getElementById('item-name').value,
-                price: parseFloat(document.getElementById('item-price').value.replace(',','.')),
+                price: price,
                 category: document.getElementById('item-category').value
             };
-            await addDoc(collection(db, "businesses", businessId, "products"), data);
+            if(id) {
+                await updateDoc(doc(db, "businesses", businessId, "products", id), data);
+            } else {
+                await addDoc(collection(db, "businesses", businessId, "products"), data);
+            }
             document.getElementById('item-modal').classList.add('hidden');
+            showNotification("Sucesso!");
         });
 
+        // --- MARKETING E AGENDA ---
+        const days = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+        document.getElementById('working-days').innerHTML = days.map((d, i) => `
+            <label class="flex justify-between items-center p-3 bg-white border rounded-lg cursor-pointer">
+                <span class="text-sm font-medium">${d}</span>
+                <input type="checkbox" name="work-day" value="${i}" class="w-5 h-5 accent-[#B76E79]">
+            </label>`).join('');
+
+        async function loadStudioSettings() {
+            document.getElementById('scheduling-url').value = `${window.location.origin}/agendar.html?businessId=${businessId}`;
+            const snap = await getDocs(collection(db, "businesses", businessId, "settings"));
+            const data = snap.docs.find(d => d.id === "general")?.data();
+            if(data) {
+                document.getElementById('studio-name').value = data.studioName || '';
+                document.getElementById('msg-birthday').value = data.msgBirthday || '';
+                document.getElementById('msg-return').value = data.msgReturn || '';
+                if(data.agenda) {
+                    document.getElementById('work-start').value = data.agenda.start;
+                    document.getElementById('work-end').value = data.agenda.end;
+                    document.getElementById('work-interval').value = data.agenda.interval;
+                    document.getElementById('work-slots').value = data.agenda.slots;
+                    document.querySelectorAll('input[name="work-day"]').forEach(c => c.checked = data.agenda.days.includes(c.value));
+                }
+            }
+        }
+
+        document.getElementById('save-studio-settings').addEventListener('click', async () => {
+            const data = {
+                studioName: document.getElementById('studio-name').value,
+                msgBirthday: document.getElementById('msg-birthday').value,
+                msgReturn: document.getElementById('msg-return').value
+            };
+            await setDoc(doc(db, "businesses", businessId, "settings", "general"), data, { merge: true });
+            showNotification("Marketing Atualizado!");
+        });
+
+        document.getElementById('save-agenda-btn').addEventListener('click', async () => {
+            const days = Array.from(document.querySelectorAll('input[name="work-day"]:checked')).map(c => c.value);
+            const agenda = {
+                days,
+                start: document.getElementById('work-start').value,
+                end: document.getElementById('work-end').value,
+                interval: document.getElementById('work-interval').value,
+                slots: document.getElementById('work-slots').value
+            };
+            await setDoc(doc(db, "businesses", businessId, "settings", "general"), { agenda }, { merge: true });
+            showNotification("Agenda Salva!");
+        });
+
+        // --- EQUIPE ---
         function listenForUsers() {
             onSnapshot(collection(db, "businesses", businessId, "user_permissions"), (snap) => {
-                allUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 const container = document.getElementById('users-list-container');
-                container.innerHTML = allUsers.map(u => `<div class="p-2 bg-gray-50 rounded">${u.email} (${u.role})</div>`).join('');
+                container.innerHTML = snap.docs.map(d => `
+                    <div class="flex justify-between bg-white border p-4 rounded-xl shadow-sm">
+                        <div><span class="font-bold text-gray-800">${d.data().email}</span><br><span class="text-xs text-blue-600 font-bold uppercase tracking-wider">${d.data().role}</span></div>
+                        <button onclick="removeUser('${d.id}')" class="text-red-500 p-2"><i data-lucide="trash-2"></i></button>
+                    </div>`).join('');
+                lucide.createIcons();
             });
         }
 
+        window.removeUser = async (id) => {
+            if(confirm("Remover acesso?")) await deleteDoc(doc(db, "businesses", businessId, "user_permissions", id));
+        };
+
+        // --- EVENTOS DE MODAIS E CLIQUES ---
+        document.getElementById('add-new-item-btn').addEventListener('click', () => {
+            document.getElementById('item-form').reset();
+            document.getElementById('item-id').value = '';
+            document.getElementById('item-modal').classList.remove('hidden');
+        });
+        
+        document.getElementById('close-item-modal').addEventListener('click', () => document.getElementById('item-modal').classList.add('hidden'));
+        document.getElementById('close-user-modal').addEventListener('click', () => document.getElementById('user-modal').classList.add('hidden'));
+
+        document.getElementById('copy-url-btn').addEventListener('click', () => {
+            const url = document.getElementById('scheduling-url');
+            navigator.clipboard.writeText(url.value);
+            showNotification("Link Copiado!");
+        });
+
         document.getElementById('add-user-btn').addEventListener('click', () => {
-            const container = document.getElementById('permissions-container');
-            container.innerHTML = menuItems.map(m => `<label class="flex gap-2"><input type="checkbox" data-id="${m.id}" checked> ${m.name}</label>`).join('');
+            document.getElementById('permissions-container').innerHTML = menuItems.map(m => `
+                <label class="flex items-center gap-2 text-sm">
+                    <input type="checkbox" data-id="${m.id}" checked class="w-4 h-4"> ${m.name}
+                </label>`).join('');
             document.getElementById('user-modal').classList.remove('hidden');
         });
 
@@ -350,13 +385,29 @@
             e.preventDefault();
             const perms = {};
             document.querySelectorAll('#permissions-container input').forEach(i => perms[i.dataset.id] = i.checked);
-            const userData = { email: document.getElementById('user-email').value, role: document.getElementById('user-role').value, permissions: perms };
-            await inviteUser(userData);
-            await sendPasswordResetEmail(auth, userData.email, { url: 'https://bronzify.costhastudiodesoftwares.com/', handleCodeInApp: true });
-            showNotification("Convite enviado!");
+            const data = { email: document.getElementById('user-email').value, role: document.getElementById('user-role').value, permissions: perms };
+            await inviteUser(data);
+            await sendPasswordResetEmail(auth, data.email, { url: 'https://bronzify.costhastudiodesoftwares.com/', handleCodeInApp: true });
             document.getElementById('user-modal').classList.add('hidden');
+            showNotification("Convite Enviado!");
         });
-        
+
+        document.getElementById('items-list-container').addEventListener('click', (e) => {
+            const trigger = e.target.closest('[data-accordion-trigger]');
+            if (trigger) {
+                const panel = document.getElementById(trigger.dataset.accordionTrigger + '-panel');
+                panel.style.maxHeight = panel.style.maxHeight ? null : panel.scrollHeight + "px";
+                trigger.querySelector('i').classList.toggle('rotate-180');
+            }
+        });
+
+        // Máscara básica para R$
+        document.getElementById('item-price').addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, "");
+            value = (value / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            e.target.value = value.replace("R$", "").trim();
+        });
+
         lucide.createIcons();
     </script>
 </body>
