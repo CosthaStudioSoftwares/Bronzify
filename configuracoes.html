@@ -6,62 +6,26 @@
     // --- TRANCA DE SEGURANÇA DE PÁGINA ---
     try {
         const permissionsString = sessionStorage.getItem('userPermissions');
-        // Pega o nome do arquivo atual (ex: 'dashboard') para usar como ID da permissão
         const currentPageId = window.location.pathname.split('/').pop().replace('.html', '');
-
-        // Se não houver permissões salvas na sessão, o usuário não está logado corretamente.
         if (!permissionsString) {
             window.location.href = './index.html';
         } else {
             const permissions = JSON.parse(permissionsString);
-            // Um objeto de permissões vazio significa que é o admin, que tem acesso a tudo.
             const isAdmin = Object.keys(permissions).length === 0;
-
-            // A permissão é negada se o usuário NÃO for admin E a permissão para a página atual for 'false'.
             if (!isAdmin && permissions[currentPageId] === false) {
-                // Sobrescreve todo o conteúdo da página com a mensagem de Acesso Negado.
-                document.write(`
-                    <html lang="pt-BR">
-                    <head>
-                        <meta charset="UTF-8">
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <title>Acesso Negado</title>
-                        <script src="https://cdn.tailwindcss.com"><\/script>
-                        <script src="https://unpkg.com/lucide@latest"><\/script>
-                        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
-                        <style>body { font-family: 'Poppins', sans-serif; } h1 { font-family: 'Playfair Display', serif; }</style>
-                    </head>
-                    <body class="bg-gray-100 flex items-center justify-center h-screen">
-                        <div class="text-center bg-white p-12 rounded-2xl shadow-lg max-w-lg mx-auto">
-                            <i data-lucide="shield-alert" class="mx-auto w-16 h-16 text-red-500"></i>
-                            <h1 class="text-4xl mt-4 text-gray-800">Acesso Negado</h1>
-                            <p class="text-gray-600 mt-2">Você não tem permissão para acessar esta página. Por favor, contate o administrador do sistema.</p>
-                            <a href="./dashboard.html" class="mt-6 inline-block bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600">Voltar para a Página Inicial</a>
-                        </div>
-                        <script>lucide.createIcons();<\/script>
-                    </body>
-                    </html>
-                `);
+                document.write(`<html lang="pt-BR"><body style="font-family:sans-serif; text-align:center; padding-top:50px;"><h1>Acesso Negado</h1><p>Você não tem permissão para esta página.</p><a href="./dashboard.html">Voltar</a></body></html>`);
             }
         }
-    } catch (e) {
-        // Em caso de qualquer erro, redireciona para o login por segurança.
-        console.error("Erro na verificação de permissão:", e);
-        window.location.href = './index.html';
-    }
-</script>
+    } catch (e) { window.location.href = './index.html'; }
+    </script>
     <script>
-        if (sessionStorage.getItem('acessoLiberado') !== 'true') {
-            window.location.href = 'dashboard.html';
-        }
+        if (sessionStorage.getItem('acessoLiberado') !== 'true') { window.location.href = 'dashboard.html'; }
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configurações - Bronzify</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#B76E79">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -69,130 +33,157 @@
         h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
         .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1.25rem; border-radius: 0.75rem; color: #4A5568; transition: all 0.3s ease; font-weight: 500; }
         .sidebar-link:hover, .sidebar-link.active { background-color: #FADADD; color: #B76E79; }
-        .sidebar-link svg { margin-right: 0.75rem; }
         .sidebar-mobile { transform: translateX(-100%); transition: transform 0.3s ease-in-out; }
         .sidebar-mobile.open { transform: translateX(0); }        
-        .accordion-content {
-            overflow: hidden;
-            transition: max-height 0.3s ease-out;
-        }
+        .accordion-content { overflow: hidden; transition: max-height 0.3s ease-out; }
     </style>
 </head>
 <body class="bg-gray-50">
 
-   <div class="flex h-screen bg-gray-50">
-       <div class="flex-1 flex flex-col overflow-hidden">
-        <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
-            <header class="flex justify-between items-center mb-8">
-                <button id="open-menu-btn" class="lg:hidden p-2 -ml-2"><i data-lucide="menu" class="w-6 h-6 text-gray-800"></i></button>
-                <h2 class="text-3xl lg:text-4xl text-gray-800">Configurações</h2>
-                <div class="w-6 lg:hidden"></div>
-            </header>
+    <div class="flex h-screen bg-gray-50">
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <main class="flex-1 p-4 sm:p-8 overflow-y-auto">
+                <header class="flex justify-between items-center mb-8">
+                    <button id="open-menu-btn" class="lg:hidden p-2 -ml-2"><i data-lucide="menu" class="w-6 h-6 text-gray-800"></i></button>
+                    <h2 class="text-3xl lg:text-4xl text-gray-800">Configurações</h2>
+                    <div class="w-6 lg:hidden"></div>
+                </header>
 
-            <div class="space-y-8">
-                <div class="bg-white p-6 rounded-2xl shadow-md">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-2xl text-gray-800">Itens e Produtos do Caixa</h3>
-                        <button id="add-new-item-btn" class="bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center justify-center gap-2 flex-shrink-0">
-                            <i data-lucide="plus-circle"></i> <span>Adicionar Item</span>
-                        </button>
-                    </div>
-                    <div id="items-list-container" class="space-y-2">
-                        <div>
-                            <div data-accordion-trigger="bronze-items" class="flex justify-between items-center cursor-pointer border-b p-2 hover:bg-gray-50 rounded-t-lg">
+                <div class="space-y-8">
+                    <div class="bg-white p-6 rounded-2xl shadow-md">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-2xl text-gray-800">Itens e Produtos do Caixa</h3>
+                            <button id="add-new-item-btn" class="bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center gap-2">
+                                <i data-lucide="plus-circle"></i> <span>Adicionar Item</span>
+                            </button>
+                        </div>
+                        <div id="items-list-container" class="space-y-2">
+                            <div data-accordion-trigger="bronze-items" class="flex justify-between items-center cursor-pointer border-b p-2 hover:bg-gray-50">
                                 <h4 class="font-semibold text-lg text-gray-700">Tipos de Bronze</h4>
-                                <i data-lucide="chevron-down" class="transition-transform duration-300"></i>
+                                <i data-lucide="chevron-down"></i>
                             </div>
                             <div id="bronze-items-panel" class="accordion-content max-h-0">
-                                <div id="bronze-items" class="space-y-3 p-4 border border-t-0 rounded-b-lg"></div>
+                                <div id="bronze-items" class="space-y-3 p-4"></div>
                             </div>
-                        </div>
-                        <div>
-                            <div data-accordion-trigger="consumable-items" class="flex justify-between items-center cursor-pointer border-b p-2 hover:bg-gray-50 rounded-t-lg">
+                            <div data-accordion-trigger="consumable-items" class="flex justify-between items-center cursor-pointer border-b p-2 hover:bg-gray-50">
                                 <h4 class="font-semibold text-lg text-gray-700">Consumo</h4>
-                                <i data-lucide="chevron-down" class="transition-transform duration-300"></i>
+                                <i data-lucide="chevron-down"></i>
                             </div>
                             <div id="consumable-items-panel" class="accordion-content max-h-0">
-                                <div id="consumable-items" class="space-y-3 p-4 border border-t-0 rounded-b-lg"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div data-accordion-trigger="extra-items" class="flex justify-between items-center cursor-pointer border-b p-2 hover:bg-gray-50 rounded-t-lg">
-                                <h4 class="font-semibold text-lg text-gray-700">Adicionais</h4>
-                                <i data-lucide="chevron-down" class="transition-transform duration-300"></i>
-                            </div>
-                            <div id="extra-items-panel" class="accordion-content max-h-0">
-                                <div id="extra-items" class="space-y-3 p-4 border border-t-0 rounded-b-lg"></div>
+                                <div id="consumable-items" class="space-y-3 p-4"></div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="bg-white p-6 rounded-2xl shadow-md">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-2xl text-gray-800">Usuários e Permissões</h3>
-                        <button id="add-user-btn" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center justify-center gap-2 flex-shrink-0">
-                            <i data-lucide="user-plus"></i> <span>Convidar Usuário</span>
-                        </button>
-                    </div>
-                    <div id="users-list-container" class="space-y-3">
+                    <div class="bg-white p-6 rounded-2xl shadow-md">
+                        <h3 class="text-2xl text-gray-800 mb-6">Identidade e Mensagens</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-gray-600 mb-2 font-medium">Nome do seu Studio</label>
+                                <input type="text" id="studio-name" class="w-full px-4 py-2 border rounded-lg focus:ring-[#B76E79]" placeholder="Ex: Studio Bronze Dourado">
+                            </div>
+                            <div>
+                                <label class="block text-gray-600 mb-2 font-medium">Link de Agendamento</label>
+                                <div class="flex gap-2">
+                                    <input type="text" id="scheduling-url" readonly class="w-full px-4 py-2 border rounded-lg bg-gray-50 text-sm">
+                                    <button id="copy-url-btn" class="bg-gray-200 p-2 rounded-lg hover:bg-gray-300"><i data-lucide="copy" class="w-5 h-5"></i></button>
+                                </div>
+                            </div>
                         </div>
+                        <div class="mt-6 space-y-4">
+                            <div>
+                                <label class="block text-gray-600 mb-2 font-medium">Mensagem de Aniversário</label>
+                                <textarea id="msg-birthday" rows="3" class="w-full px-4 py-2 border rounded-lg"></textarea>
+                                <p class="text-xs text-gray-400">Use [NOME] e [STUDIO] como variáveis.</p>
+                            </div>
+                            <div>
+                                <label class="block text-gray-600 mb-2 font-medium">Mensagem de Retorno</label>
+                                <textarea id="msg-return" rows="3" class="w-full px-4 py-2 border rounded-lg"></textarea>
+                            </div>
+                            <button id="save-studio-settings" class="bg-[#B76E79] text-white px-6 py-2 rounded-lg hover:opacity-90">Salvar Identidade</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-2xl shadow-md">
+                        <h3 class="text-2xl text-gray-800 mb-6">Configuração da Agenda</h3>
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div class="space-y-3">
+                                <h4 class="font-semibold text-gray-700 border-b pb-2">Dias de Funcionamento</h4>
+                                <div id="working-days" class="grid grid-cols-1 gap-2"></div>
+                            </div>
+                            <div class="lg:col-span-2 space-y-4">
+                                <h4 class="font-semibold text-gray-700 border-b pb-2">Horários e Capacidade</h4>
+                                <div class="flex flex-wrap gap-4 items-end bg-gray-50 p-4 rounded-xl">
+                                    <input type="time" id="work-start" class="border rounded p-1"> às <input type="time" id="work-end" class="border rounded p-1">
+                                    <select id="work-interval" class="border rounded p-1">
+                                        <option value="30">30 min</option>
+                                        <option value="60">1 hora</option>
+                                    </select>
+                                    <input type="number" id="work-slots" min="1" value="1" class="border rounded p-1 w-16" title="Vagas por hora">
+                                </div>
+                                <button id="save-agenda-btn" class="w-full bg-[#B76E79] text-white py-3 rounded-xl font-bold">SALVAR CONFIGURAÇÕES DA AGENDA</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-2xl shadow-md mb-12">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-2xl text-gray-800">Usuários e Permissões</h3>
+                            <button id="add-user-btn" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center gap-2">
+                                <i data-lucide="user-plus"></i> <span>Convidar</span>
+                            </button>
+                        </div>
+                        <div id="users-list-container" class="space-y-3"></div>
+                    </div>
                 </div>
-            </div>
-        </main>
-           </div>
+            </main>
+        </div>
     </div>
 
-    <div id="item-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
-            <h3 id="item-modal-title" class="text-2xl text-gray-800 mb-6">Cadastrar Novo Item</h3>
-            <form id="item-form">
+    <div id="item-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl w-full max-w-md p-8">
+            <h3 id="item-modal-title" class="text-2xl mb-6">Item</h3>
+            <form id="item-form" class="space-y-4">
                 <input type="hidden" id="item-id">
-                <div class="mb-4"><label for="item-name" class="block text-gray-600 mb-2">Nome do Item</label><input type="text" id="item-name" class="w-full px-4 py-2 border rounded-lg" required></div>
-                <div class="mb-4"><label for="item-price" class="block text-gray-600 mb-2">Valor</label><input type="text" id="item-price" placeholder="R$ 0,00" class="w-full px-4 py-2 border rounded-lg" required></div>
-                <div class="mb-6"><label for="item-category" class="block text-gray-600 mb-2">Categoria</label><select id="item-category" class="w-full px-4 py-2 border rounded-lg" required><option value="bronze">Tipo de Bronze</option><option value="consumable">Consumo</option><option value="extra">Adicional</option></select></div>
-                <div class="flex justify-end gap-4"><button type="button" id="cancel-item-btn" class="px-4 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Cancelar</button><button type="submit" class="px-6 py-2 bg-[#B76E79] text-white rounded-lg hover:opacity-90">Salvar Item</button></div>
+                <input type="text" id="item-name" placeholder="Nome" class="w-full p-2 border rounded" required>
+                <input type="text" id="item-price" placeholder="R$ 0,00" class="w-full p-2 border rounded" required>
+                <select id="item-category" class="w-full p-2 border rounded">
+                    <option value="bronze">Bronze</option>
+                    <option value="consumable">Consumo</option>
+                    <option value="extra">Adicional</option>
+                </select>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="document.getElementById('item-modal').classList.add('hidden')" class="px-4 py-2">Cancelar</button>
+                    <button type="submit" class="bg-[#B76E79] text-white px-4 py-2 rounded">Salvar</button>
+                </div>
             </form>
         </div>
     </div>
 
-    <div id="user-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-8">
-            <h3 id="user-modal-title" class="text-2xl text-gray-800 mb-6">Convidar Novo Usuário</h3>
+    <div id="user-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl w-full max-w-lg p-8">
+            <h3 id="user-modal-title" class="text-2xl mb-6">Convidar Usuário</h3>
             <form id="user-form" class="space-y-4">
                 <input type="hidden" id="user-id">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label for="user-email" class="block text-gray-600 mb-2">E-mail do Usuário</label>
-                        <input type="email" id="user-email" class="w-full px-4 py-2 border rounded-lg" required>
-                    </div>
-                    <div>
-                        <label for="user-role" class="block text-gray-600 mb-2">Cargo</label>
-                        <input type="text" id="user-role" class="w-full px-4 py-2 border rounded-lg" placeholder="Ex: Recepcionista">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-gray-600 mb-2">Permissões de Acesso</label>
-                    <div id="permissions-container" class="grid grid-cols-2 gap-2 p-4 border rounded-lg bg-gray-50">
-                        </div>
-                </div>
-                <div class="flex justify-end gap-4 pt-4">
-                    <button type="button" id="cancel-user-btn" class="px-6 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Cancelar</button>
-                    <button type="submit" class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Salvar</button>
+                <input type="email" id="user-email" placeholder="E-mail" class="w-full p-2 border rounded" required>
+                <input type="text" id="user-role" placeholder="Cargo" class="w-full p-2 border rounded">
+                <div id="permissions-container" class="grid grid-cols-2 gap-2 p-4 bg-gray-50 rounded"></div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="document.getElementById('user-modal').classList.add('hidden')" class="px-4 py-2">Cancelar</button>
+                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Convidar</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script>lucide.createIcons();</script>
     <script src="./config.js"></script>
     <script type="module" src="./layout.js"></script>
     <script src="./utils.js"></script>
-    
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, query, orderBy, onSnapshot, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 
         const app = initializeApp(firebaseConfig);
@@ -201,10 +192,7 @@
         const functions = getFunctions(app, 'southamerica-east1');
         const inviteUser = httpsCallable(functions, 'inviteUser');
 
-        let currentUser = null;
-        let allProducts = [];
-        let allUsers = [];
-        let businessId = null; 
+        let currentUser = null, businessId = null, allProducts = [], allUsers = [];
 
         const menuItems = [
             { id: 'dashboard', name: 'Dashboard' }, { id: 'configuracoes', name: 'Configurações' },
@@ -213,277 +201,163 @@
             { id: 'ordem-chegada', name: 'Ordem de Chegada' }, { id: 'patio', name: 'Pátio' }
         ];
 
-        const actionCodeSettings = {
-        // URL para onde o usuário volta DEPOIS de redefinir a senha
-        url: 'https://bronzify.costhastudiodesoftwares.com/', 
-        handleCodeInApp: true
-         };
-
+        // --- INICIALIZAÇÃO ---
         onAuthStateChanged(auth, (user) => {
-    if (user) {
-        currentUser = user;
-        businessId = sessionStorage.getItem('businessId'); // Pega o ID da empresa
+            if (user) {
+                currentUser = user;
+                businessId = sessionStorage.getItem('businessId');
+                if (!businessId) { window.location.href = './index.html'; return; }
+                listenForProducts();
+                listenForUsers();
+                loadStudioSettings();
+            } else { window.location.href = './index.html'; }
+        });
 
-        // Se não encontrar o ID da empresa, volta para o login por segurança
-        if (!businessId) {
-            window.location.href = './index.html';
-            return;
+        // --- AGENDA E MENSAGENS ---
+        const daysOfWeek = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+        const workingDaysContainer = document.getElementById('working-days');
+        daysOfWeek.forEach((day, index) => {
+            workingDaysContainer.innerHTML += `
+                <label class="flex items-center justify-between p-2 bg-gray-50 rounded-lg cursor-pointer">
+                    <span class="text-sm">${day}</span>
+                    <input type="checkbox" name="work-day" value="${index}" class="w-4 h-4 text-[#B76E79]">
+                </label>`;
+        });
+
+        async function loadStudioSettings() {
+            if (!businessId) return;
+            document.getElementById('scheduling-url').value = `${window.location.origin}/agendar.html?businessId=${businessId}`;
+
+            try {
+                const docSnap = await getDocs(collection(db, "businesses", businessId, "settings"));
+                const data = docSnap.docs.find(d => d.id === "general")?.data();
+                if (data) {
+                    document.getElementById('studio-name').value = data.studioName || '';
+                    document.getElementById('msg-birthday').value = data.msgBirthday || `Olá [NOME], a equipe do [STUDIO] deseja feliz aniversário!`;
+                    document.getElementById('msg-return').value = data.msgReturn || `Oi [NOME], hora de renovar seu bronze!`;
+                    if (data.agenda) {
+                        document.getElementById('work-start').value = data.agenda.start || "";
+                        document.getElementById('work-end').value = data.agenda.end || "";
+                        document.getElementById('work-interval').value = data.agenda.interval || "60";
+                        document.getElementById('work-slots').value = data.agenda.slots || "1";
+                        document.querySelectorAll('input[name="work-day"]').forEach(check => {
+                            check.checked = data.agenda.days.includes(check.value);
+                        });
+                    }
+                }
+            } catch (e) { console.error(e); }
         }
 
-        listenForProducts();
-        listenForUsers();
-    } else { 
-        window.location.href = './index.html'; 
-    }
-});
+        document.getElementById('save-studio-settings').addEventListener('click', async () => {
+            const data = {
+                studioName: document.getElementById('studio-name').value,
+                msgBirthday: document.getElementById('msg-birthday').value,
+                msgReturn: document.getElementById('msg-return').value,
+                updatedAt: new Date()
+            };
+            try {
+                await setDoc(doc(db, "businesses", businessId, "settings", "general"), data, { merge: true });
+                showNotification("Identidade salva!", "success");
+            } catch (e) { showNotification("Erro ao salvar.", "error"); }
+        });
 
+        document.getElementById('save-agenda-btn').addEventListener('click', async () => {
+            const selectedDays = Array.from(document.querySelectorAll('input[name="work-day"]:checked')).map(cb => cb.value);
+            const agendaData = {
+                agenda: {
+                    days: selectedDays,
+                    start: document.getElementById('work-start').value,
+                    end: document.getElementById('work-end').value,
+                    interval: document.getElementById('work-interval').value,
+                    slots: document.getElementById('work-slots').value
+                }
+            };
+            try {
+                await setDoc(doc(db, "businesses", businessId, "settings", "general"), agendaData, { merge: true });
+                showNotification("Agenda configurada!", "success");
+            } catch (e) { showNotification("Erro ao salvar agenda.", "error"); }
+        });
+
+        document.getElementById('copy-url-btn').addEventListener('click', () => {
+            const urlInput = document.getElementById('scheduling-url');
+            navigator.clipboard.writeText(urlInput.value);
+            showNotification("Link copiado!", "success");
+        });
+
+        // --- ACCORDIONS ---
         document.getElementById('items-list-container').addEventListener('click', (e) => {
             const trigger = e.target.closest('[data-accordion-trigger]');
             if (trigger) {
-                const panelId = trigger.dataset.accordionTrigger + '-panel';
-                const panel = document.getElementById(panelId);
-                const icon = trigger.querySelector('i[data-lucide]');
-                
-                if (panel.style.maxHeight) {
-                    panel.style.maxHeight = null;
-                    icon.classList.remove('rotate-180');
-                } else {
-                    panel.style.maxHeight = panel.scrollHeight + "px";
-                    icon.classList.add('rotate-180');
-                }
+                const panel = document.getElementById(trigger.dataset.accordionTrigger + '-panel');
+                panel.style.maxHeight = panel.style.maxHeight ? null : panel.scrollHeight + "px";
             }
         });
 
-        const itemModal = document.getElementById('item-modal');
-        const itemForm = document.getElementById('item-form');
-        
+        // --- PRODUTOS E USUÁRIOS (LÓGICA EXISTENTE) ---
         function listenForProducts() {
-            const productsRef = collection(db, "businesses", businessId, "products");
-            const q = query(productsRef, orderBy("name"));
-            onSnapshot(q, (snapshot) => {
-                allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            onSnapshot(query(collection(db, "businesses", businessId, "products"), orderBy("name")), (snap) => {
+                allProducts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderProducts();
             });
         }
-        
         function renderProducts() {
-            const containers = {
-                bronze: document.getElementById('bronze-items'),
-                consumable: document.getElementById('consumable-items'),
-                extra: document.getElementById('extra-items')
-            };
-            Object.values(containers).forEach(c => c.innerHTML = '');
-            if(allProducts.length === 0) {
-                containers.bronze.innerHTML = '<p class="text-gray-500">Nenhum item cadastrado.</p>';
-            }
-            allProducts.forEach(item => {
-                const priceFormatted = (item.price || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                const itemElement = document.createElement('div');
-                itemElement.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
-                itemElement.innerHTML = `
-                    <div><p class="font-semibold text-gray-800">${item.name}</p><p class="text-sm text-gray-600">${priceFormatted}</p></div>
-                    <div class="flex items-center gap-2">
-                        <button class="edit-item-btn p-2 text-gray-500 hover:text-blue-600" data-id="${item.id}"><i data-lucide="pencil" class="w-5 h-5 pointer-events-none"></i></button>
-                        <button class="delete-item-btn p-2 text-gray-500 hover:text-red-600" data-id="${item.id}"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button>
-                    </div>`;
-                if(containers[item.category]) containers[item.category].appendChild(itemElement);
+            const cont = { bronze: document.getElementById('bronze-items'), consumable: document.getElementById('consumable-items') };
+            Object.values(cont).forEach(c => { if(c) c.innerHTML = '' });
+            allProducts.forEach(p => {
+                const el = document.createElement('div');
+                el.className = 'flex justify-between bg-gray-50 p-2 rounded';
+                el.innerHTML = `<span>${p.name} - R$ ${p.price}</span>
+                    <button onclick="handleDeleteProduct('${p.id}')" class="text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`;
+                if(cont[p.category]) cont[p.category].appendChild(el);
             });
             lucide.createIcons();
         }
-        
+        window.handleDeleteProduct = async (id) => {
+            if(confirm("Excluir item?")) await deleteDoc(doc(db, "businesses", businessId, "products", id));
+        };
+
         document.getElementById('add-new-item-btn').addEventListener('click', () => {
-            itemModal.querySelector('#item-modal-title').textContent = 'Cadastrar Novo Item';
-            itemForm.reset();
-            itemForm.querySelector('#item-id').value = '';
-            itemModal.classList.remove('hidden');
+            document.getElementById('item-form').reset();
+            document.getElementById('item-modal').classList.remove('hidden');
         });
 
-        document.getElementById('items-list-container').addEventListener('click', (e) => {
-            const editBtn = e.target.closest('.edit-item-btn');
-            if (editBtn) openEditModal(editBtn.dataset.id);
-            const deleteBtn = e.target.closest('.delete-item-btn');
-            if (deleteBtn) handleDeleteItem(deleteBtn.dataset.id);
-        });
-
-        function openEditModal(id) {
-            const item = allProducts.find(p => p.id === id);
-            if (!item) return;
-            itemModal.querySelector('#item-modal-title').textContent = 'Editar Item';
-            itemForm.querySelector('#item-id').value = item.id;
-            itemForm.querySelector('#item-name').value = item.name;
-            itemForm.querySelector('#item-price').value = (item.price || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            itemForm.querySelector('#item-category').value = item.category;
-            itemModal.classList.remove('hidden');
-        }
-
-        async function handleDeleteItem(id) {
-            if (!currentUser || !await showConfirm('Tem certeza que deseja excluir este item?')) return;
-            try {
-                await deleteDoc(doc(db, "businesses", businessId, "products", id));
-                showNotification('Item excluído!', 'success');
-            } catch (error) { showNotification('Erro ao excluir item.', 'error'); }
-        }
-
-        document.getElementById('cancel-item-btn').addEventListener('click', () => itemModal.classList.add('hidden'));
-        
-        itemForm.querySelector('#item-price').addEventListener('input', (e) => {
-            let value = e.target.value.replace(/\D/g, '');
-            e.target.value = value ? (parseInt(value, 10) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '';
-        });
-        
-        itemForm.addEventListener('submit', async (e) => {
+        document.getElementById('item-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!currentUser) return;
-            const id = itemForm.querySelector('#item-id').value;
-            const priceString = itemForm.querySelector('#item-price').value.replace(/\D/g, '');
-            const itemData = {
-                name: itemForm.querySelector('#item-name').value,
-                price: priceString ? parseInt(priceString) / 100 : 0,
-                category: itemForm.querySelector('#item-category').value
+            const data = {
+                name: document.getElementById('item-name').value,
+                price: parseFloat(document.getElementById('item-price').value.replace(',','.')),
+                category: document.getElementById('item-category').value
             };
-            try {
-                const productsRef = collection(db, "businesses", businessId, "products");
-                if (id) {
-                    await updateDoc(doc(productsRef, id), itemData);
-                    showNotification("Item atualizado!", 'success');
-                } else {
-                    await addDoc(productsRef, itemData);
-                    showNotification("Item salvo!", 'success');
-                }
-                itemModal.classList.add('hidden');
-            } catch (error) { showNotification("Erro ao salvar item.", 'error'); console.error(error); }
+            await addDoc(collection(db, "businesses", businessId, "products"), data);
+            document.getElementById('item-modal').classList.add('hidden');
         });
-
-        // --- LÓGICA DE USUÁRIOS E PERMISSÕES ---
-        const userModal = document.getElementById('user-modal');
-        const userForm = document.getElementById('user-form');
-        const permissionsContainer = document.getElementById('permissions-container');
 
         function listenForUsers() {
-        const usersRef = collection(db, "businesses", businessId, "user_permissions");
-            onSnapshot(query(usersRef), (snapshot) => {
-                allUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderUserList();
-            });
-        }
-
-        function renderUserList() {
-            const container = document.getElementById('users-list-container');
-            container.innerHTML = '';
-            if (allUsers.length === 0) {
-                container.innerHTML = '<p class="text-gray-500">Nenhum usuário convidado ainda.</p>';
-            }
-            allUsers.forEach(user => {
-                const userEl = document.createElement('div');
-                userEl.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
-                userEl.innerHTML = `
-                    <div>
-                        <p class="font-semibold text-gray-800">${user.email}</p>
-                        <p class="text-sm text-gray-500">${user.role || 'Cargo não definido'}</p>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <button class="edit-user-btn p-2 text-gray-500 hover:text-blue-600" data-id="${user.id}"><i data-lucide="key-round" class="w-5 h-5 pointer-events-none"></i></button>
-                        <button class="delete-user-btn p-2 text-gray-500 hover:text-red-600" data-id="${user.id}"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button>
-                    </div>`;
-                container.appendChild(userEl);
-            });
-            lucide.createIcons();
-        }
-
-        function populatePermissionsCheckboxes(permissions = {}) {
-            permissionsContainer.innerHTML = '';
-            menuItems.forEach(item => {
-                const isChecked = permissions[item.id] !== false;
-                permissionsContainer.innerHTML += `
-                    <label class="flex items-center gap-2 p-2 rounded-md hover:bg-gray-50">
-                        <input type="checkbox" data-permission-id="${item.id}" class="h-4 w-4 rounded border-gray-300 text-[#B76E79] focus:ring-[#B76E79]" ${isChecked ? 'checked' : ''}>
-                        <span>${item.name}</span>
-                    </label>`;
+            onSnapshot(collection(db, "businesses", businessId, "user_permissions"), (snap) => {
+                allUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                const container = document.getElementById('users-list-container');
+                container.innerHTML = allUsers.map(u => `<div class="p-2 bg-gray-50 rounded">${u.email} (${u.role})</div>`).join('');
             });
         }
 
         document.getElementById('add-user-btn').addEventListener('click', () => {
-            userModal.querySelector('#user-modal-title').textContent = 'Convidar Novo Usuário';
-            userForm.reset();
-            userForm.querySelector('#user-id').value = '';
-            userForm.querySelector('#user-email').disabled = false;
-            populatePermissionsCheckboxes();
-            userModal.classList.remove('hidden');
+            const container = document.getElementById('permissions-container');
+            container.innerHTML = menuItems.map(m => `<label class="flex gap-2"><input type="checkbox" data-id="${m.id}" checked> ${m.name}</label>`).join('');
+            document.getElementById('user-modal').classList.remove('hidden');
         });
 
-        document.getElementById('users-list-container').addEventListener('click', (e) => {
-            const editBtn = e.target.closest('.edit-user-btn');
-            if(editBtn) {
-                const user = allUsers.find(u => u.id === editBtn.dataset.id);
-                if(user) {
-                    userModal.querySelector('#user-modal-title').textContent = 'Editar Permissões';
-                    userForm.reset();
-                    userForm.querySelector('#user-id').value = user.id;
-                    userForm.querySelector('#user-email').value = user.email;
-                    userForm.querySelector('#user-email').disabled = true;
-                    userForm.querySelector('#user-role').value = user.role || '';
-                    populatePermissionsCheckboxes(user.permissions);
-                    userModal.classList.remove('hidden');
-                }
-            }
-            const deleteBtn = e.target.closest('.delete-user-btn');
-            if(deleteBtn) handleDeleteUser(deleteBtn.dataset.id);
-        });
-
-       async function handleDeleteUser(userId) {
-    if (await showConfirm('...')) {
-        try {
-            await deleteDoc(doc(db, "businesses", businessId, "user_permissions", userId));
-            showNotification('Usuário removido!', 'success');
-        } catch (error) { 
-            showNotification('Erro ao remover usuário.', 'error'); 
-        }
-    }
-}
-        
-        document.getElementById('cancel-user-btn').addEventListener('click', () => userModal.classList.add('hidden'));
-
-        userForm.addEventListener('submit', async (e) => {
+        document.getElementById('user-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const id = userForm.querySelector('#user-id').value;
-            const email = userForm.querySelector('#user-email').value;
-            const role = userForm.querySelector('#user-role').value;
-            const permissions = {};
-            permissionsContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-                permissions[checkbox.dataset.permissionId] = checkbox.checked;
-            });
-
-            const userData = { email, role, permissions };
-
-            if (id) {
-                try {
-                    const usersRef = collection(db, "businesses", businessId, "user_permissions");
-                    await updateDoc(doc(usersRef, id), userData);
-                    showNotification('Permissões atualizadas!', 'success');
-                    userModal.classList.add('hidden');
-                } catch(error) {
-                    console.error("Erro ao atualizar permissões:", error);
-                    showNotification(`Erro ao atualizar: ${error.message}`, 'error');
-                }
-                return;
-            }
-
-            try {
-                await inviteUser(userData);
-                await sendPasswordResetEmail(auth, email, actionCodeSettings);
-                showNotification('Convite enviado! O usuário receberá um e-mail para definir a senha.', 'success');
-                userModal.classList.add('hidden');
-            } catch(error) {
-                console.error("Erro ao convidar usuário:", error);
-                showNotification(`Erro: ${error.message}`, 'error');
-            }
+            const perms = {};
+            document.querySelectorAll('#permissions-container input').forEach(i => perms[i.dataset.id] = i.checked);
+            const userData = { email: document.getElementById('user-email').value, role: document.getElementById('user-role').value, permissions: perms };
+            await inviteUser(userData);
+            await sendPasswordResetEmail(auth, userData.email, { url: 'https://bronzify.costhastudiodesoftwares.com/', handleCodeInApp: true });
+            showNotification("Convite enviado!");
+            document.getElementById('user-modal').classList.add('hidden');
         });
+        
+        lucide.createIcons();
     </script>
 </body>
 </html>
-
-
-
-
-
-
