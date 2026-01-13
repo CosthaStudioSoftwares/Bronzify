@@ -15,34 +15,62 @@
             if (!isAdmin && permissions[currentPageId] === false) {
                 document.write(`
                     <html lang="pt-BR">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Acesso Negado</title>
+                        <script src="https://cdn.tailwindcss.com"><\/script>
+                        <script src="https://unpkg.com/lucide@latest"><\/script>
+                        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+                        <style>body { font-family: 'Poppins', sans-serif; } h1 { font-family: 'Playfair Display', serif; }</style>
+                    </head>
                     <body class="bg-gray-100 flex items-center justify-center h-screen">
                         <div class="text-center bg-white p-12 rounded-2xl shadow-lg max-w-lg mx-auto">
-                            <h1 class="text-4xl text-gray-800">Acesso Negado</h1>
-                            <p class="text-gray-600 mt-2">Você não tem permissão para acessar esta página.</p>
-                            <a href="./dashboard.html" class="mt-6 inline-block bg-blue-500 text-white px-6 py-2 rounded-lg">Voltar</a>
+                            <i data-lucide="shield-alert" class="mx-auto w-16 h-16 text-red-500"></i>
+                            <h1 class="text-4xl mt-4 text-gray-800">Acesso Negado</h1>
+                            <p class="text-gray-600 mt-2">Você não tem permissão para acessar esta página. Por favor, contate o administrador do sistema.</p>
+                            <a href="./dashboard.html" class="mt-6 inline-block bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600">Voltar para a Página Inicial</a>
                         </div>
+                        <script>lucide.createIcons();<\/script>
                     </body>
                     </html>
                 `);
             }
         }
-    } catch (e) { window.location.href = './index.html'; }
-    </script>
+    } catch (e) {
+        console.error("Erro na verificação de permissão:", e);
+        window.location.href = './index.html';
+    }
+</script>
     <script>
-        if (sessionStorage.getItem('acessoLiberado') !== 'true') { window.location.href = 'dashboard.html'; }
+        if (sessionStorage.getItem('acessoLiberado') !== 'true') {
+            window.location.href = 'dashboard.html';
+        }
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clientes - Bronzify</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#B76E79">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Bronzify">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #FFF9F9; }
-        h1, h2, h3 { font-family: 'Playfair Display', serif; }
+        h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
+        .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1.25rem; border-radius: 0.75rem; color: #4A5568; transition: all 0.3s ease; font-weight: 500; }
         .sidebar-link:hover, .sidebar-link.active { background-color: #FADADD; color: #B76E79; }
+        .sidebar-link svg { margin-right: 0.75rem; }
         .modal-backdrop { transition: opacity 0.3s ease; }
+        .modal-content { transition: transform 0.3s ease; }
+        .sidebar-mobile { transform: translateX(-100%); transition: transform 0.3s ease-in-out; }
+        .sidebar-mobile.open { transform: translateX(0); }
     </style>
 </head>
 <body class="bg-gray-50 opacity-0 transition-opacity duration-300">
@@ -56,7 +84,7 @@
                         <i data-lucide="cake" class="w-8 h-8"></i>
                         <div>
                             <h4 class="font-bold">Aniversariantes de Hoje!</h4>
-                            <p class="text-sm opacity-90">Envie um parabéns para fidelizar sua cliente.</p>
+                            <p class="text-sm opacity-90">Envie um parabéns especial agora.</p>
                         </div>
                     </div>
                     <button onclick="document.getElementById('birthday-filter-btn').click()" class="bg-white text-pink-600 px-4 py-1 rounded-full text-xs font-bold uppercase">Ver agora</button>
@@ -68,7 +96,7 @@
                     <button id="open-menu-btn" class="lg:hidden p-2 -ml-2"><i data-lucide="menu" class="w-6 h-6 text-gray-800"></i></button>
                     <h2 class="text-3xl lg:text-4xl text-gray-800 w-full text-center sm:text-left">Gestão de Clientes</h2>
                 </div>
-                <button id="add-client-btn" class="w-full sm:w-auto bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center justify-center gap-2">
+                <button id="add-client-btn" class="w-full sm:w-auto bg-[#B76E79] text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center justify-center gap-2 flex-shrink-0">
                     <i data-lucide="user-plus"></i> <span>Cadastrar Cliente</span>
                 </button>
             </header>
@@ -79,14 +107,14 @@
                         <h3 class="text-2xl text-gray-800 mb-4">Pesquisar Clientes</h3>
                         <div class="flex flex-col gap-4">
                             <div class="relative flex-grow">
-                                <input type="text" id="search-input" placeholder="Nome ou telefone..." class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-[#B76E79]">
+                                <input type="text" id="search-input" placeholder="Digite nome ou telefone para filtrar a lista..." class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]">
                                 <div id="search-results" class="absolute z-10 w-full bg-white border rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
                             </div>
                             <div class="flex flex-col sm:flex-row gap-4">
-                                <button id="birthday-filter-btn" class="flex-1 bg-pink-100 text-[#B76E79] px-4 py-2 rounded-lg flex items-center justify-center gap-2">
+                                <button id="birthday-filter-btn" class="flex-1 bg-pink-100 text-[#B76E79] px-4 py-2 rounded-lg hover:bg-pink-200 flex items-center justify-center gap-2">
                                     <i data-lucide="cake"></i> Aniversariantes do Mês
                                 </button>
-                                <button id="package-filter-btn" class="flex-1 bg-green-100 text-green-700 px-4 py-2 rounded-lg flex items-center justify-center gap-2">
+                                <button id="package-filter-btn" class="flex-1 bg-green-100 text-green-700 px-4 py-2 rounded-lg hover:bg-green-200 flex items-center justify-center gap-2">
                                     <i data-lucide="package-check"></i> Pacotes Ativos
                                 </button>
                             </div>
@@ -94,31 +122,34 @@
                     </div>
 
                     <div class="bg-white p-6 rounded-2xl shadow-md">
-                        <div class="flex bg-gray-100 p-1 rounded-xl mb-6 gap-1">
-                            <button id="tab-clients" class="flex-1 py-2 rounded-lg bg-[#B76E79] text-white font-bold transition-all">Lista</button>
-                            <button id="tab-agenda" class="flex-1 py-2 rounded-lg text-gray-500 font-bold transition-all">Agenda</button>
-                            <button id="tab-recovery" class="flex-1 py-2 rounded-lg text-gray-500 font-bold transition-all">Retorno</button>
+                        <div class="bg-gray-100 p-1 rounded-xl mb-6 flex gap-1">
+                            <button id="tab-clients" class="flex-1 py-2 rounded-lg bg-[#B76E79] text-white font-bold transition-all">Clientes</button>
+                            <button id="tab-agenda" class="flex-1 py-2 rounded-lg text-gray-500 font-bold hover:bg-gray-200 transition-all">Agenda</button>
+                            <button id="tab-recovery" class="flex-1 py-2 rounded-lg text-gray-500 font-bold hover:bg-gray-200 transition-all">Retorno</button>
                         </div>
 
-                        <div id="view-clients">
+                        <div id="view-clients" class="space-y-4">
                             <div id="clients-list" class="space-y-4"></div>
                             <div id="pagination-controls" class="mt-6 flex justify-between items-center"></div>
                         </div>
 
                         <div id="view-agenda" class="hidden space-y-6">
-                            <div class="bg-amber-50 p-4 rounded-xl border border-amber-200">
-                                <h4 class="font-bold text-amber-800 flex items-center gap-2"><i data-lucide="calendar"></i> Agendamentos Pendentes</h4>
-                                <p class="text-sm text-amber-700">Aprove ou recuse os horários solicitados pelas clientes.</p>
+                            <div class="bg-amber-50 p-4 rounded-xl border border-amber-200 text-amber-800">
+                                <h4 class="font-bold">Agendamentos Solicitados</h4>
+                                <p class="text-sm">Veja abaixo quem solicitou horário pelo link.</p>
                             </div>
-                            <div id="agenda-list" class="text-center text-gray-400 py-8">Nenhum agendamento pendente para hoje.</div>
+                            <div id="agenda-list" class="text-center text-gray-400 py-10">
+                                <p>Nenhum agendamento pendente para os próximos dias.</p>
+                            </div>
                         </div>
 
                         <div id="view-recovery" class="hidden space-y-6">
-                            <div class="bg-blue-50 p-4 rounded-xl border border-blue-200">
-                                <label class="text-sm font-bold text-blue-800">Lembrar manutenção após:</label>
+                            <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                <label class="text-sm text-blue-800 font-bold">Lembrar manutenção (há quanto tempo não voltam?):</label>
                                 <div class="flex gap-2 mt-2">
                                     <input type="number" id="recovery-days" value="10" class="w-20 p-2 border rounded-lg text-center">
-                                    <button id="run-recovery-filter" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold">Filtrar</button>
+                                    <span class="self-center">dias</span>
+                                    <button id="run-recovery-filter" class="bg-blue-600 text-white px-4 py-2 rounded-lg ml-auto hover:bg-blue-700">Filtrar Clientes</button>
                                 </div>
                             </div>
                             <div id="recovery-list" class="space-y-4"></div>
@@ -129,36 +160,36 @@
                 <div class="lg:col-span-1">
                     <div class="bg-white p-6 rounded-2xl shadow-md lg:sticky top-8">
                         <h3 class="text-2xl text-gray-800 mb-4">Sorteio de Clientes</h3>
-                        <select id="raffle-months" multiple class="w-full p-2 border rounded-lg h-32 mb-4"></select>
-                        <button id="raffle-btn" class="w-full bg-gradient-to-r from-pink-400 to-rose-400 text-white py-3 rounded-xl font-bold shadow-md">Sortear Cliente</button>
+                        <label for="raffle-months" class="block text-gray-600 mb-2">Selecione os meses:</label>
+                        <select id="raffle-months" multiple class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79] h-32"></select>
+                        <button id="raffle-btn" class="w-full mt-4 bg-gradient-to-r from-pink-400 to-rose-400 text-white py-2 rounded-lg hover:opacity-90">Sortear Cliente</button>
                     </div>
                 </div>
             </div>
         </main>
-
-        <div id="client-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
-            <div class="bg-white rounded-2xl w-full max-w-md p-8">
-                <h3 id="modal-title" class="text-2xl mb-6">Cliente</h3>
-                <form id="client-form" class="space-y-4">
+        
+        <div id="client-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 modal-content transform scale-95">
+                <h3 id="modal-title" class="text-2xl text-gray-800 mb-6">Cadastrar Nova Cliente</h3>
+                <form id="client-form">
                     <input type="hidden" id="client-id">
-                    <input type="text" id="client-name" placeholder="Nome Completo" class="w-full p-3 border rounded-lg" required>
-                    <input type="tel" id="client-phone" placeholder="Telefone" class="w-full p-3 border rounded-lg" required>
-                    <input type="date" id="client-birthdate" class="w-full p-3 border rounded-lg" required>
-                    <div class="flex justify-end gap-3 pt-4">
-                        <button type="button" id="cancel-btn" class="px-6 py-2">Cancelar</button>
-                        <button type="submit" class="bg-[#B76E79] text-white px-8 py-2 rounded-lg font-bold">Salvar</button>
-                    </div>
+                    <div class="mb-4"><label for="client-name" class="block text-gray-600 mb-2">Nome Completo</label><input type="text" id="client-name" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required></div>
+                    <div class="mb-4"><label for="client-phone" class="block text-gray-600 mb-2">Telefone</label><input type="tel" id="client-phone" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required></div>
+                    <div class="mb-6"><label for="client-birthdate" class="block text-gray-600 mb-2">Data de Nascimento</label><input type="date" id="client-birthdate" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B76E79]" required></div>
+                    <div class="flex justify-end gap-4"><button type="button" id="cancel-btn" class="px-4 py-2 text-gray-600 rounded-lg hover:bg-gray-100">Cancelar</button><button type="submit" class="px-6 py-2 bg-[#B76E79] text-white rounded-lg hover:opacity-90">Salvar</button></div>
                 </form>
             </div>
         </div>
 
-        <div id="winner-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
-            <div class="bg-white rounded-2xl w-full max-w-sm p-8 text-center">
+        <div id="winner-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 text-center modal-content transform scale-95">
                 <i data-lucide="party-popper" class="mx-auto w-16 h-16 text-yellow-500 mb-4"></i>
-                <h3 class="text-2xl font-bold mb-2">Parabéns!</h3>
+                <h3 class="text-2xl text-gray-800 mb-2">Parabéns!</h3>
+                <p class="text-gray-500 mb-4">A cliente sorteada é:</p>
                 <p id="winner-name" class="text-3xl font-bold text-[#B76E79]"></p>
-                <p id="winner-phone" class="text-lg mt-2"></p>
-                <button id="close-winner-modal" class="w-full mt-6 bg-[#B76E79] text-white py-2 rounded-lg">Fechar</button>
+                <p id="winner-phone" class="text-lg text-gray-700 mt-1"></p>
+                <p id="winner-date" class="text-sm text-gray-500 mt-2"></p>
+                <button id="close-winner-modal" class="w-full mt-6 bg-[#B76E79] text-white py-2 rounded-lg hover:opacity-90">Fechar</button>
             </div>
         </div>
     </div>
@@ -166,53 +197,43 @@
     <script src="./config.js"></script>
     <script type="module" src="./layout.js"></script>
     <script src="./utils.js"></script> 
-
+    
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, getDocs, doc, updateDoc, deleteDoc, where, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, getDocs, doc, updateDoc, deleteDoc, where, orderBy, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        let currentUser = null, businessId = null;
-        let allClientsData = [], currentClientList = [], studioSettings = {};
-        let isBirthdayFilterActive = false, isPackageFilterActive = false, currentPage = 1;
-        const CLIENTS_PER_PAGE = 5;
-
+        let currentUser = null;
+        let businessId = null;
+        let studioSettings = {};
         const clientsListEl = document.getElementById('clients-list');
         const searchInput = document.getElementById('search-input');
         const searchResultsContainer = document.getElementById('search-results');
+        
+        let allClientsData = []; 
+        let currentClientList = [];
+        let isBirthdayFilterActive = false;
+        let isPackageFilterActive = false;
+        let currentPage = 1;
+        const CLIENTS_PER_PAGE = 5;
 
-        // --- 1. MARKETING E WHATSAPP ---
-        async function loadStudioMessages() {
-            const docSnap = await getDocs(collection(db, "businesses", businessId, "settings"));
-            studioSettings = docSnap.docs.find(d => d.id === "general")?.data() || {};
-        }
-
-        function sendProfessionalWhatsApp(client, type) {
-            const firstName = (client.name || 'Cliente').split(' ')[0];
-            let message = type === 'birthday' 
-                ? (studioSettings.msgBirthday || "Olá [NOME], a equipe do [STUDIO] te deseja um feliz aniversário! 🎂") 
-                : (studioSettings.msgReturn || "Oi [NOME], faz tempo que não te vemos no [STUDIO]! Que tal renovar seu bronze?");
-
-            message = message.replace(/\[NOME\]/g, firstName).replace(/\[STUDIO\]/g, studioSettings.studioName || "nosso Studio");
-            const phone = client.phone.replace(/\D/g, '');
-            window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');
-        }
-        window.sendProfessionalWhatsApp = sendProfessionalWhatsApp;
-
-        // --- 2. INICIALIZAÇÃO ---
+        // --- 1. FUNÇÕES DE INICIALIZAÇÃO ---
         async function initializePage() {
             try {
                 await loadAllClients();
                 await loadStudioMessages();
-                currentClientList = [...allClientsData];
+                currentClientList = [...allClientsData]; 
                 checkTodayBirthdays();
                 renderPaginatedClients();
                 document.body.classList.remove('opacity-0');
-            } catch (e) { console.error(e); }
+            } catch (e) {
+                console.error("Falha na inicialização:", e);
+                document.body.classList.remove('opacity-0');
+            }
         }
 
         onAuthStateChanged(auth, async (user) => {
@@ -221,14 +242,72 @@
                 businessId = sessionStorage.getItem('businessId');
                 if (!businessId) { window.location.href = 'index.html'; return; }
                 await initializePage();
-            } else { window.location.href = 'index.html'; }
+            } else {
+                window.location.href = 'index.html';
+            }
         });
 
-        // --- 3. CARREGAMENTO E RENDERIZAÇÃO ---
+        // --- 2. CARREGAMENTO DE DADOS ---
         async function loadAllClients() {
-            const snap = await getDocs(query(collection(db, "businesses", businessId, "clients")));
-            allClientsData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            allClientsData.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            const clientsRef = collection(db, "businesses", businessId, "clients");
+            const querySnapshot = await getDocs(query(clientsRef));
+            allClientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            allClientsData.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' }));
+        }
+
+        async function loadStudioMessages() {
+            try {
+                const docSnap = await getDocs(collection(db, "businesses", businessId, "settings"));
+                studioSettings = docSnap.docs.find(d => d.id === "general")?.data() || {};
+            } catch (e) { console.error(e); }
+        }
+
+        // --- 3. LÓGICA DE MARKETING E WHATSAPP ---
+        function sendProfessionalWhatsApp(client, type) {
+            const firstName = (client.name || 'Cliente').split(' ')[0];
+            let message = type === 'birthday' 
+                ? (studioSettings.msgBirthday || "Olá [NOME], a equipe do [STUDIO] passa para te desejar um feliz aniversário! 🎂") 
+                : (studioSettings.msgReturn || "Oi [NOME], faz tempo que não te vemos no [STUDIO]! Que tal renovar seu bronze?");
+
+            message = message.replace(/\[NOME\]/g, firstName).replace(/\[STUDIO\]/g, studioSettings.studioName || "nosso Studio");
+            const phone = client.phone.replace(/\D/g, '');
+            window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');
+        }
+        window.sendProfessionalWhatsApp = sendProfessionalWhatsApp;
+
+        function checkTodayBirthdays() {
+            const today = new Date().toISOString().substring(5, 10); // MM-DD
+            const hasBirthday = allClientsData.some(c => c.birthdate && c.birthdate.substring(5, 10) === today);
+            if(hasBirthday) {
+                document.getElementById('alerts-container').classList.remove('hidden');
+                document.getElementById('alert-birthday').classList.remove('hidden');
+            }
+        }
+
+        // --- 4. RENDERIZAÇÃO E PAGINAÇÃO ---
+        function renderPaginatedClients() {
+            const paginationControls = document.getElementById('pagination-controls');
+            paginationControls.innerHTML = '';
+            const startIndex = (currentPage - 1) * CLIENTS_PER_PAGE;
+            const endIndex = startIndex + CLIENTS_PER_PAGE;
+            const paginatedClients = currentClientList.slice(startIndex, endIndex);
+            renderClientItems(paginatedClients);
+
+            const totalPages = Math.ceil(currentClientList.length / CLIENTS_PER_PAGE);
+            if (totalPages > 1) {
+                const prev = document.createElement('button');
+                prev.innerHTML = '<i data-lucide="arrow-left" class="w-4 h-4"></i>';
+                prev.disabled = currentPage === 1;
+                prev.onclick = () => { currentPage--; renderPaginatedClients(); };
+                
+                const next = document.createElement('button');
+                next.innerHTML = '<i data-lucide="arrow-right" class="w-4 h-4"></i>';
+                next.disabled = currentPage === totalPages;
+                next.onclick = () => { currentPage++; renderPaginatedClients(); };
+
+                paginationControls.append(prev, document.createTextNode(` Pág ${currentPage}/${totalPages} `), next);
+                lucide.createIcons();
+            }
         }
 
         function renderClientItems(clientsToRender) {
@@ -237,59 +316,54 @@
 
             clientsToRender.forEach(client => {
                 const birthMonth = client.birthdate ? new Date(client.birthdate + 'T00:00:00').getMonth() + 1 : 0;
-                const isBirthday = birthMonth === currentMonth;
-                const formattedDate = client.birthdate ? new Date(client.birthdate + 'T00:00:00').toLocaleDateString('pt-BR') : '---';
+                const isBirthdayMonth = birthMonth === currentMonth;
+                const birthFormatted = client.birthdate ? new Date(client.birthdate + 'T00:00:00').toLocaleDateString('pt-BR') : '---';
                 
-                const el = document.createElement('div');
-                el.className = 'flex flex-col sm:flex-row items-center justify-between p-4 bg-white border rounded-xl gap-4 hover:shadow-md transition-all';
-                el.innerHTML = `
-                    <div class="flex items-center gap-3 w-full">
-                        <div class="p-3 bg-pink-50 rounded-full text-pink-500">
-                            <i data-lucide="${isBirthday ? 'cake' : 'user'}"></i>
-                        </div>
-                        <div class="flex-grow">
-                            <p class="font-bold text-gray-800">${client.name}</p>
-                            <p class="text-sm text-gray-500">${client.phone}</p>
+                const clientElement = document.createElement('div');
+                clientElement.className = 'client-item flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-gray-50 rounded-xl gap-4 border border-transparent hover:border-[#B76E79] transition-all';
+                clientElement.innerHTML = `
+                    <div class="flex-grow">
+                        <div class="flex items-center gap-3">
+                            ${isBirthdayMonth ? '<i data-lucide="cake" class="text-pink-500"></i>' : '<i data-lucide="user" class="text-gray-400"></i>'}
+                            <div>
+                                <p class="font-bold text-gray-700">${client.name || ''}</p>
+                                <p class="text-sm text-gray-500">${client.phone || ''} | Nasc: ${birthFormatted}</p>
+                            </div>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button class="p-2 text-pink-500 hover:bg-pink-100 rounded-lg" onclick='sendProfessionalWhatsApp(${JSON.stringify(client).replace(/'/g, "&apos;")}, "birthday")'><i data-lucide="cake"></i></button>
-                        <button class="p-2 text-blue-500 hover:bg-blue-100 rounded-lg" onclick='sendProfessionalWhatsApp(${JSON.stringify(client).replace(/'/g, "&apos;")}, "recovery")'><i data-lucide="refresh-cw"></i></button>
+                        <button class="p-2 text-pink-500 hover:bg-pink-100 rounded-full" onclick='sendProfessionalWhatsApp(${JSON.stringify(client).replace(/'/g, "&apos;")}, "birthday")' title="Parabéns"><i data-lucide="cake"></i></button>
+                        <button class="p-2 text-blue-500 hover:bg-blue-100 rounded-full" onclick='sendProfessionalWhatsApp(${JSON.stringify(client).replace(/'/g, "&apos;")}, "recovery")' title="Manutenção"><i data-lucide="refresh-cw"></i></button>
                         <button class="edit-btn p-2 text-gray-400 hover:text-blue-600" data-id="${client.id}"><i data-lucide="file-pen-line"></i></button>
                         <button class="delete-btn p-2 text-gray-400 hover:text-red-600" data-id="${client.id}"><i data-lucide="trash-2"></i></button>
                     </div>`;
-                clientsListEl.appendChild(el);
+                clientsListEl.appendChild(clientElement);
             });
             lucide.createIcons();
         }
 
-        function checkTodayBirthdays() {
-            const today = new Date().toISOString().substring(5, 10);
-            const hasBirthday = allClientsData.some(c => c.birthdate && c.birthdate.substring(5, 10) === today);
-            if(hasBirthday) {
-                document.getElementById('alerts-container').classList.remove('hidden');
-                document.getElementById('alert-birthday').classList.remove('hidden');
-            }
-        }
-
-        // --- 4. ABAS E NAVEGAÇÃO ---
+        // --- 5. LÓGICA DE ABAS (NAVEGAÇÃO) ---
         const tabConfigs = { 'tab-clients': 'view-clients', 'tab-agenda': 'view-agenda', 'tab-recovery': 'view-recovery' };
         Object.keys(tabConfigs).forEach(tabId => {
-            document.getElementById(tabId).addEventListener('click', (e) => {
-                Object.keys(tabConfigs).forEach(id => {
-                    document.getElementById(id).classList.remove('bg-[#B76E79]', 'text-white');
-                    document.getElementById(id).classList.add('text-gray-500');
-                    document.getElementById(tabConfigs[id]).classList.add('hidden');
+            const btn = document.getElementById(tabId);
+            if (btn) {
+                btn.addEventListener('click', (e) => {
+                    Object.keys(tabConfigs).forEach(id => {
+                        document.getElementById(id).classList.remove('bg-[#B76E79]', 'text-white');
+                        document.getElementById(id).classList.add('text-gray-500');
+                        document.getElementById(tabConfigs[id]).classList.add('hidden');
+                    });
+                    e.currentTarget.classList.add('bg-[#B76E79]', 'text-white');
+                    e.currentTarget.classList.remove('text-gray-500');
+                    document.getElementById(tabConfigs[tabId]).classList.remove('hidden');
                 });
-                e.currentTarget.classList.add('bg-[#B76E79]', 'text-white');
-                document.getElementById(tabConfigs[tabId]).classList.remove('hidden');
-            });
+            }
         });
 
-        // --- 5. BUSCA E FILTROS ---
+        // --- 6. BUSCA E FILTROS ---
         searchInput.addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase();
-            currentClientList = allClientsData.filter(c => c.name?.toLowerCase().includes(term) || c.phone?.includes(term));
+            currentClientList = term === '' ? allClientsData : allClientsData.filter(c => c.name?.toLowerCase().includes(term) || c.phone?.includes(term));
             currentPage = 1; renderPaginatedClients();
         });
 
@@ -300,7 +374,13 @@
             renderPaginatedClients();
         });
 
-        // --- 6. MODAL E SALVAMENTO ---
+        document.getElementById('package-filter-btn').addEventListener('click', () => {
+            isPackageFilterActive = !isPackageFilterActive;
+            currentClientList = isPackageFilterActive ? allClientsData.filter(c => c.packages && Object.values(c.packages).some(v => v > 0)) : allClientsData;
+            renderPaginatedClients();
+        });
+
+        // --- 7. MODAL E OPERAÇÕES CRUD ---
         const modal = document.getElementById('client-modal'), clientForm = document.getElementById('client-form');
         document.getElementById('add-client-btn').addEventListener('click', () => { clientForm.reset(); document.getElementById('client-id').value = ''; modal.classList.remove('hidden'); });
         document.getElementById('cancel-btn').addEventListener('click', () => modal.classList.add('hidden'));
@@ -310,14 +390,15 @@
             const id = document.getElementById('client-id').value;
             const data = { name: document.getElementById('client-name').value, phone: document.getElementById('client-phone').value, birthdate: document.getElementById('client-birthdate').value };
             const ref = collection(db, "businesses", businessId, "clients");
-            if(id) await updateDoc(doc(ref, id), data); else await addDoc(ref, data);
-            modal.classList.add('hidden'); initializePage();
+            try {
+                if (id) await updateDoc(doc(ref, id), data); else await addDoc(ref, { ...data, createdAt: new Date() });
+                modal.classList.add('hidden'); initializePage();
+            } catch (e) { alert("Erro ao salvar!"); }
         });
 
-        // Eventos Delegados (Editar e Excluir)
         clientsListEl.addEventListener('click', async (e) => {
             const editBtn = e.target.closest('.edit-btn'), deleteBtn = e.target.closest('.delete-btn');
-            if(editBtn) {
+            if (editBtn) {
                 const c = allClientsData.find(cl => cl.id === editBtn.dataset.id);
                 document.getElementById('client-id').value = c.id;
                 document.getElementById('client-name').value = c.name;
@@ -325,34 +406,25 @@
                 document.getElementById('client-birthdate').value = c.birthdate;
                 modal.classList.remove('hidden');
             }
-            if(deleteBtn && await showConfirm('Excluir cliente?')) {
+            if (deleteBtn && confirm("Excluir cliente?")) {
                 await deleteDoc(doc(db, "businesses", businessId, "clients", deleteBtn.dataset.id));
                 initializePage();
             }
         });
 
-        // --- 7. SORTEIO ---
+        // --- 8. SORTEIO (PRESERVADO) ---
         const months = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
         const raffleSelect = document.getElementById('raffle-months');
         months.forEach((m, i) => raffleSelect.add(new Option(m, i)));
-
+        
         document.getElementById('raffle-btn').addEventListener('click', () => {
+            if (allClientsData.length === 0) return;
             const winner = allClientsData[Math.floor(Math.random() * allClientsData.length)];
-            if(winner) {
-                document.getElementById('winner-name').textContent = winner.name;
-                document.getElementById('winner-phone').textContent = winner.phone;
-                document.getElementById('winner-modal').classList.remove('hidden');
-            }
+            document.getElementById('winner-name').textContent = winner.name;
+            document.getElementById('winner-phone').textContent = winner.phone;
+            document.getElementById('winner-modal').classList.remove('hidden');
         });
         document.getElementById('close-winner-modal').addEventListener('click', () => document.getElementById('winner-modal').classList.add('hidden'));
-
-        // --- 8. PAGINAÇÃO SIMPLIFICADA ---
-        function renderPaginatedClients() {
-            const start = (currentPage - 1) * CLIENTS_PER_PAGE;
-            renderClientItems(currentClientList.slice(start, start + CLIENTS_PER_PAGE));
-            const totalPages = Math.ceil(currentClientList.length / CLIENTS_PER_PAGE);
-            document.getElementById('pagination-controls').innerHTML = totalPages > 1 ? `<span>Pág ${currentPage}/${totalPages}</span>` : '';
-        }
 
         lucide.createIcons();
     </script>
