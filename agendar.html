@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendamento Online - Bronzify</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #FFF9F9; }
+        h1 { font-family: 'Playfair Display', serif; }
+        .slot-btn.selected { background-color: #B76E79 !important; color: white !important; border-color: #B76E79 !important; }
+        .slot-btn:disabled { opacity: 0.4; cursor: not-allowed; text-decoration: line-through; }
+    </style>
+</head>
+<body class="p-4 pb-20">
+
+    <div class="max-w-md mx-auto space-y-6">
+        <header class="text-center py-6">
+            <div class="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="calendar-heart" class="text-[#B76E79] w-10 h-10"></i>
+            </div>
+            <h1 id="studio-display-name" class="text-3xl text-gray-800">Carregando...</h1>
+            <p class="text-gray-500 text-sm">Escolha o melhor horário para o seu bronze</p>
+        </header>
+
+        <div id="step-1" class="bg-white p-6 rounded-3xl shadow-lg space-y-4">
+            <h3 class="font-bold text-gray-700 border-b pb-2">Seus Dados</h3>
+            <div>
+                <label class="text-xs text-gray-400 uppercase font-bold">Nome Completo</label>
+                <input type="text" id="client-name" placeholder="Como podemos te chamar?" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-[#B76E79] outline-none">
+            </div>
+            <div>
+                <label class="text-xs text-gray-400 uppercase font-bold">WhatsApp</label>
+                <input type="tel" id="client-phone" placeholder="(00) 0 0000-0000" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-[#B76E79] outline-none">
+            </div>
+        </div>
+
+        <div id="step-2" class="bg-white p-6 rounded-3xl shadow-lg space-y-4">
+            <h3 class="font-bold text-gray-700 border-b pb-2">Data e Hora</h3>
+            <div>
+                <label class="text-xs text-gray-400 uppercase font-bold">Selecione o Dia</label>
+                <input type="date" id="booking-date" class="w-full p-3 border rounded-xl outline-none">
+            </div>
+            
+            <div id="slots-container" class="grid grid-cols-3 gap-2 pt-2">
+                <p class="col-span-3 text-center text-gray-400 text-sm italic">Selecione uma data para ver os horários</p>
+            </div>
+        </div>
+
+        <button id="confirm-booking-btn" class="w-full bg-[#B76E79] text-white py-4 rounded-2xl font-bold text-lg shadow-xl hover:scale-[1.02] transition-transform flex items-center justify-center gap-2">
+            <i data-lucide="check-circle"></i> Solicitar Agendamento
+        </button>
+
+        <p class="text-center text-xs text-gray-400">Ao solicitar, aguarde a confirmação do studio via WhatsApp.</p>
+    </div>
+
+    <div id="success-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-6 z-50">
+        <div class="bg-white rounded-3xl p-8 text-center space-y-4 max-w-sm w-full">
+            <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto">
+                <i data-lucide="party-popper" class="w-10 h-10"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-800">Solicitado!</h2>
+            <p class="text-gray-600">Sua solicitação foi enviada para o studio. Avisaremos você em breve!</p>
+            <button onclick="location.reload()" class="w-full bg-gray-800 text-white py-3 rounded-xl">Entendido</button>
+        </div>
+    </div>
+
+    <script src="./config.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, query, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Pega o ID do estúdio pela URL (?businessId=XXXX)
+        const urlParams = new URLSearchParams(window.location.search);
+        const businessId = urlParams.get('businessId');
+
+        let selectedSlot = null;
+        let studioSettings = null;
+
+        if (!businessId) {
+            document.body.innerHTML = "<div class='p-10 text-center'>Link de agendamento inválido. Solicite um novo link ao studio.</div>";
+        }
+
+        async function loadStudioData() {
+            try {
+                // Carrega nome do studio e agenda
+                const docRef = doc(db, "businesses", businessId, "settings", "general");
+                const docSnap = await getDoc(docRef);
+                
+                if (docSnap.exists()) {
+                    studioSettings = docSnap.data();
+                    document.getElementById('studio-display-name').textContent = studioSettings.studioName || "Studio de Bronze";
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        // Gera horários baseados na config do dono
+        function generateSlots(dateValue) {
+            const container = document.getElementById('slots-container');
+            container.innerHTML = "";
+            
+            if (!studioSettings || !studioSettings.agenda) {
+                container.innerHTML = "<p class='col-span-3 text-red-400 text-center text-sm'>Studio não configurou horários.</p>";
+                return;
+            }
+
+            const { start, end, interval, slots } = studioSettings.agenda;
+            let currentTime = start;
+
+            while (currentTime < end) {
+                const btn = document.createElement('button');
+                btn.className = "slot-btn p-2 border rounded-lg text-sm font-medium hover:bg-gray-50 transition-all";
+                btn.textContent = currentTime;
+                btn.onclick = () => {
+                    document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    selectedSlot = btn.textContent;
+                };
+                container.appendChild(btn);
+
+                // Incrementa o tempo
+                let [h, m] = currentTime.split(':').map(Number);
+                m += parseInt(interval);
+                if (m >= 60) { h += Math.floor(m/60); m = m % 60; }
+                currentTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            }
+        }
+
+        document.getElementById('booking-date').addEventListener('change', (e) => {
+            generateSlots(e.target.value);
+        });
+
+        document.getElementById('confirm-booking-btn').addEventListener('click', async () => {
+            const name = document.getElementById('client-name').value;
+            const phone = document.getElementById('client-phone').value;
+            const date = document.getElementById('booking-date').value;
+
+            if (!name || !phone || !date || !selectedSlot) {
+                alert("Por favor, preencha todos os campos e escolha um horário.");
+                return;
+            }
+
+            try {
+                // Salva o agendamento na nova coleção "bookings"
+                await addDoc(collection(db, "businesses", businessId, "bookings"), {
+                    clientName: name,
+                    clientPhone: phone,
+                    date: date,
+                    time: selectedSlot,
+                    status: 'pendente',
+                    createdAt: new Date()
+                });
+
+                document.getElementById('success-modal').classList.remove('hidden');
+                lucide.createIcons();
+            } catch (e) {
+                alert("Erro ao solicitar. Tente novamente.");
+            }
+        });
+
+        // Máscara de Telefone
+        document.getElementById('client-phone').addEventListener('input', (e) => {
+            let v = e.target.value.replace(/\D/g, '').substring(0, 11);
+            if (v.length > 2) v = `(${v.substring(0,2)}) ${v.substring(2)}`;
+            if (v.length > 9) v = `${v.substring(0,9)}-${v.substring(9)}`;
+            e.target.value = v;
+        });
+
+        loadStudioData();
+        lucide.createIcons();
+    </script>
+</body>
+</html>
