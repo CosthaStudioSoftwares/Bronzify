@@ -87,49 +87,64 @@
         }
 
         async function loadStudioData() {
-            try {
-                // Carrega nome do studio e agenda
-                const docRef = doc(db, "businesses", businessId, "settings", "general");
-                const docSnap = await getDoc(docRef);
-                
-                if (docSnap.exists()) {
-                    studioSettings = docSnap.data();
-                    document.getElementById('studio-display-name').textContent = studioSettings.studioName || "Studio de Bronze";
-                }
-            } catch (e) { console.error(e); }
+    try {
+        // Tentamos buscar o documento de configurações
+        const docRef = doc(db, "businesses", businessId, "settings", "general");
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+            studioSettings = docSnap.data();
+            console.log("Configurações carregadas:", studioSettings); // Verifique o console do navegador (F12)
+            document.getElementById('studio-display-name').textContent = studioSettings.studioName || "Studio de Bronze";
+        } else {
+            console.error("Documento de configurações não encontrado no Firebase!");
+            document.getElementById('studio-display-name').textContent = "Studio não encontrado";
         }
+    } catch (e) { 
+        console.error("Erro ao carregar dados:", e); 
+    }
+}
 
-        // Gera horários baseados na config do dono
-        function generateSlots(dateValue) {
-            const container = document.getElementById('slots-container');
-            container.innerHTML = "";
-            
-            if (!studioSettings || !studioSettings.agenda) {
-                container.innerHTML = "<p class='col-span-3 text-red-400 text-center text-sm'>Studio não configurou horários.</p>";
-                return;
-            }
+function generateSlots(dateValue) {
+    const container = document.getElementById('slots-container');
+    container.innerHTML = "";
+    
+    // Verificamos se 'agenda' existe dentro de studioSettings
+    if (!studioSettings || !studioSettings.agenda) {
+        container.innerHTML = "<p class='col-span-3 text-red-400 text-center text-sm'>Studio não configurou horários ou erro na rede.</p>";
+        return;
+    }
 
-            const { start, end, interval, slots } = studioSettings.agenda;
-            let currentTime = start;
+    const { start, end, interval } = studioSettings.agenda;
+    
+    if(!start || !end || !interval) {
+        container.innerHTML = "<p class='col-span-3 text-red-400 text-center text-sm'>Configuração de agenda incompleta.</p>";
+        return;
+    }
 
-            while (currentTime < end) {
-                const btn = document.createElement('button');
-                btn.className = "slot-btn p-2 border rounded-lg text-sm font-medium hover:bg-gray-50 transition-all";
-                btn.textContent = currentTime;
-                btn.onclick = () => {
-                    document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
-                    btn.classList.add('selected');
-                    selectedSlot = btn.textContent;
-                };
-                container.appendChild(btn);
+    let currentTime = start;
 
-                // Incrementa o tempo
-                let [h, m] = currentTime.split(':').map(Number);
-                m += parseInt(interval);
-                if (m >= 60) { h += Math.floor(m/60); m = m % 60; }
-                currentTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-            }
-        }
+    while (currentTime < end) {
+        const btn = document.createElement('button');
+        btn.type = "button"; // Evita que o formulário dê refresh
+        btn.className = "slot-btn p-2 border rounded-lg text-sm font-medium hover:bg-gray-50 transition-all";
+        btn.textContent = currentTime;
+        btn.onclick = (e) => {
+            e.preventDefault();
+            document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected', 'bg-[#B76E79]', 'text-white'));
+            btn.classList.add('selected', 'bg-[#B76E79]', 'text-white');
+            selectedSlot = btn.textContent;
+        };
+        container.appendChild(btn);
+
+        // Lógica para somar o intervalo
+        let [h, m] = currentTime.split(':').map(Number);
+        m += parseInt(interval);
+        while (m >= 60) { h += 1; m -= 60; }
+        if (h >= 24) break; 
+        currentTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+}
 
         document.getElementById('booking-date').addEventListener('change', (e) => {
             generateSlots(e.target.value);
@@ -175,4 +190,5 @@
         lucide.createIcons();
     </script>
 </body>
+
 </html>
