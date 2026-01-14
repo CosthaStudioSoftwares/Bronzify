@@ -320,18 +320,22 @@
             document.getElementById('msg-return').value = data.msgReturn || '';
             
             // Preenche a Agenda se ela existir
-            if (data.agenda) {
-                document.getElementById('work-start').value = data.agenda.start || "";
-                document.getElementById('work-end').value = data.agenda.end || "";
-                document.getElementById('work-interval').value = data.agenda.interval || "60";
-                document.getElementById('work-slots').value = data.agenda.slots || "1";
-                
-                // Marca os checkboxes dos dias
-                const days = data.agenda.days || [];
-                document.querySelectorAll('input[name="work-day"]').forEach(check => {
-                    check.checked = days.includes(check.value);
-                });
-            }
+            // --- TRECHO CORRIGIDO DENTRO DE loadStudioSettings ---
+if (data.agenda) {
+    document.getElementById('work-start').value = data.agenda.start || "";
+    document.getElementById('work-end').value = data.agenda.end || "";
+    document.getElementById('work-interval').value = data.agenda.interval || "60";
+    document.getElementById('work-slots').value = data.agenda.slots || "1";
+    
+    // Captura o array de dias (ex: [1, 2, 3])
+    const savedDays = data.agenda.days || [];
+    
+    // Percorre todos os checkboxes e marca apenas os que estão no array
+    document.querySelectorAll('input[name="work-day"]').forEach(check => {
+        // Convertemos ambos para string para garantir a comparação correta
+        check.checked = savedDays.some(day => String(day) === String(check.value));
+    });
+}
         }
     } catch (e) {
         console.error("Erro ao carregar as configurações salvas:", e);
@@ -443,4 +447,5 @@
     </script>
 </body>
 </html>
+
 
