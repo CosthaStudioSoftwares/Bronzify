@@ -350,17 +350,31 @@ async function handleBooking(bookingId, newStatus) {
     const bookingRef = doc(db, "businesses", businessId, "bookings", bookingId);
     
     try {
+        // Buscamos os dados atuais antes de atualizar/deletar
+        const snap = await getDoc(bookingRef);
+        if (!snap.exists()) return;
+        const booking = snap.data();
+
         if (newStatus === 'confirmado') {
             await updateDoc(bookingRef, { status: 'confirmado' });
-            showNotification("Agendamento aprovado com sucesso!", "success");
+            
+            // Lógica para enviar WhatsApp de confirmação
+            const dataBr = new Date(booking.date + 'T00:00:00').toLocaleDateString('pt-BR');
+            const texto = `Olá ${booking.clientName}, seu agendamento de ${booking.service || 'Bronze'} para o dia ${dataBr} às ${booking.time} foi *CONFIRMADO*! ✨ Te esperamos.`;
+            const fone = booking.clientPhone.replace(/\D/g, '');
+            
+            window.open(`https://wa.me/55${fone}?text=${encodeURIComponent(texto)}`, '_blank');
+            showNotification("Agendamento aprovado e WhatsApp aberto!");
         } else {
-            await deleteDoc(bookingRef); // Se recusar, removemos do banco para não ocupar espaço
-            showNotification("Agendamento removido.", "info");
+            if(confirm("Deseja realmente remover esta solicitação?")) {
+                await deleteDoc(bookingRef);
+                showNotification("Solicitação removida.");
+            }
         }
-        loadPendingAgenda(); // Atualiza a lista
+        loadPendingAgenda(); // Atualiza a lista na tela
     } catch (e) {
-        console.error("Erro ao processar agendamento:", e);
-        showNotification("Erro ao processar.", "error");
+        console.error("Erro:", e);
+        showNotification("Erro ao processar.");
     }
 }
 window.handleBooking = handleBooking;
@@ -546,5 +560,6 @@ window.handleBooking = handleBooking;
     </script>
 </body>
 </html>
+
 
 
