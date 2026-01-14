@@ -196,12 +196,16 @@ async function generateSlots(dateValue) {
             btn.innerHTML = `${currentTime}<br><span class="text-[9px]">${temVaga ? vagasRestantes + ' vagas' : 'Lotado'}</span>`;
             
             if (temVaga) {
-                btn.onclick = (e) => {
-                    e.preventDefault();
-                    document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected', 'bg-[#B76E79]', 'text-white'));
-                    btn.classList.add('selected', 'bg-[#B76E79]', 'text-white');
-                    selectedSlot = currentTime;
-                };
+                if (temVaga) {
+            btn.onclick = (e) => {
+                e.preventDefault();
+                document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected', 'bg-[#B76E79]', 'text-white'));
+                btn.classList.add('selected', 'bg-[#B76E79]', 'text-white');
+                
+                // CORREÇÃO AQUI: Em vez de pegar o texto do botão, 
+                // usamos a variável 'currentTime' do loop, que é pura (ex: "12:00")
+                selectedSlot = currentTime; 
+            };
             } else {
                 btn.disabled = true;
             }
@@ -272,6 +276,7 @@ function getNextTime(current, interval) {
 </body>
 
 </html>
+
 
 
 
