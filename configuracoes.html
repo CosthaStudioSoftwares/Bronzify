@@ -347,18 +347,27 @@
             showNotification("Marketing Atualizado!");
         });
 
-        document.getElementById('save-agenda-btn').addEventListener('click', async () => {
-            const days = Array.from(document.querySelectorAll('input[name="work-day"]:checked')).map(c => c.value);
-            const agenda = {
-                days,
-                start: document.getElementById('work-start').value,
-                end: document.getElementById('work-end').value,
-                interval: document.getElementById('work-interval').value,
-                slots: document.getElementById('work-slots').value
-            };
-            await setDoc(doc(db, "businesses", businessId, "settings", "general"), { agenda }, { merge: true });
-            showNotification("Agenda Salva!");
-        });
+       document.getElementById('save-agenda-btn').addEventListener('click', async () => {
+    // Captura os valores dos checkboxes marcados
+    const selectedDays = Array.from(document.querySelectorAll('input[name="work-day"]:checked'))
+                              .map(c => parseInt(c.value)); // Salva como número (0-6)
+
+    const agenda = {
+        days: selectedDays,
+        start: document.getElementById('work-start').value,
+        end: document.getElementById('work-end').value,
+        interval: parseInt(document.getElementById('work-interval').value),
+        slots: parseInt(document.getElementById('work-slots').value)
+    };
+
+    try {
+        await setDoc(doc(db, "businesses", businessId, "settings", "general"), { agenda }, { merge: true });
+        showNotification("Agenda e dias de funcionamento salvos!");
+    } catch (e) {
+        console.error("Erro ao salvar agenda:", e);
+        showNotification("Erro ao salvar agenda.", "error");
+    }
+});
 
         // --- EQUIPE ---
         function listenForUsers() {
@@ -434,3 +443,4 @@
     </script>
 </body>
 </html>
+
