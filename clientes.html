@@ -535,24 +535,30 @@ window.handleBooking = handleBooking;
         });
 
         // --- FILTRO DE RETORNO (CLIENTES AUSENTES) ---
+// --- FILTRO DE RETORNO (VERSÃO COMPATÍVEL COM CAIXA.HTML) ---
 document.getElementById('run-recovery-filter').addEventListener('click', async () => {
     const daysThreshold = parseInt(document.getElementById('recovery-days').value) || 10;
     const recoveryListEl = document.getElementById('recovery-list');
-    recoveryListEl.innerHTML = '<p class="text-center py-4 text-gray-500">Buscando clientes...</p>';
+    recoveryListEl.innerHTML = '<div class="flex items-center justify-center p-8"><i data-lucide="loader-2" class="animate-spin text-[#B76E79] mr-2"></i> Analisando histórico...</div>';
+    lucide.createIcons();
 
     try {
-        // Buscamos as vendas para saber a última visita de cada cliente
+        // 1. Busca todas as vendas para verificar o histórico
         const salesRef = collection(db, "businesses", businessId, "sales");
         const salesSnap = await getDocs(salesRef);
         const lastVisits = {};
 
-        // Mapeia a última venda de cada cliente
         salesSnap.forEach(doc => {
             const data = doc.data();
-            if (data.clientId && data.date) {
-                const saleDate = new Date(data.date).getTime();
-                if (!lastVisits[data.clientId] || saleDate > lastVisits[data.clientId]) {
-                    lastVisits[data.clientId] = saleDate;
+            // Verificamos se a venda tem cliente e se o status não é 'cancelled'
+            if (data.clientId && data.createdAt && data.status !== 'cancelled') {
+                // O Firebase salva como Timestamp, então usamos .toDate()
+                const saleDate = data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
+                const saleTime = saleDate.getTime();
+
+                // Mantém apenas a visita mais recente
+                if (!lastVisits[data.clientId] || saleTime > lastVisits[data.clientId]) {
+                    lastVisits[data.clientId] = saleTime;
                 }
             }
         });
@@ -560,40 +566,46 @@ document.getElementById('run-recovery-filter').addEventListener('click', async (
         const now = new Date().getTime();
         const msPerDay = 24 * 60 * 60 * 1000;
 
-        // Filtra clientes que não aparecem há X dias
+        // 2. Filtra os clientes que estão ausentes
         const absentClients = allClientsData.filter(client => {
             const lastVisit = lastVisits[client.id];
-            if (!lastVisit) return false; // Se nunca comprou, não entra no filtro de retorno
-            const daysAbsent = (now - lastVisit) / msPerDay;
+            if (!lastVisit) return false; // Ignora se nunca comprou (ou se o ID não bater)
+
+            const daysAbsent = Math.floor((now - lastVisit) / msPerDay);
             return daysAbsent >= daysThreshold;
         });
 
         renderRecoveryItems(absentClients, lastVisits);
     } catch (e) {
-        console.error(e);
-        recoveryListEl.innerHTML = '<p class="text-red-500">Erro ao processar filtro.</p>';
+        console.error("Erro no filtro de retorno:", e);
+        recoveryListEl.innerHTML = '<p class="text-red-500 text-center">Ocorreu um erro ao processar o filtro.</p>';
     }
 });
-        function renderRecoveryItems(clients, lastVisits) {
+
+// --- FUNÇÃO DE RENDERIZAÇÃO DA LISTA DE RETORNO ---
+function renderRecoveryItems(clients, lastVisits) {
     const container = document.getElementById('recovery-list');
     container.innerHTML = '';
 
     if (clients.length === 0) {
-        container.innerHTML = '<p class="text-center py-10 text-gray-400 italic">Nenhum cliente atende a este critério no momento.</p>';
+        container.innerHTML = `
+            <div class="text-center py-10 bg-gray-50 rounded-xl border border-dashed">
+                <p class="text-gray-400">Nenhum cliente está ausente pelo tempo selecionado.</p>
+            </div>`;
         return;
     }
 
     clients.forEach(client => {
         const lastVisitDate = new Date(lastVisits[client.id]).toLocaleDateString('pt-BR');
         const card = document.createElement('div');
-        card.className = 'flex justify-between items-center p-4 bg-blue-50 border border-blue-100 rounded-xl shadow-sm';
+        card.className = 'flex justify-between items-center p-4 bg-white border border-rose-100 rounded-xl shadow-sm mb-3 hover:shadow-md transition-all';
         card.innerHTML = `
             <div>
                 <p class="font-bold text-gray-800">${client.name}</p>
-                <p class="text-xs text-blue-600 font-medium">Última visita: ${lastVisitDate}</p>
+                <p class="text-xs text-[#B76E79] font-medium">Última visita: ${lastVisitDate}</p>
             </div>
             <button onclick='sendProfessionalWhatsApp(${JSON.stringify(client).replace(/'/g, "&apos;")}, "recovery")' 
-                    class="bg-green-500 text-white p-2 rounded-lg hover:bg-green-600 shadow-md transition-all">
+                    class="bg-[#B76E79] text-white p-3 rounded-xl hover:opacity-90 shadow-sm transition-all">
                 <i data-lucide="message-circle" class="w-5 h-5"></i>
             </button>
         `;
@@ -653,6 +665,7 @@ document.getElementById('run-recovery-filter').addEventListener('click', async (
     </script>
 </body>
 </html>
+
 
 
 
