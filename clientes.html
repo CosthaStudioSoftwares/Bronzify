@@ -332,7 +332,10 @@ async function loadPendingAgenda() {
             const booking = docSnap.data();
             const id = docSnap.id;
             const isConfirmado = booking.status === 'confirmado';
-            const dateFormatted = new Date(booking.date + 'T00:00:00').toLocaleDateString('pt-BR');
+            // Quebra a string "2026-01-14" e monta a data local sem risco de fuso
+            const [ano, mes, dia] = booking.date.split('-');
+            const dateFormatted = `${dia}/${mes}/${ano}`;
+            
 
             const card = document.createElement('div');
             // Muda a cor da borda se já estiver confirmado
@@ -665,6 +668,7 @@ function renderRecoveryItems(clients, lastVisits) {
     </script>
 </body>
 </html>
+
 
 
 
