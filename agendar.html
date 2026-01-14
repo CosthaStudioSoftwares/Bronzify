@@ -129,66 +129,101 @@
 
 async function generateSlots(dateValue) {
     const container = document.getElementById('slots-container');
-    container.innerHTML = "<p class='col-span-3 text-center text-gray-400 text-xs'>Verificando vagas...</p>";
+    container.innerHTML = "<p class='col-span-3 text-center text-gray-400 text-xs'>Verificando disponibilidade...</p>";
     
     if (!studioSettings || !studioSettings.agenda) {
-        container.innerHTML = "<p class='col-span-3 text-red-400 text-center text-sm'>Agenda não configurada.</p>";
+        container.innerHTML = "<p class='col-span-3 text-red-400 text-center text-sm'>Configuração não encontrada.</p>";
         return;
     }
 
-    // 1. Buscar todos os agendamentos já feitos para este dia
-    const bookingsRef = collection(db, "businesses", businessId, "bookings");
-    const q = query(bookingsRef, where("date", "==", dateValue), where("status", "in", ["pendente", "confirmado"]));
-    const querySnapshot = await getDocs(q);
-    
-    // Criamos um mapa para contar: { "08:00": 1, "09:00": 2 }
-    const occupiedSlots = {};
-    querySnapshot.forEach(doc => {
-        const slot = doc.data().time;
-        occupiedSlots[slot] = (occupiedSlots[slot] || 0) + 1;
-    });
+    // --- TRAVA 1: Verificar se o Studio abre neste dia da semana ---
+    const chosenDate = new Date(dateValue + 'T12:00:00'); // Força meio-dia para evitar erro de fuso no dia
+    const dayOfWeek = chosenDate.getDay(); // 0 (Dom) a 6 (Sáb)
+    const openDays = studioSettings.agenda.days || [];
 
-    container.innerHTML = "";
-    const { start, end, interval, slots } = studioSettings.agenda;
-    const maxSlots = parseInt(slots) || 1; // Suas "2 vagas por hora"
-    
-    let currentTime = start;
+    if (!openDays.includes(dayOfWeek)) {
+        container.innerHTML = "<p class='col-span-3 text-rose-500 text-center text-sm font-bold bg-rose-50 p-4 rounded-xl'>O Studio não abre neste dia da semana.</p>";
+        return;
+    }
 
-    while (currentTime < end) {
-        const totalAgendados = occupiedSlots[currentTime] || 0;
-        const temVaga = totalAgendados < maxSlots;
-
-        const btn = document.createElement('button');
-        btn.type = "button";
-        btn.className = `slot-btn p-2 border rounded-lg text-sm font-medium transition-all ${temVaga ? 'hover:bg-gray-50' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`;
+    try {
+        // --- TRAVA 2: Contagem de Vagas (2 por hora) ---
+        const bookingsRef = collection(db, "businesses", businessId, "bookings");
+        const q = query(bookingsRef, where("date", "==", dateValue), where("status", "in", ["pendente", "confirmado"]));
+        const querySnapshot = await getDocs(q);
         
-        // Mostra quantas vagas restam (opcional, ajuda a cliente)
-        const vagasRestantes = maxSlots - totalAgendados;
-        btn.innerHTML = `${currentTime}<br><span class="text-[9px]">${temVaga ? vagasRestantes + ' vagas' : 'Lotado'}</span>`;
+        const occupiedSlots = {};
+        querySnapshot.forEach(doc => {
+            const slotTime = doc.data().time;
+            occupiedSlots[slotTime] = (occupiedSlots[slotTime] || 0) + 1;
+        });
+
+        container.innerHTML = "";
+        const { start, end, interval, slots } = studioSettings.agenda;
+        const maxSlots = parseInt(slots) || 1;
         
-        if (temVaga) {
-            btn.onclick = (e) => {
-                e.preventDefault();
-                document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected', 'bg-[#B76E79]', 'text-white'));
-                btn.classList.add('selected', 'bg-[#B76E79]', 'text-white');
-                selectedSlot = currentTime;
-            };
-        } else {
-            btn.disabled = true;
+        let currentTime = start;
+
+        // --- TRAVA 3: Incluir o último horário (<= em vez de <) ---
+        while (currentTime <= end) {
+            const totalAgendados = occupiedSlots[currentTime] || 0;
+            const temVaga = totalAgendados < maxSlots;
+
+            // --- TRAVA 4: Bloquear horários passados (se for hoje) ---
+            const agora = new Date();
+            const dataHoje = agora.toISOString().split('T')[0];
+            let isPast = false;
+
+            if (dateValue === dataHoje) {
+                const [h, m] = currentTime.split(':').map(Number);
+                const horaSlot = new Date();
+                horaSlot.setHours(h, m, 0, 0);
+                if (horaSlot < agora) isPast = true;
+            }
+
+            const btn = document.createElement('button');
+            btn.type = "button";
+            
+            if (isPast) {
+                // Se o horário já passou, nem mostra ou mostra desativado
+                currentTime = getNextTime(currentTime, interval);
+                continue; 
+            }
+
+            btn.className = `slot-btn p-2 border rounded-lg text-sm font-medium transition-all ${temVaga ? 'hover:bg-gray-50' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`;
+            
+            const vagasRestantes = maxSlots - totalAgendados;
+            btn.innerHTML = `${currentTime}<br><span class="text-[9px]">${temVaga ? vagasRestantes + ' vagas' : 'Lotado'}</span>`;
+            
+            if (temVaga) {
+                btn.onclick = (e) => {
+                    e.preventDefault();
+                    document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected', 'bg-[#B76E79]', 'text-white'));
+                    btn.classList.add('selected', 'bg-[#B76E79]', 'text-white');
+                    selectedSlot = currentTime;
+                };
+            } else {
+                btn.disabled = true;
+            }
+
+            container.appendChild(btn);
+            currentTime = getNextTime(currentTime, interval);
         }
-
-        container.appendChild(btn);
-
-        // Soma o intervalo (lógica que você já tem)
-        let [h, m] = currentTime.split(':').map(Number);
-        m += parseInt(interval);
-        while (m >= 60) { h += 1; m -= 60; }
-        if (h >= 24) break; 
-        currentTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = "<p class='col-span-3 text-red-400 text-center text-sm'>Erro ao carregar.</p>";
     }
     lucide.createIcons();
 }
 
+// Função auxiliar para somar tempo
+function getNextTime(current, interval) {
+    let [h, m] = current.split(':').map(Number);
+    m += parseInt(interval);
+    while (m >= 60) { h += 1; m -= 60; }
+    if (h >= 24) return "99:99"; // Para o loop
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
         document.getElementById('booking-date').addEventListener('change', (e) => {
             generateSlots(e.target.value);
         });
@@ -237,5 +272,6 @@ async function generateSlots(dateValue) {
 </body>
 
 </html>
+
 
 
