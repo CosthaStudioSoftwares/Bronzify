@@ -18,101 +18,94 @@ const messaging = firebase.messaging();
 
 // Lógica para notificações em segundo plano
 messaging.onBackgroundMessage((payload) => {
-  console.log("[sw.js] Mensagem recebida em segundo plano: ", payload);
+    console.log("[sw.js] Mensagem recebida em segundo plano: ", payload);
 
-  const notificationTitle = payload.data.title;
-  const notificationOptions = {
-    body: payload.data.body,
-    icon: payload.data.icon,
-    data: {
-        url: payload.data.click_action
-    }
-  };
+    const notificationTitle = payload.data.title || "Novo Agendamento";
+    const notificationOptions = {
+        body: payload.data.body || "Você tem uma nova solicitação no Bronzify.",
+        icon: payload.data.icon || "icon-192x192.png",
+        data: {
+            url: payload.data.click_action || "./clientes.html"
+        }
+    };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+    self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
 // Evento de clique na notificação
 self.addEventListener('notificationclick', (event) => {
-  console.log('[sw.js] Notificação clicada.');
-  
-  event.notification.close();
+    event.notification.close();
+    const urlToOpen = event.notification.data.url;
 
-  const urlToOpen = event.notification.data.url;
-
-  event.waitUntil(
-    clients.matchAll({
-      type: "window",
-      includeUncontrolled: true
-    }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url === urlToOpen && 'focus' in client) {
-          return client.focus();
-        }
-      }
-      if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
-      }
-    })
-  );
+    event.waitUntil(
+        clients.matchAll({
+            type: "window",
+            includeUncontrolled: true
+        }).then((clientList) => {
+            for (const client of clientList) {
+                if (client.url.includes(urlToOpen) && 'focus' in client) {
+                    return client.focus();
+                }
+            }
+            if (clients.openWindow) {
+                return clients.openWindow(urlToOpen);
+            }
+        })
+    );
 });
-
 
 // --- LÓGICA DE CACHE ATUALIZADA ---
-const CACHE_NAME = 'bronzify-cache-v5'; // <-- VERSÃO INCREMENTADA
+const CACHE_NAME = 'bronzify-cache-v6'; // Incrementei para v6 para forçar atualização
 const URLS_TO_CACHE = [
-  './',
-  './index.html',
-  './pedido.html',        // ADICIONADO
-  './status-cliente.html',// ADICIONADO
-  './assinatura.html',
-  './configuracoes.html',
-  './estoque.html',
-  './caixa.html',
-  './clientes.html',
-  './dashboard.html',
-  './ordem-chegada.html',
-  './patio.html',
-  './vendas.html',
-  './config.js',
-  './layout.js',
-  './utils.js'
+    './',
+    './index.html',
+    './pedido.html',
+    './status-cliente.html',
+    './assinatura.html',
+    './configuracoes.html',
+    './estoque.html',
+    './caixa.html',
+    './clientes.html',
+    './dashboard.html',
+    './ordem-chegada.html',
+    './patio.html',
+    './vendas.html',
+    './config.js',
+    './layout.js',
+    './utils.js',
+    './agendar.html' // ADICIONEI o agendar.html ao cache também
 ];
 
-// Evento de instalação do Service Worker
+// Evento de instalação
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      console.log('Cache aberto. Adicionando URLs ao cache:', URLS_TO_CACHE);
-      return cache.addAll(URLS_TO_CACHE);
-    }).catch(error => {
-      console.error('Falha ao adicionar URLs ao cache:', error);
-    })
-  );
-  self.skipWaiting();
-});
-
-// Evento de ativação (limpa caches antigos)
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Deletando cache antigo:', cacheName);
-            return caches.delete(cacheName);
-          }
+    event.waitUntil(
+        caches.open(CACHE_NAME).then(cache => {
+            return cache.addAll(URLS_TO_CACHE);
         })
-      );
-    })
-  );
-  self.clients.claim();
+    );
+    self.skipWaiting();
 });
 
-// Evento de fetch (responde com cache ou rede)
+// Evento de ativação
+self.addEventListener('activate', event => {
+    event.waitUntil(
+        caches.keys().then(cacheNames => {
+            return Promise.all(
+                cacheNames.map(cacheName => {
+                    if (cacheName !== CACHE_NAME) {
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
+        })
+    );
+    self.clients.claim();
+});
+
+// Evento de fetch
 self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
-  event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
-  );
+    if (event.request.method !== 'GET') return;
+    event.respondWith(
+        fetch(event.request).catch(() => caches.match(event.request))
+    );
 });
