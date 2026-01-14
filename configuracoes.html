@@ -273,22 +273,45 @@
             document.getElementById('item-modal').classList.remove('hidden');
         };
 
-        document.getElementById('item-form').addEventListener('submit', async (e) => {
+       document.getElementById('item-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = document.getElementById('item-id').value;
+            const nameInput = document.getElementById('item-name').value.trim();
+            const categoryInput = document.getElementById('item-category').value;
             const price = parseFloat(document.getElementById('item-price').value.replace(/\D/g, '')) / 100;
-            const data = {
-                name: document.getElementById('item-name').value,
-                price: price,
-                category: document.getElementById('item-category').value
-            };
-            if(id) {
-                await updateDoc(doc(db, "businesses", businessId, "products", id), data);
-            } else {
-                await addDoc(collection(db, "businesses", businessId, "products"), data);
+
+            // --- VALIDAÇÃO DE DUPLICIDADE ---
+            // Verifica se já existe um item com o mesmo nome (ignorando maiúsculas/minúsculas)
+            // Se estiver editando (id existe), ele ignora o próprio item na verificação
+            const isDuplicate = allProducts.some(p => 
+                p.name.toLowerCase() === nameInput.toLowerCase() && 
+                p.id !== id
+            );
+
+            if (isDuplicate) {
+                showNotification("Erro: Já existe um item cadastrado com este nome!", "error");
+                return; // Para a execução e não salva
             }
-            document.getElementById('item-modal').classList.add('hidden');
-            showNotification("Sucesso!");
+            // --- FIM DA VALIDAÇÃO ---
+
+            const data = {
+                name: nameInput,
+                price: price,
+                category: categoryInput
+            };
+
+            try {
+                if(id) {
+                    await updateDoc(doc(db, "businesses", businessId, "products", id), data);
+                } else {
+                    await addDoc(collection(db, "businesses", businessId, "products"), data);
+                }
+                document.getElementById('item-modal').classList.add('hidden');
+                showNotification("Sucesso!");
+            } catch (error) {
+                console.error("Erro ao salvar item:", error);
+                showNotification("Erro ao salvar.", "error");
+            }
         });
 
         // --- MARKETING E AGENDA ---
@@ -447,5 +470,6 @@ if (data.agenda) {
     </script>
 </body>
 </html>
+
 
 
