@@ -359,12 +359,22 @@ async function loadPendingAgenda() {
                     </div>
                 </div>
                 <div class="flex gap-2 w-full sm:w-auto">
-                    ${!isConfirmado ? 
-                        `<button onclick="handleBooking('${id}', 'confirmado')" class="flex-1 bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-sm">Aprovar</button>` : 
-                        `<button onclick="handleBooking('${id}', 'chegou')" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-1"><i data-lucide="check-circle" class="w-4 h-4"></i> Chegou</button>`
-                    }
-                    <button onclick="handleBooking('${id}', 'recusado')" class="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
-                </div>
+    ${!isConfirmado ? 
+        `<button onclick="handleBooking('${id}', 'confirmado')" class="flex-1 bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-1">
+            <i data-lucide="check"></i> Aprovar
+        </button>
+        <button onclick="handleBooking('${id}', 'recusado')" class="flex-1 bg-amber-500 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-1">
+            <i data-lucide="message-square"></i> Recusar
+        </button>` : 
+        
+        `<button onclick="handleBooking('${id}', 'chegou')" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-1">
+            <i data-lucide="check-circle"></i> Chegou
+        </button>`
+    }
+    <button onclick="handleBooking('${id}', 'deletar')" class="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100">
+        <i data-lucide="trash-2" class="w-5 h-5"></i>
+    </button>
+</div>
             `;
             agendaListEl.appendChild(card);
         });
@@ -384,25 +394,42 @@ async function handleBooking(bookingId, newStatus) {
         if (!snap.exists()) return;
         const booking = snap.data();
         const fone = booking.clientPhone.replace(/\D/g, '');
+        const studioNome = studioSettings.studioName || "nosso Studio";
 
         if (newStatus === 'confirmado') {
+            // Atualiza status no banco
             await updateDoc(bookingRef, { status: 'confirmado' });
-            const textoConfirmacao = `Olá ${booking.clientName}, seu agendamento foi *CONFIRMADO*! ✨`;
-            window.open(`https://wa.me/55${fone}?text=${encodeURIComponent(textoConfirmacao)}`, '_blank');
+            
+            // Mensagem de Confirmação
+            const msgConfirmacao = `Olá ${booking.clientName}, seu agendamento para o dia ${booking.date.split('-').reverse().join('/')} às ${booking.time} no ${studioNome} foi *CONFIRMADO*! ✨ Aguardamos você.`;
+            
+            window.open(`https://wa.me/55${fone}?text=${encodeURIComponent(msgConfirmacao)}`, '_blank');
+            showNotification(`Agendamento de ${booking.clientName} aprovado!`);
         } 
-        else if (newStatus === 'chegou') {
-            // Cliente chegou no studio, removemos da lista de agendamentos
-            await deleteDoc(bookingRef);
-            showNotification(`${booking.clientName} deu entrada no studio!`);
-        }
         else if (newStatus === 'recusado') {
-            if(confirm("Deseja remover este agendamento?")) {
+            // No caso de recusar, geralmente apenas avisamos a cliente e removemos/alteramos
+            const msgRecusa = `Olá ${booking.clientName}, aqui é do ${studioNome}. Infelizmente não conseguiremos te atender no dia ${booking.date.split('-').reverse().join('/')} às ${booking.time}. Poderíamos remarcar para outro horário?`;
+            
+            window.open(`https://wa.me/55${fone}?text=${encodeURIComponent(msgRecusa)}`, '_blank');
+            
+            if(confirm("A mensagem foi enviada. Deseja remover este agendamento da lista agora?")) {
                 await deleteDoc(bookingRef);
             }
         }
+        else if (newStatus === 'chegou') {
+            await deleteDoc(bookingRef);
+            showNotification(`${booking.clientName} deu entrada no studio!`);
+        }
+        else if (newStatus === 'deletar') {
+            if(confirm("Deseja excluir permanentemente este agendamento?")) {
+                await deleteDoc(bookingRef);
+            }
+        }
+        
         loadPendingAgenda(); 
     } catch (e) {
         console.error(e);
+        showNotification("Erro ao processar ação.");
     }
 }
 window.handleBooking = handleBooking;
@@ -669,6 +696,7 @@ function renderRecoveryItems(clients, lastVisits) {
     </script>
 </body>
 </html>
+
 
 
 
