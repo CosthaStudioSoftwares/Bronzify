@@ -200,9 +200,8 @@
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, getDocs, doc, updateDoc, deleteDoc, where, orderBy, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";        
+        import { getFirestore, collection, addDoc, query, getDocs, doc, updateDoc, deleteDoc, where, orderBy, Timestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -228,6 +227,7 @@
                 await loadStudioMessages();
                 currentClientList = [...allClientsData]; 
                 checkTodayBirthdays();
+                listenForNewBookings(); // <--- ADICIONE ESTA LINHA AQUI
                 renderPaginatedClients();
                 document.body.classList.remove('opacity-0');
             } catch (e) {
@@ -261,6 +261,44 @@
                 studioSettings = docSnap.docs.find(d => d.id === "general")?.data() || {};
             } catch (e) { console.error(e); }
         }
+        // --- NOTIFICAÇÃO DE AGENDAMENTOS EM TEMPO REAL ---
+function listenForNewBookings() {
+    const bookingsRef = collection(db, "businesses", businessId, "bookings");
+    const q = query(bookingsRef, where("status", "==", "pendente"));
+
+    // onSnapshot avisa o site assim que algo muda no banco de dados
+    onSnapshot(q, (snapshot) => {
+        const count = snapshot.size;
+        const alertBox = document.getElementById('alert-pending-booking');
+        
+        if (count > 0) {
+            document.getElementById('alerts-container').classList.remove('hidden');
+            // Cria o banner de agendamento se ele não existir no seu HTML
+            if (!alertBox) {
+                const newAlert = document.createElement('div');
+                newAlert.id = 'alert-pending-booking';
+                newAlert.className = 'bg-amber-500 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between';
+                newAlert.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="calendar-clock" class="w-8 h-8"></i>
+                        <div>
+                            <h4 class="font-bold">Solicitação de Horário!</h4>
+                            <p class="text-sm opacity-90">Você tem ${count} agendamento(s) aguardando aprovação.</p>
+                        </div>
+                    </div>
+                    <button onclick="document.getElementById('tab-agenda').click()" class="bg-white text-amber-600 px-4 py-1 rounded-full text-xs font-bold uppercase">Analisar</button>
+                `;
+                document.getElementById('alerts-container').appendChild(newAlert);
+                lucide.createIcons();
+            } else {
+                alertBox.classList.remove('hidden');
+                alertBox.querySelector('p').textContent = `Você tem ${count} agendamento(s) aguardando aprovação.`;
+            }
+        } else if (alertBox) {
+            alertBox.classList.add('hidden');
+        }
+    });
+}
 
         // --- 3. LÓGICA DE MARKETING E WHATSAPP ---
         function sendProfessionalWhatsApp(client, type) {
@@ -276,13 +314,22 @@
         window.sendProfessionalWhatsApp = sendProfessionalWhatsApp;
 
         function checkTodayBirthdays() {
-            const today = new Date().toISOString().substring(5, 10); // MM-DD
-            const hasBirthday = allClientsData.some(c => c.birthdate && c.birthdate.substring(5, 10) === today);
-            if(hasBirthday) {
-                document.getElementById('alerts-container').classList.remove('hidden');
-                document.getElementById('alert-birthday').classList.remove('hidden');
-            }
-        }
+    const localDate = new Date();
+    // Formata para MM-DD (ex: 01-13)
+    const todayMonthDay = `${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`;
+    
+    const hasBirthday = allClientsData.some(c => {
+        if (!c.birthdate) return false;
+        // Pega apenas o mês e dia do cadastro (YYYY-MM-DD -> MM-DD)
+        const clientMD = c.birthdate.substring(5); 
+        return clientMD === todayMonthDay;
+    });
+
+    if(hasBirthday) {
+        document.getElementById('alerts-container').classList.remove('hidden');
+        document.getElementById('alert-birthday').classList.remove('hidden');
+    }
+}
 
         // --- 4. RENDERIZAÇÃO E PAGINAÇÃO ---
         function renderPaginatedClients() {
@@ -430,3 +477,4 @@
     </script>
 </body>
 </html>
+
