@@ -200,11 +200,16 @@
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";        
-        import { getFirestore, collection, addDoc, query, getDocs, doc, updateDoc, deleteDoc, where, orderBy, Timestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";    
+        import { getFirestore, collection, addDoc, query, getDocs, doc, updateDoc, deleteDoc, where, orderBy, Timestamp, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+
+        function showNotification(text) {
+    alert(text); // Uma versão simples apenas para teste, depois podemos deixar bonita
+}
+window.showNotification = showNotification;
 
         let currentUser = null;
         let businessId = null;
@@ -560,6 +565,7 @@ window.handleBooking = handleBooking;
     </script>
 </body>
 </html>
+
 
 
 
