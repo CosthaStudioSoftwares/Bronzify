@@ -127,45 +127,66 @@
     }
 }
 
-function generateSlots(dateValue) {
+async function generateSlots(dateValue) {
     const container = document.getElementById('slots-container');
-    container.innerHTML = "";
+    container.innerHTML = "<p class='col-span-3 text-center text-gray-400 text-xs'>Verificando vagas...</p>";
     
-    // Verificamos se 'agenda' existe dentro de studioSettings
     if (!studioSettings || !studioSettings.agenda) {
-        container.innerHTML = "<p class='col-span-3 text-red-400 text-center text-sm'>Studio não configurou horários ou erro na rede.</p>";
+        container.innerHTML = "<p class='col-span-3 text-red-400 text-center text-sm'>Agenda não configurada.</p>";
         return;
     }
 
-    const { start, end, interval } = studioSettings.agenda;
+    // 1. Buscar todos os agendamentos já feitos para este dia
+    const bookingsRef = collection(db, "businesses", businessId, "bookings");
+    const q = query(bookingsRef, where("date", "==", dateValue), where("status", "in", ["pendente", "confirmado"]));
+    const querySnapshot = await getDocs(q);
     
-    if(!start || !end || !interval) {
-        container.innerHTML = "<p class='col-span-3 text-red-400 text-center text-sm'>Configuração de agenda incompleta.</p>";
-        return;
-    }
+    // Criamos um mapa para contar: { "08:00": 1, "09:00": 2 }
+    const occupiedSlots = {};
+    querySnapshot.forEach(doc => {
+        const slot = doc.data().time;
+        occupiedSlots[slot] = (occupiedSlots[slot] || 0) + 1;
+    });
 
+    container.innerHTML = "";
+    const { start, end, interval, slots } = studioSettings.agenda;
+    const maxSlots = parseInt(slots) || 1; // Suas "2 vagas por hora"
+    
     let currentTime = start;
 
     while (currentTime < end) {
+        const totalAgendados = occupiedSlots[currentTime] || 0;
+        const temVaga = totalAgendados < maxSlots;
+
         const btn = document.createElement('button');
-        btn.type = "button"; // Evita que o formulário dê refresh
-        btn.className = "slot-btn p-2 border rounded-lg text-sm font-medium hover:bg-gray-50 transition-all";
-        btn.textContent = currentTime;
-        btn.onclick = (e) => {
-            e.preventDefault();
-            document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected', 'bg-[#B76E79]', 'text-white'));
-            btn.classList.add('selected', 'bg-[#B76E79]', 'text-white');
-            selectedSlot = btn.textContent;
-        };
+        btn.type = "button";
+        btn.className = `slot-btn p-2 border rounded-lg text-sm font-medium transition-all ${temVaga ? 'hover:bg-gray-50' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`;
+        
+        // Mostra quantas vagas restam (opcional, ajuda a cliente)
+        const vagasRestantes = maxSlots - totalAgendados;
+        btn.innerHTML = `${currentTime}<br><span class="text-[9px]">${temVaga ? vagasRestantes + ' vagas' : 'Lotado'}</span>`;
+        
+        if (temVaga) {
+            btn.onclick = (e) => {
+                e.preventDefault();
+                document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected', 'bg-[#B76E79]', 'text-white'));
+                btn.classList.add('selected', 'bg-[#B76E79]', 'text-white');
+                selectedSlot = currentTime;
+            };
+        } else {
+            btn.disabled = true;
+        }
+
         container.appendChild(btn);
 
-        // Lógica para somar o intervalo
+        // Soma o intervalo (lógica que você já tem)
         let [h, m] = currentTime.split(':').map(Number);
         m += parseInt(interval);
         while (m >= 60) { h += 1; m -= 60; }
         if (h >= 24) break; 
         currentTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
     }
+    lucide.createIcons();
 }
 
         document.getElementById('booking-date').addEventListener('change', (e) => {
@@ -216,4 +237,5 @@ function generateSlots(dateValue) {
 </body>
 
 </html>
+
 
