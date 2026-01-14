@@ -534,6 +534,74 @@ window.handleBooking = handleBooking;
             renderPaginatedClients();
         });
 
+        // --- FILTRO DE RETORNO (CLIENTES AUSENTES) ---
+document.getElementById('run-recovery-filter').addEventListener('click', async () => {
+    const daysThreshold = parseInt(document.getElementById('recovery-days').value) || 10;
+    const recoveryListEl = document.getElementById('recovery-list');
+    recoveryListEl.innerHTML = '<p class="text-center py-4 text-gray-500">Buscando clientes...</p>';
+
+    try {
+        // Buscamos as vendas para saber a última visita de cada cliente
+        const salesRef = collection(db, "businesses", businessId, "sales");
+        const salesSnap = await getDocs(salesRef);
+        const lastVisits = {};
+
+        // Mapeia a última venda de cada cliente
+        salesSnap.forEach(doc => {
+            const data = doc.data();
+            if (data.clientId && data.date) {
+                const saleDate = new Date(data.date).getTime();
+                if (!lastVisits[data.clientId] || saleDate > lastVisits[data.clientId]) {
+                    lastVisits[data.clientId] = saleDate;
+                }
+            }
+        });
+
+        const now = new Date().getTime();
+        const msPerDay = 24 * 60 * 60 * 1000;
+
+        // Filtra clientes que não aparecem há X dias
+        const absentClients = allClientsData.filter(client => {
+            const lastVisit = lastVisits[client.id];
+            if (!lastVisit) return false; // Se nunca comprou, não entra no filtro de retorno
+            const daysAbsent = (now - lastVisit) / msPerDay;
+            return daysAbsent >= daysThreshold;
+        });
+
+        renderRecoveryItems(absentClients, lastVisits);
+    } catch (e) {
+        console.error(e);
+        recoveryListEl.innerHTML = '<p class="text-red-500">Erro ao processar filtro.</p>';
+    }
+});
+        function renderRecoveryItems(clients, lastVisits) {
+    const container = document.getElementById('recovery-list');
+    container.innerHTML = '';
+
+    if (clients.length === 0) {
+        container.innerHTML = '<p class="text-center py-10 text-gray-400 italic">Nenhum cliente atende a este critério no momento.</p>';
+        return;
+    }
+
+    clients.forEach(client => {
+        const lastVisitDate = new Date(lastVisits[client.id]).toLocaleDateString('pt-BR');
+        const card = document.createElement('div');
+        card.className = 'flex justify-between items-center p-4 bg-blue-50 border border-blue-100 rounded-xl shadow-sm';
+        card.innerHTML = `
+            <div>
+                <p class="font-bold text-gray-800">${client.name}</p>
+                <p class="text-xs text-blue-600 font-medium">Última visita: ${lastVisitDate}</p>
+            </div>
+            <button onclick='sendProfessionalWhatsApp(${JSON.stringify(client).replace(/'/g, "&apos;")}, "recovery")' 
+                    class="bg-green-500 text-white p-2 rounded-lg hover:bg-green-600 shadow-md transition-all">
+                <i data-lucide="message-circle" class="w-5 h-5"></i>
+            </button>
+        `;
+        container.appendChild(card);
+    });
+    lucide.createIcons();
+}
+
         // --- 7. MODAL E OPERAÇÕES CRUD ---
         const modal = document.getElementById('client-modal'), clientForm = document.getElementById('client-form');
         document.getElementById('add-client-btn').addEventListener('click', () => { clientForm.reset(); document.getElementById('client-id').value = ''; modal.classList.remove('hidden'); });
@@ -585,6 +653,7 @@ window.handleBooking = handleBooking;
     </script>
 </body>
 </html>
+
 
 
 
