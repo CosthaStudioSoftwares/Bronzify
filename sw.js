@@ -77,7 +77,6 @@ const URLS_TO_CACHE = [
   './config.js',
   './layout.js',
   './utils.js'
-'./app-cliente.html',
 ];
 
 // Evento de instalação do Service Worker
@@ -117,4 +116,3 @@ self.addEventListener('fetch', event => {
     fetch(event.request).catch(() => caches.match(event.request))
   );
 });
-
