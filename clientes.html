@@ -309,27 +309,44 @@ function listenForNewBookings() {
 async function loadPendingAgenda() {
     const agendaListEl = document.getElementById('agenda-list');
     const bookingsRef = collection(db, "businesses", businessId, "bookings");
-    const q = query(bookingsRef, where("status", "==", "pendente"), orderBy("createdAt", "desc"));
+    
+    // Agora buscamos todos que não foram concluídos/cancelados
+    // A ordem será por data e depois por hora
+    const q = query(
+        bookingsRef, 
+        where("status", "in", ["pendente", "confirmado"]), 
+        orderBy("date", "asc"), 
+        orderBy("time", "asc")
+    );
 
     try {
         const querySnapshot = await getDocs(q);
         agendaListEl.innerHTML = '';
 
         if (querySnapshot.empty) {
-            agendaListEl.innerHTML = '<p class="text-gray-400 py-10">Nenhum agendamento aguardando aprovação.</p>';
+            agendaListEl.innerHTML = '<p class="text-gray-400 py-10">Nenhum agendamento para os próximos dias.</p>';
             return;
         }
 
         querySnapshot.forEach((docSnap) => {
             const booking = docSnap.data();
             const id = docSnap.id;
+            const isConfirmado = booking.status === 'confirmado';
             const dateFormatted = new Date(booking.date + 'T00:00:00').toLocaleDateString('pt-BR');
 
             const card = document.createElement('div');
-            card.className = 'bg-white border-l-4 border-amber-400 p-4 rounded-xl shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4';
+            // Muda a cor da borda se já estiver confirmado
+            const borderColor = isConfirmado ? 'border-green-500' : 'border-amber-400';
+            const bgColor = isConfirmado ? 'bg-green-50' : 'bg-white';
+
+            card.className = `${bgColor} border-l-4 ${borderColor} p-4 rounded-xl shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4 mb-3`;
+            
             card.innerHTML = `
                 <div class="flex-grow text-left w-full">
-                    <p class="font-bold text-gray-800 text-lg">${booking.clientName}</p>
+                    <div class="flex items-center gap-2">
+                        <p class="font-bold text-gray-800 text-lg">${booking.clientName}</p>
+                        ${isConfirmado ? '<span class="text-[10px] bg-green-500 text-white px-2 py-0.5 rounded-full uppercase">Confirmado</span>' : ''}
+                    </div>
                     <p class="text-sm text-gray-600 flex items-center gap-1"><i data-lucide="phone" class="w-3 h-3"></i> ${booking.clientPhone}</p>
                     <div class="flex flex-wrap gap-2 mt-2">
                         <span class="bg-pink-100 text-pink-700 text-xs px-2 py-1 rounded-full font-bold">${booking.service || 'Bronze'}</span>
@@ -337,8 +354,11 @@ async function loadPendingAgenda() {
                     </div>
                 </div>
                 <div class="flex gap-2 w-full sm:w-auto">
-                    <button onclick="handleBooking('${id}', 'confirmado')" class="flex-1 sm:flex-none bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-green-600 transition-colors">Aprovar</button>
-                    <button onclick="handleBooking('${id}', 'recusado')" class="flex-1 sm:flex-none bg-red-100 text-red-600 px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-200 transition-colors">Recusar</button>
+                    ${!isConfirmado ? 
+                        `<button onclick="handleBooking('${id}', 'confirmado')" class="flex-1 bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-sm">Aprovar</button>` : 
+                        `<button onclick="handleBooking('${id}', 'chegou')" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-1"><i data-lucide="check-circle" class="w-4 h-4"></i> Chegou</button>`
+                    }
+                    <button onclick="handleBooking('${id}', 'recusado')" class="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
                 </div>
             `;
             agendaListEl.appendChild(card);
@@ -346,6 +366,7 @@ async function loadPendingAgenda() {
         lucide.createIcons();
     } catch (e) {
         console.error("Erro ao carregar agenda:", e);
+        // Se der erro de índice, o link aparecerá no console novamente para a nova ordem
     }
 }
 window.loadPendingAgenda = loadPendingAgenda;
@@ -359,29 +380,25 @@ async function handleBooking(bookingId, newStatus) {
         if (!snap.exists()) return;
         const booking = snap.data();
         const fone = booking.clientPhone.replace(/\D/g, '');
-        const dataBr = new Date(booking.date + 'T00:00:00').toLocaleDateString('pt-BR');
 
         if (newStatus === 'confirmado') {
             await updateDoc(bookingRef, { status: 'confirmado' });
-            
-            const textoConfirmacao = `Olá ${booking.clientName}, seu agendamento de ${booking.service || 'Bronze'} para o dia ${dataBr} às ${booking.time} foi *CONFIRMADO*! ✨ Te esperamos.`;
+            const textoConfirmacao = `Olá ${booking.clientName}, seu agendamento foi *CONFIRMADO*! ✨`;
             window.open(`https://wa.me/55${fone}?text=${encodeURIComponent(textoConfirmacao)}`, '_blank');
-            showNotification("Agendamento aprovado!");
         } 
+        else if (newStatus === 'chegou') {
+            // Cliente chegou no studio, removemos da lista de agendamentos
+            await deleteDoc(bookingRef);
+            showNotification(`${booking.clientName} deu entrada no studio!`);
+        }
         else if (newStatus === 'recusado') {
-            if(confirm(`Deseja recusar e avisar ${booking.clientName} via WhatsApp?`)) {
-                // Mensagem de recusa educada
-                const textoRecusa = `Olá ${booking.clientName}, infelizmente o horário de ${booking.time} no dia ${dataBr} não está mais disponível para agendamento. 😔 Poderia escolher outro horário ou entrar em contato conosco por aqui?`;
-                
-                await deleteDoc(bookingRef); // Remove do banco após pegar os dados
-                window.open(`https://wa.me/55${fone}?text=${encodeURIComponent(textoRecusa)}`, '_blank');
-                showNotification("Solicitação recusada e cliente avisada.");
+            if(confirm("Deseja remover este agendamento?")) {
+                await deleteDoc(bookingRef);
             }
         }
         loadPendingAgenda(); 
     } catch (e) {
-        console.error("Erro:", e);
-        showNotification("Erro ao processar.");
+        console.error(e);
     }
 }
 window.handleBooking = handleBooking;
@@ -568,6 +585,7 @@ window.handleBooking = handleBooking;
     </script>
 </body>
 </html>
+
 
 
 
