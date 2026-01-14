@@ -75,207 +75,193 @@
 
     <script src="./config.js"></script>
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, query, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, query, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-        // Pega o ID do estúdio pela URL (?businessId=XXXX)
-        const urlParams = new URLSearchParams(window.location.search);
-        const businessId = urlParams.get('businessId');
+    const urlParams = new URLSearchParams(window.location.search);
+    const businessId = urlParams.get('businessId');
 
-        let selectedSlot = null;
-        let studioSettings = null;
+    let selectedSlot = null;
+    let studioSettings = null;
 
-        if (!businessId) {
-            document.body.innerHTML = "<div class='p-10 text-center'>Link de agendamento inválido. Solicite um novo link ao studio.</div>";
-        }
-
-       async function loadStudioData() {
-    try {
-        // 1. Busca Nome e Configurações da Agenda
-        const docRef = doc(db, "businesses", businessId, "settings", "general");
-        const docSnap = await getDoc(docRef);
-        
-        if (docSnap.exists()) {
-            studioSettings = docSnap.data();
-            document.getElementById('studio-display-name').textContent = studioSettings.studioName || "Studio de Bronze";
-        } else {
-            document.getElementById('studio-display-name').textContent = "Studio não encontrado";
-        }
-
-        // 2. BUSCA OS TIPOS DE BRONZE (NOVO)
-        const productsRef = collection(db, "businesses", businessId, "products");
-        // Filtra apenas pela categoria 'bronze' que você definiu em configurações
-        const q = query(productsRef, where("category", "==", "bronze"));
-        const querySnapshot = await getDocs(q);
-        
-        const select = document.getElementById('service-select');
-        select.innerHTML = '<option value="">Selecione o bronze desejado</option>';
-        
-        querySnapshot.forEach((doc) => {
-            const p = doc.data();
-            const option = document.createElement('option');
-            option.value = p.name; // Salva o nome do bronze
-            option.textContent = `${p.name} - R$ ${p.price.toFixed(2)}`;
-            select.appendChild(option);
-        });
-
-    } catch (e) { 
-        console.error("Erro ao carregar dados:", e); 
-    }
-}
-
-async function generateSlots(dateValue) {
-    const container = document.getElementById('slots-container');
-    container.innerHTML = "<p class='col-span-3 text-center text-gray-400 text-xs'>Verificando disponibilidade...</p>";
-    
-    if (!studioSettings || !studioSettings.agenda) {
-        container.innerHTML = "<p class='col-span-3 text-red-400 text-center text-sm'>Configuração não encontrada.</p>";
-        return;
+    if (!businessId) {
+        document.body.innerHTML = "<div class='p-10 text-center'>Link de agendamento inválido. Solicite um novo link ao studio.</div>";
     }
 
-    // --- TRAVA 1: Verificar se o Studio abre neste dia da semana ---
-    const chosenDate = new Date(dateValue + 'T12:00:00'); // Força meio-dia para evitar erro de fuso no dia
-    const dayOfWeek = chosenDate.getDay(); // 0 (Dom) a 6 (Sáb)
-    const openDays = studioSettings.agenda.days || [];
-
-    if (!openDays.includes(dayOfWeek)) {
-        container.innerHTML = "<p class='col-span-3 text-rose-500 text-center text-sm font-bold bg-rose-50 p-4 rounded-xl'>O Studio não abre neste dia da semana.</p>";
-        return;
-    }
-
-    try {
-        // --- TRAVA 2: Contagem de Vagas (2 por hora) ---
-        const bookingsRef = collection(db, "businesses", businessId, "bookings");
-        const q = query(bookingsRef, where("date", "==", dateValue), where("status", "in", ["pendente", "confirmado"]));
-        const querySnapshot = await getDocs(q);
-        
-        const occupiedSlots = {};
-        querySnapshot.forEach(doc => {
-            const slotTime = doc.data().time;
-            occupiedSlots[slotTime] = (occupiedSlots[slotTime] || 0) + 1;
-        });
-
-        container.innerHTML = "";
-        const { start, end, interval, slots } = studioSettings.agenda;
-        const maxSlots = parseInt(slots) || 1;
-        
-        let currentTime = start;
-
-        // --- TRAVA 3: Incluir o último horário (<= em vez de <) ---
-        while (currentTime <= end) {
-            const totalAgendados = occupiedSlots[currentTime] || 0;
-            const temVaga = totalAgendados < maxSlots;
-
-            // --- TRAVA 4: Bloquear horários passados (se for hoje) ---
-            const agora = new Date();
-            const dataHoje = agora.toISOString().split('T')[0];
-            let isPast = false;
-
-            if (dateValue === dataHoje) {
-                const [h, m] = currentTime.split(':').map(Number);
-                const horaSlot = new Date();
-                horaSlot.setHours(h, m, 0, 0);
-                if (horaSlot < agora) isPast = true;
-            }
-
-            const btn = document.createElement('button');
-            btn.type = "button";
+    async function loadStudioData() {
+        try {
+            const docRef = doc(db, "businesses", businessId, "settings", "general");
+            const docSnap = await getDoc(docRef);
             
-            if (isPast) {
-                // Se o horário já passou, nem mostra ou mostra desativado
-                currentTime = getNextTime(currentTime, interval);
-                continue; 
-            }
-
-            btn.className = `slot-btn p-2 border rounded-lg text-sm font-medium transition-all ${temVaga ? 'hover:bg-gray-50' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`;
-            
-            const vagasRestantes = maxSlots - totalAgendados;
-            btn.innerHTML = `${currentTime}<br><span class="text-[9px]">${temVaga ? vagasRestantes + ' vagas' : 'Lotado'}</span>`;
-            
-            if (temVaga) {
-                if (temVaga) {
-            btn.onclick = (e) => {
-                e.preventDefault();
-                document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected', 'bg-[#B76E79]', 'text-white'));
-                btn.classList.add('selected', 'bg-[#B76E79]', 'text-white');
-                
-                // CORREÇÃO AQUI: Em vez de pegar o texto do botão, 
-                // usamos a variável 'currentTime' do loop, que é pura (ex: "12:00")
-                selectedSlot = currentTime; 
-            };
+            if (docSnap.exists()) {
+                studioSettings = docSnap.data();
+                document.getElementById('studio-display-name').textContent = studioSettings.studioName || "Studio de Bronze";
             } else {
-                btn.disabled = true;
+                document.getElementById('studio-display-name').textContent = "Studio não encontrado";
             }
 
-            container.appendChild(btn);
-            currentTime = getNextTime(currentTime, interval);
+            const productsRef = collection(db, "businesses", businessId, "products");
+            const q = query(productsRef, where("category", "==", "bronze"));
+            const querySnapshot = await getDocs(q);
+            
+            const select = document.getElementById('service-select');
+            select.innerHTML = '<option value="">Selecione o bronze desejado</option>';
+            
+            querySnapshot.forEach((doc) => {
+                const p = doc.data();
+                const option = document.createElement('option');
+                option.value = p.name;
+                option.textContent = `${p.name} - R$ ${p.price.toFixed(2)}`;
+                select.appendChild(option);
+            });
+
+        } catch (e) { 
+            console.error("Erro ao carregar dados:", e); 
         }
-    } catch (e) {
-        console.error(e);
-        container.innerHTML = "<p class='col-span-3 text-red-400 text-center text-sm'>Erro ao carregar.</p>";
-    }
-    lucide.createIcons();
-}
-
-// Função auxiliar para somar tempo
-function getNextTime(current, interval) {
-    let [h, m] = current.split(':').map(Number);
-    m += parseInt(interval);
-    while (m >= 60) { h += 1; m -= 60; }
-    if (h >= 24) return "99:99"; // Para o loop
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-}
-        document.getElementById('booking-date').addEventListener('change', (e) => {
-            generateSlots(e.target.value);
-        });
-
-        document.getElementById('confirm-booking-btn').addEventListener('click', async () => {
-            const name = document.getElementById('client-name').value;
-            const phone = document.getElementById('client-phone').value;
-            const date = document.getElementById('booking-date').value;
-            const service = document.getElementById('service-select').value;
-
-           if (!name || !phone || !date || !selectedSlot || !service) {
-        alert("Por favor, preencha todos os campos, incluindo o tipo de bronze.");
-        return;
     }
 
-            try {
-                // Salva o agendamento na nova coleção "bookings"
-                await addDoc(collection(db, "businesses", businessId, "bookings"), {
-                    clientName: name,
-                    clientPhone: phone,
-                    service: service, // SALVA O TIPO DE BRONZE NO BANCO
-                    date: date,
-                    time: selectedSlot,
-                    status: 'pendente',
-                    createdAt: new Date()
-                });
+    async function generateSlots(dateValue) {
+        const container = document.getElementById('slots-container');
+        container.innerHTML = "<p class='col-span-3 text-center text-gray-400 text-xs'>Verificando disponibilidade...</p>";
+        
+        if (!studioSettings || !studioSettings.agenda) {
+            container.innerHTML = "<p class='col-span-3 text-red-400 text-center text-sm'>Configuração não encontrada.</p>";
+            return;
+        }
 
-                document.getElementById('success-modal').classList.remove('hidden');
-                lucide.createIcons();
-            } catch (e) {
-                alert("Erro ao solicitar. Tente novamente.");
+        const partesData = dateValue.split('-');
+        const chosenDate = new Date(partesData[0], partesData[1] - 1, partesData[2], 12, 0, 0);
+        const dayOfWeek = chosenDate.getDay();
+        const openDays = studioSettings.agenda.days || [];
+
+        if (!openDays.map(String).includes(String(dayOfWeek))) {
+            container.innerHTML = "<p class='col-span-3 text-rose-500 text-center text-sm font-bold bg-rose-50 p-4 rounded-xl'>O Studio não abre neste dia da semana.</p>";
+            return;
+        }
+
+        try {
+            const bookingsRef = collection(db, "businesses", businessId, "bookings");
+            const q = query(bookingsRef, where("date", "==", dateValue), where("status", "in", ["pendente", "confirmado"]));
+            const querySnapshot = await getDocs(q);
+            
+            const occupiedSlots = {};
+            querySnapshot.forEach(doc => {
+                const slotTime = doc.data().time;
+                occupiedSlots[slotTime] = (occupiedSlots[slotTime] || 0) + 1;
+            });
+
+            container.innerHTML = "";
+            const { start, end, interval, slots } = studioSettings.agenda;
+            const maxSlots = parseInt(slots) || 1;
+            
+            let currentTime = start;
+
+            while (currentTime <= end) {
+                const totalAgendados = occupiedSlots[currentTime] || 0;
+                const temVaga = totalAgendados < maxSlots;
+
+                const agora = new Date();
+                const dataHoje = agora.toISOString().split('T')[0];
+                let isPast = false;
+
+                if (dateValue === dataHoje) {
+                    const [h, m] = currentTime.split(':').map(Number);
+                    const horaSlot = new Date();
+                    horaSlot.setHours(h, m, 0, 0);
+                    if (horaSlot < agora) isPast = true;
+                }
+
+                if (isPast) {
+                    currentTime = getNextTime(currentTime, interval);
+                    continue; 
+                }
+
+                const btn = document.createElement('button');
+                btn.type = "button";
+                btn.className = `slot-btn p-2 border rounded-lg text-sm font-medium transition-all ${temVaga ? 'hover:bg-gray-50' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`;
+                
+                const vagasRestantes = maxSlots - totalAgendados;
+                btn.innerHTML = `${currentTime}<br><span class="text-[9px]">${temVaga ? vagasRestantes + ' vagas' : 'Lotado'}</span>`;
+                
+                if (temVaga) {
+                    const slotValue = currentTime; // Trava o valor para o clique
+                    btn.onclick = (e) => {
+                        e.preventDefault();
+                        document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected', 'bg-[#B76E79]', 'text-white'));
+                        btn.classList.add('selected', 'bg-[#B76E79]', 'text-white');
+                        selectedSlot = slotValue; 
+                    };
+                } else {
+                    btn.disabled = true;
+                }
+
+                container.appendChild(btn);
+                currentTime = getNextTime(currentTime, interval);
             }
-        });
-
-        // Máscara de Telefone
-        document.getElementById('client-phone').addEventListener('input', (e) => {
-            let v = e.target.value.replace(/\D/g, '').substring(0, 11);
-            if (v.length > 2) v = `(${v.substring(0,2)}) ${v.substring(2)}`;
-            if (v.length > 9) v = `${v.substring(0,9)}-${v.substring(9)}`;
-            e.target.value = v;
-        });
-
-        loadStudioData();
+        } catch (e) {
+            console.error(e);
+            container.innerHTML = "<p class='col-span-3 text-red-400 text-center text-sm'>Erro ao carregar.</p>";
+        }
         lucide.createIcons();
-    </script>
+    }
+
+    function getNextTime(current, interval) {
+        let [h, m] = current.split(':').map(Number);
+        m += parseInt(interval);
+        while (m >= 60) { h += 1; m -= 60; }
+        if (h >= 24) return "99:99"; 
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+
+    document.getElementById('booking-date').addEventListener('change', (e) => {
+        generateSlots(e.target.value);
+    });
+
+    document.getElementById('confirm-booking-btn').addEventListener('click', async () => {
+        const name = document.getElementById('client-name').value;
+        const phone = document.getElementById('client-phone').value;
+        const date = document.getElementById('booking-date').value;
+        const service = document.getElementById('service-select').value;
+
+        if (!name || !phone || !date || !selectedSlot || !service) {
+            alert("Por favor, preencha todos os campos.");
+            return;
+        }
+
+        try {
+            await addDoc(collection(db, "businesses", businessId, "bookings"), {
+                clientName: name,
+                clientPhone: phone,
+                service: service,
+                date: date,
+                time: selectedSlot,
+                status: 'pendente',
+                createdAt: new Date()
+            });
+            document.getElementById('success-modal').classList.replace('hidden', 'flex');
+            lucide.createIcons();
+        } catch (e) {
+            alert("Erro ao solicitar. Tente novamente.");
+        }
+    });
+
+    document.getElementById('client-phone').addEventListener('input', (e) => {
+        let v = e.target.value.replace(/\D/g, '').substring(0, 11);
+        if (v.length > 2) v = `(${v.substring(0,2)}) ${v.substring(2)}`;
+        if (v.length > 9) v = `${v.substring(0,9)}-${v.substring(9)}`;
+        e.target.value = v;
+    });
+
+    loadStudioData();
+    lucide.createIcons();
+</script>
 </body>
 
 </html>
+
 
 
 
