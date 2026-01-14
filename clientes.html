@@ -300,6 +300,71 @@ function listenForNewBookings() {
     });
 }
 
+        // --- CARREGA LISTA DE AGENDAMENTOS NA ABA AGENDA ---
+async function loadPendingAgenda() {
+    const agendaListEl = document.getElementById('agenda-list');
+    const bookingsRef = collection(db, "businesses", businessId, "bookings");
+    const q = query(bookingsRef, where("status", "==", "pendente"), orderBy("createdAt", "desc"));
+
+    try {
+        const querySnapshot = await getDocs(q);
+        agendaListEl.innerHTML = '';
+
+        if (querySnapshot.empty) {
+            agendaListEl.innerHTML = '<p class="text-gray-400 py-10">Nenhum agendamento aguardando aprovação.</p>';
+            return;
+        }
+
+        querySnapshot.forEach((docSnap) => {
+            const booking = docSnap.data();
+            const id = docSnap.id;
+            const dateFormatted = new Date(booking.date + 'T00:00:00').toLocaleDateString('pt-BR');
+
+            const card = document.createElement('div');
+            card.className = 'bg-white border-l-4 border-amber-400 p-4 rounded-xl shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4';
+            card.innerHTML = `
+                <div class="flex-grow text-left w-full">
+                    <p class="font-bold text-gray-800 text-lg">${booking.clientName}</p>
+                    <p class="text-sm text-gray-600 flex items-center gap-1"><i data-lucide="phone" class="w-3 h-3"></i> ${booking.clientPhone}</p>
+                    <div class="flex flex-wrap gap-2 mt-2">
+                        <span class="bg-pink-100 text-pink-700 text-xs px-2 py-1 rounded-full font-bold">${booking.service || 'Bronze'}</span>
+                        <span class="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full font-bold">${dateFormatted} às ${booking.time}</span>
+                    </div>
+                </div>
+                <div class="flex gap-2 w-full sm:w-auto">
+                    <button onclick="handleBooking('${id}', 'confirmado')" class="flex-1 sm:flex-none bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-green-600 transition-colors">Aprovar</button>
+                    <button onclick="handleBooking('${id}', 'recusado')" class="flex-1 sm:flex-none bg-red-100 text-red-600 px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-200 transition-colors">Recusar</button>
+                </div>
+            `;
+            agendaListEl.appendChild(card);
+        });
+        lucide.createIcons();
+    } catch (e) {
+        console.error("Erro ao carregar agenda:", e);
+    }
+}
+window.loadPendingAgenda = loadPendingAgenda;
+
+        // --- FUNÇÃO PARA APROVAR OU RECUSAR ---
+async function handleBooking(bookingId, newStatus) {
+    const bookingRef = doc(db, "businesses", businessId, "bookings", bookingId);
+    
+    try {
+        if (newStatus === 'confirmado') {
+            await updateDoc(bookingRef, { status: 'confirmado' });
+            showNotification("Agendamento aprovado com sucesso!", "success");
+        } else {
+            await deleteDoc(bookingRef); // Se recusar, removemos do banco para não ocupar espaço
+            showNotification("Agendamento removido.", "info");
+        }
+        loadPendingAgenda(); // Atualiza a lista
+    } catch (e) {
+        console.error("Erro ao processar agendamento:", e);
+        showNotification("Erro ao processar.", "error");
+    }
+}
+window.handleBooking = handleBooking;
+
         // --- 3. LÓGICA DE MARKETING E WHATSAPP ---
         function sendProfessionalWhatsApp(client, type) {
             const firstName = (client.name || 'Cliente').split(' ')[0];
@@ -403,6 +468,10 @@ function listenForNewBookings() {
                     e.currentTarget.classList.add('bg-[#B76E79]', 'text-white');
                     e.currentTarget.classList.remove('text-gray-500');
                     document.getElementById(tabConfigs[tabId]).classList.remove('hidden');
+
+                    if (tabId === 'tab-agenda') {
+                loadPendingAgenda();
+            }
                 });
             }
         });
@@ -477,4 +546,5 @@ function listenForNewBookings() {
     </script>
 </body>
 </html>
+
 
