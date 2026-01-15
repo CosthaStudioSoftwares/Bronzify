@@ -28,16 +28,17 @@ document.addEventListener('DOMContentLoaded', () => {
         { href: './clientes.html', icon: 'users', text: 'Clientes', id: 'clientes' },
         { href: './caixa.html', icon: 'dollar-sign', text: 'Caixa', id: 'caixa' },
         { href: './ordem-chegada.html', icon: 'list-ordered', text: 'Ordem de Chegada', id: 'ordem-chegada' },
-        { href: './patio.html', icon: 'sun', text: 'Pátio', id: 'patio' }
+        { href: './patio.html', icon: 'sun', text: 'Pátio', id: 'patio' },
+        { href: '#', icon: 'message-circle', text: 'Suporte!', id: 'suporte-whatsapp' }
     ];
 
     let navLinksHTML = '';
-    menuLinks.forEach(link => {
-        // Um link é mostrado se: 
-        // 1. O usuário é o admin (isAdmin é true)
-        // 2. Ou a permissão para aquele link não está explicitamente definida como 'false'
+   menuLinks.forEach(link => {
         if (isAdmin || permissions[link.id] !== false) {
-            navLinksHTML += `<a href="${link.href}" class="sidebar-link ${currentPage === link.href.split('/').pop() ? 'active' : ''}"><i data-lucide="${link.icon}"></i> ${link.text}</a>`;
+            // Esta linha abaixo é a necessária para o botão funcionar manualmente
+            const specialId = link.id === 'suporte-whatsapp' ? 'id="btn-suporte-link"' : '';
+            
+            navLinksHTML += `<a href="${link.href}" ${specialId} class="sidebar-link ${currentPage === link.href.split('/').pop() ? 'active' : ''}"><i data-lucide="${link.icon}"></i> ${link.text}</a>`;
         }
     });
 
@@ -110,5 +111,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
+
+    // --- LÓGICA MANUAL DO SUPORTE ---
+    const btnSuporte = document.getElementById('btn-suporte-link');
+    if (btnSuporte) {
+        btnSuporte.addEventListener('click', (e) => {
+            e.preventDefault(); 
+            if (confirm("Deseja falar com o Suporte da Bronzify agora?")) {
+                window.open("https://wa.me/5579996365824?text=Olá! Preciso de ajuda com o sistema.", "_blank");
+            }
+        });
+    }
 });
+
 
