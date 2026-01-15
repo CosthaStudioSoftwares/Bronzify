@@ -232,7 +232,7 @@
         
         document.body.addEventListener('click', async () => { if (!synth && typeof Tone !== 'undefined') { await Tone.start(); synth = new Tone.Synth().toDestination(); }}, { once: true });
 
-        onAuthStateChanged(auth, async (user) => {
+       onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
                 businessId = sessionStorage.getItem('businessId');
@@ -246,6 +246,18 @@
                 
                 sessionStorage.setItem('acessoLiberado', 'true');
                 initializePage();
+
+                // --- ADICIONE ESTA LINHA AQUI ---
+                listenForHelpRequests(); 
+
+                // Libera o áudio após o primeiro clique na página
+                document.body.addEventListener('click', async () => { 
+                    if (!synth && typeof Tone !== 'undefined') { 
+                        await Tone.start(); 
+                        synth = new Tone.Synth().toDestination(); 
+                    }
+                }, { once: true });
+
             } else {
                 window.location.href = 'index.html';
             }
@@ -577,9 +589,37 @@
         });
     }
 });
+
+        // --- ESCUTAR PEDIDOS DE AJUDA EM TEMPO REAL ---
+        function listenForHelpRequests() {
+            if (!businessId) return;
+            
+            const helpRef = collection(db, "businesses", businessId, "help_requests");
+            // Ouve apenas pedidos feitos a partir de agora
+            const q = query(helpRef, where("createdAt", ">=", Timestamp.now())); 
+
+            onSnapshot(q, (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === "added") {
+                        const request = change.doc.data();
+                        
+                        // Toca o som de alerta (notas subindo)
+                        if (synth) {
+                            synth.triggerAttackRelease("C4", "4n", Tone.now());
+                            synth.triggerAttackRelease("E4", "4n", Tone.now() + 0.2);
+                            synth.triggerAttackRelease("G4", "4n", Tone.now() + 0.4);
+                        }
+
+                        // Alerta visual que trava a tela para garantir que você veja
+                        alert(`🚨 PEDIDO DE AJUDA!\nLocal: ${request.page}\nVerifique imediatamente.`);
+                    }
+                });
+            });
+        }
     </script>
 </body>
 </html>
+
 
 
 
