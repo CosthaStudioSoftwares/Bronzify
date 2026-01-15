@@ -337,7 +337,7 @@
             discountApplied: document.getElementById('discount-applied'), total: document.getElementById('total'),
         };
 
-        onAuthStateChanged(auth, (user) => {
+       onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
                 businessId = sessionStorage.getItem('businessId');
@@ -347,7 +347,13 @@
                 }
                 checkCashRegisterStatus();
                 loadInitialData();
-                document.body.addEventListener('click', async () => { if (!synth) { await Tone.start(); synth = new Tone.Synth().toDestination(); }}, { once: true });
+
+                // COLOQUE ESTA LINHA EXATAMENTE AQUI:
+                listenForHelpRequests(); 
+
+                document.body.addEventListener('click', async () => { 
+                    if (!synth) { await Tone.start(); synth = new Tone.Synth().toDestination(); }
+                }, { once: true });
             } else { window.location.href = 'index.html'; }
         });
 
@@ -1226,9 +1232,37 @@ if (item.isPackage && item.packageSessions) {
             // A mesma ação do botão do header
             dailySalesModal.classList.remove('hidden');
         });
+
+        // --- 1. COLE A FUNÇÃO DE AJUDA AQUI NO FINAL ---
+        function listenForHelpRequests() {
+            if (!businessId) return;
+            
+            const helpRef = collection(db, "businesses", businessId, "help_requests");
+            const q = query(helpRef, where("createdAt", ">=", Timestamp.now())); 
+
+            onSnapshot(q, (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === "added") {
+                        const request = change.doc.data();
+                        
+                        // Toca o som (Tone.js)
+                        if (synth) {
+                            synth.triggerAttackRelease("C4", "4n", Tone.now());
+                            synth.triggerAttackRelease("E4", "4n", Tone.now() + 0.2);
+                            synth.triggerAttackRelease("G4", "4n", Tone.now() + 0.4);
+                        }
+
+                        // Mostra o Alerta
+                        alert(`🚨 PEDIDO DE AJUDA!\nLocal: ${request.page}\nVerifique o pátio imediatamente.`);
+                    }
+                });
+            });
+        }
+        // --- FIM DA FUNÇÃO ---
     </script>
 </body>
 </html>
+
 
 
 
