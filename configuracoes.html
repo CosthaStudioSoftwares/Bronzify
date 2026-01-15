@@ -76,6 +76,14 @@
                         </div>
                     </div>
 
+                    <div data-accordion-trigger="extra-items" class="flex justify-between items-center cursor-pointer border-b p-4 hover:bg-gray-50 rounded-t-lg mt-2">
+    <h4 class="font-semibold text-lg text-gray-700">Adicionais</h4>
+    <i data-lucide="chevron-down" class="transition-transform duration-300"></i>
+</div>
+<div id="extra-items-panel" class="accordion-content max-h-0">
+    <div id="extra-items" class="space-y-3 p-4 border border-t-0 rounded-b-lg"></div>
+</div>
+
                     <div class="bg-white p-6 rounded-2xl shadow-md">
     <div data-accordion-trigger="identity-marketing" class="flex justify-between items-center cursor-pointer mb-2">
         <h3 class="text-2xl text-gray-800 font-bold">Identidade e Marketing</h3>
@@ -249,24 +257,35 @@
             });
         }
 
-        function renderProducts() {
-            const containers = { bronze: document.getElementById('bronze-items'), consumable: document.getElementById('consumable-items') };
-            Object.values(containers).forEach(c => c.innerHTML = '');
-            
-            allProducts.forEach(p => {
-                const el = document.createElement('div');
-                el.className = 'flex justify-between items-center bg-gray-50 p-3 rounded-lg border hover:bg-white transition-all';
-                const formattedPrice = (p.price || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                el.innerHTML = `
-                    <div><span class="font-bold text-gray-800">${p.name}</span><br><span class="text-sm text-gray-500">${formattedPrice}</span></div>
-                    <div class="flex gap-2">
-                        <button onclick="editProduct('${p.id}')" class="p-2 text-blue-500 hover:bg-blue-50 rounded-full"><i data-lucide="pencil" class="w-5 h-5"></i></button>
-                        <button onclick="deleteProduct('${p.id}')" class="p-2 text-red-500 hover:bg-red-50 rounded-full"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
-                    </div>`;
-                if(containers[p.category]) containers[p.category].appendChild(el);
-            });
-            lucide.createIcons();
+       function renderProducts() {
+    // Adicionamos 'extra' na lista de containers
+    const containers = { 
+        bronze: document.getElementById('bronze-items'), 
+        consumable: document.getElementById('consumable-items'),
+        extra: document.getElementById('extra-items') // <--- NOVA LINHA
+    };
+
+    // Limpa os containers antes de preencher
+    Object.values(containers).forEach(c => { if(c) c.innerHTML = ''; });
+    
+    allProducts.forEach(p => {
+        const el = document.createElement('div');
+        el.className = 'flex justify-between items-center bg-gray-50 p-3 rounded-lg border hover:bg-white transition-all';
+        const formattedPrice = (p.price || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        el.innerHTML = `
+            <div><span class="font-bold text-gray-800">${p.name}</span><br><span class="text-sm text-gray-500">${formattedPrice}</span></div>
+            <div class="flex gap-2">
+                <button onclick="editProduct('${p.id}')" class="p-2 text-blue-500 hover:bg-blue-50 rounded-full"><i data-lucide="pencil" class="w-5 h-5"></i></button>
+                <button onclick="deleteProduct('${p.id}')" class="p-2 text-red-500 hover:bg-red-50 rounded-full"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+            </div>`;
+        
+        // Verifica se o container existe antes de tentar colocar o item dentro
+        if(containers[p.category]) {
+            containers[p.category].appendChild(el);
         }
+    });
+    lucide.createIcons();
+}
 
         window.deleteProduct = async (id) => {
             if(confirm("Deseja realmente excluir este item?")) {
@@ -492,6 +511,7 @@ document.addEventListener('click', (e) => {
     </script>
 </body>
 </html>
+
 
 
 
