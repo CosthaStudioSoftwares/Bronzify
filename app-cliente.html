@@ -25,6 +25,16 @@
     </style>
 </head>
 <body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+    <audio id="silent-audio" loop>
+        <source src="https://raw.githubusercontent.com/anars/blank-audio/master/10-seconds-of-silence.mp3" type="audio/mp3">
+    </audio>
+
+    <div id="panel-vagas" class="max-w-md mx-auto mb-4 hidden">
+        <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-emerald-500 flex justify-between items-center">
+            <span class="text-gray-500 font-bold text-xs uppercase">Última senha chamada:</span>
+            <span id="last-called-number" class="text-3xl font-black text-emerald-600">---</span>
+        </div>
+    </div>
     
     <div id="status-container" class="w-full max-w-md text-center">
         <div id="loading-state" class="text-center">
@@ -103,6 +113,16 @@
         const db = getFirestore(app);
         const messaging = getMessaging(app);
         let synth = null;
+
+        // Função que faz o celular falar
+        const speak = (text) => {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'pt-BR';
+                window.speechSynthesis.speak(utterance);
+            }
+        };
         
         // --- INÍCIO: FUNÇÕES DE AJUDA QUE ESTAVAM FALTANDO ---
         const ui = {
@@ -191,12 +211,50 @@
 // =======================================================================
 async function main() {
     // Ativa o botão de áudio imediatamente.
-    ui.startAudioBtn.onclick = async () => {
+   ui.startAudioBtn.onclick = async () => {
         await Tone.start();
         synth = new Tone.Synth().toDestination();
+        
+        // Liga o motor silencioso para o iPhone não dormir
+        document.getElementById('silent-audio').play().catch(e => console.log(e));
+        
         ui.audioOverlay.classList.add('hidden');
-        console.log("Contexto de áudio iniciado.");
+        speak("Avisos de voz ativados."); // Teste inicial
     };
+
+    // --- MONITOR DE ÚLTIMA SENHA CHAMADA ---
+    import { collection, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    const lastCalledQuery = query(collection(db, "businesses", businessId, "sales"), where("status", "==", "called"), orderBy("createdAt", "desc"), limit(1));
+
+    onSnapshot(lastCalledQuery, (snap) => {
+        if (!snap.empty) {
+            const lastData = snap.docs[0].data();
+            document.getElementById('last-called-number').textContent = lastData.password;
+            document.getElementById('panel-vagas').classList.remove('hidden');
+        }
+    });
+
+    // --- MONITOR DA SUA PRÓPRIA SENHA ---
+    onSnapshot(saleRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.status === 'waiting') {
+                ui.clientName.textContent = data.clientName;
+                ui.password.textContent = data.password;
+                showState('waiting');
+            } else if (data.status === 'called') {
+                ui.calledPassword.textContent = data.password;
+                showState('called');
+                
+                // AQUI ACONTECE A VOZ E O SOM
+                playSound();
+                speak(`Atenção! Senha ${data.password}. Sua vez chegou!`);
+                if ('vibrate' in navigator) navigator.vibrate([500, 200, 500, 200, 500]);
+            } else {
+                showState('error');
+            }
+        }
+    });
 
     // Registra o Service Worker.
     if ('serviceWorker' in navigator) {
@@ -285,3 +343,4 @@ async function main() {
     </script>
 </body>
 </html>
+
