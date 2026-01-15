@@ -696,45 +696,49 @@ function renderRecoveryItems(clients, lastVisits) {
         document.getElementById('add-client-btn').addEventListener('click', () => { clientForm.reset(); document.getElementById('client-id').value = ''; modal.classList.remove('hidden'); });
         document.getElementById('cancel-btn').addEventListener('click', () => modal.classList.add('hidden'));
 
-       clientForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('client-id').value;
-            const name = document.getElementById('client-name').value.trim();
-            const phone = document.getElementById('client-phone').value.trim();
-            const birthdate = document.getElementById('client-birthdate').value;
+      clientForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('client-id').value;
+    const name = document.getElementById('client-name').value.trim();
+    const phone = document.getElementById('client-phone').value.trim();
+    
+    // --- CONVERSÃO DA DATA ---
+    const birthdateInput = document.getElementById('client-birthdate').value; // Ex: 15/01/1995
+    const partes = birthdateInput.split('/');
+    // Segurança: se não digitar a data completa, ele não tenta converter
+    const birthdate = partes.length === 3 ? `${partes[2]}-${partes[1]}-${partes[0]}` : ""; 
 
-            // --- VALIDAÇÃO ÚNICA DE TELEFONE (CORRIGIDA) ---
-            const phoneInputLimpo = phone.replace(/\D/g, '');
-            const jaExiste = allClientsData.some(c => {
-                const phoneDBLimpo = (c.phone || '').replace(/\D/g, '');
-                return phoneDBLimpo === phoneInputLimpo && c.id !== id;
-            });
+    // --- VALIDAÇÃO ÚNICA DE TELEFONE ---
+    const phoneInputLimpo = phone.replace(/\D/g, '');
+    const jaExiste = allClientsData.some(c => {
+        const phoneDBLimpo = (c.phone || '').replace(/\D/g, '');
+        return phoneDBLimpo === phoneInputLimpo && c.id !== id;
+    });
 
-            if (jaExiste) {
-                showNotification("Erro: Este número de telefone já está cadastrado!");
-                document.getElementById('client-phone').focus();
-                return; 
-            }
-            // ----------------------------------------------
+    if (jaExiste) {
+        showNotification("Erro: Este número de telefone já está cadastrado!");
+        document.getElementById('client-phone').focus();
+        return; 
+    } // <--- AQUI VOCÊ TINHA ESQUECIDO DE FECHAR ESSA CHAVE
 
-            const data = { name, phone, birthdate };
-            const ref = collection(db, "businesses", businessId, "clients");
-            
-            try {
-                if (id) {
-                    await updateDoc(doc(ref, id), data);
-                    showNotification("Cadastro atualizado!");
-                } else {
-                    await addDoc(ref, { ...data, createdAt: new Date() });
-                    showNotification("Cliente cadastrado com sucesso!");
-                }
-                modal.classList.add('hidden'); 
-                initializePage(); 
-            } catch (e) { 
-                console.error(e);
-                alert("Erro ao salvar!"); 
-            }
-        });
+    const data = { name, phone, birthdate }; 
+    const ref = collection(db, "businesses", businessId, "clients");
+    
+    try {
+        if (id) {
+            await updateDoc(doc(ref, id), data);
+            showNotification("Cadastro atualizado!");
+        } else {
+            await addDoc(ref, { ...data, createdAt: new Date() });
+            showNotification("Cliente cadastrado com sucesso!");
+        }
+        modal.classList.add('hidden'); 
+        initializePage(); 
+    } catch (e) { 
+        console.error(e);
+        alert("Erro ao salvar!"); 
+    }
+});
         
         clientsListEl.addEventListener('click', async (e) => {
             const editBtn = e.target.closest('.edit-btn'), deleteBtn = e.target.closest('.delete-btn');
@@ -743,7 +747,12 @@ function renderRecoveryItems(clients, lastVisits) {
                 document.getElementById('client-id').value = c.id;
                 document.getElementById('client-name').value = c.name;
                 document.getElementById('client-phone').value = c.phone;
-                document.getElementById('client-birthdate').value = c.birthdate;
+                if (c.birthdate && c.birthdate.includes('-')) {
+            const [ano, mes, dia] = c.birthdate.split('-');
+    document.getElementById('client-birthdate').value = `${dia}/${mes}/${ano}`;
+} else {
+    document.getElementById('client-birthdate').value = c.birthdate || '';
+}
                 modal.classList.remove('hidden');
             }
             if (deleteBtn && confirm("Excluir cliente?")) {
@@ -844,4 +853,5 @@ document.getElementById('client-birthdate').addEventListener('input', (e) => {
     </script>
 </body>
 </html>
+
 
