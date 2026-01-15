@@ -703,12 +703,12 @@ function renderRecoveryItems(clients, lastVisits) {
             // Só validamos se for um cadastro NOVO (sem ID) ou se o telefone mudou na edição
             const phoneExists = allClientsData.some(c => c.phone === phone && c.id !== id);
 
-            if (phoneExists) {
-                showNotification("Erro: Este número de telefone já está cadastrado para outro cliente!");
-                // Opcional: focar no campo de telefone
-                document.getElementById('client-phone').focus();
-                return; // Para o código aqui e não salva no banco
-            }
+            // Validação que ignora parênteses e traços para não dar erro se um estiver com máscara e outro não
+const phoneExists = allClientsData.some(c => {
+    const phoneDB = (c.phone || '').replace(/\D/g, '');
+    const phoneInput = phone.replace(/\D/g, '');
+    return phoneDB === phoneInput && c.id !== id;
+});
             // ---------------------------------------
 
             const data = { name, phone, birthdate };
@@ -819,9 +819,17 @@ function renderRecoveryItems(clients, lastVisits) {
         document.getElementById('close-winner-modal').addEventListener('click', () => document.getElementById('winner-modal').classList.add('hidden'));
 
         lucide.createIcons();
+
+    // --- MÁSCARA DE TELEFONE (XX) XXXXX-XXXX ---
+document.getElementById('client-phone').addEventListener('input', (e) => {
+    let x = e.target.value.replace(/\D/g, '').match(/(\d{0,2})(\d{0,5})(\d{0,4})/);
+    e.target.value = !x[2] ? x[1] : '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '');
+});
+    
     </script>
 </body>
 </html>
+
 
 
 
