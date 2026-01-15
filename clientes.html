@@ -678,24 +678,83 @@ function renderRecoveryItems(clients, lastVisits) {
         });
         
 
-        // --- 8. SORTEIO (PRESERVADO) ---
-        const months = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+        // ... código anterior (CRUD de clientes)
+
+        // --- 8. SORTEIO (ESTE É O LOCAL CORRETO) ---
+        const monthsNames = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
         const raffleSelect = document.getElementById('raffle-months');
-        months.forEach((m, i) => raffleSelect.add(new Option(m, i)));
-        
-        document.getElementById('raffle-btn').addEventListener('click', () => {
-            if (allClientsData.length === 0) return;
-            const winner = allClientsData[Math.floor(Math.random() * allClientsData.length)];
-            document.getElementById('winner-name').textContent = winner.name;
-            document.getElementById('winner-phone').textContent = winner.phone;
-            document.getElementById('winner-modal').classList.remove('hidden');
+        monthsNames.forEach((m, i) => {
+            if (raffleSelect.options.length < 12) { // Evita duplicar opções ao recarregar
+                raffleSelect.add(new Option(m, i));
+            }
         });
+        
+        document.getElementById('raffle-btn').addEventListener('click', async () => {
+            const selectedMonths = Array.from(raffleSelect.selectedOptions).map(opt => parseInt(opt.value));
+            
+            if (selectedMonths.length === 0) {
+                alert("Por favor, selecione ao menos um mês para o sorteio.");
+                return;
+            }
+
+            const btn = document.getElementById('raffle-btn');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = "Analisando histórico...";
+
+            try {
+                const currentYear = new Date().getFullYear();
+                const salesRef = collection(db, "businesses", businessId, "sales");
+                const salesSnap = await getDocs(salesRef);
+                
+                const eligibleClientIds = new Set();
+
+                salesSnap.forEach(doc => {
+                    const sale = doc.data();
+                    if (sale.clientId && sale.createdAt && sale.status !== 'cancelled') {
+                        const saleDate = sale.createdAt.toDate ? sale.createdAt.toDate() : new Date(sale.createdAt);
+                        
+                        if (saleDate.getFullYear() === currentYear && selectedMonths.includes(saleDate.getMonth())) {
+                            eligibleClientIds.add(sale.clientId);
+                        }
+                    }
+                });
+
+                const eligibleClients = allClientsData.filter(client => eligibleClientIds.has(client.id));
+
+                if (eligibleClients.length === 0) {
+                    alert("Nenhum cliente encontado com vendas nestes meses.");
+                    return;
+                }
+
+                const winner = eligibleClients[Math.floor(Math.random() * eligibleClients.length)];
+                
+                document.getElementById('winner-name').textContent = winner.name;
+                document.getElementById('winner-phone').textContent = winner.phone || "---";
+                document.getElementById('winner-date').textContent = `Sorteado entre ${eligibleClients.length} clientes do período`;
+                document.getElementById('winner-modal').classList.remove('hidden');
+
+            } catch (error) {
+                console.error(error);
+                alert("Erro ao realizar sorteio.");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        });
+
+        document.getElementById('close-winner-modal').addEventListener('click', () => document.getElementById('winner-modal').classList.add('hidden'));
+
+        lucide.createIcons();
+    </script>
+</body>
         document.getElementById('close-winner-modal').addEventListener('click', () => document.getElementById('winner-modal').classList.add('hidden'));
 
         lucide.createIcons();
     </script>
 </body>
 </html>
+
 
 
 
