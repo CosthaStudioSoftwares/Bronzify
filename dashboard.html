@@ -247,7 +247,9 @@
                 sessionStorage.setItem('acessoLiberado', 'true');
                 initializePage();
 
-                
+                // --- ADICIONE ESTA LINHA AQUI ---
+                listenForHelpRequests(); 
+
                 // Libera o áudio após o primeiro clique na página
                 document.body.addEventListener('click', async () => { 
                     if (!synth && typeof Tone !== 'undefined') { 
@@ -392,10 +394,7 @@
             }
         }
         
-        function listenForHelpRequests() {
-            if (!businessId) return;
-            // ... (função completa)
-        }
+       
 
         function updateUIVisibility() {
             const monthlyRevenueEl = document.getElementById("monthly-revenue");
@@ -617,8 +616,6 @@
     </script>
 </body>
 </html>
-
-
 
 
 
