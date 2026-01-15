@@ -267,18 +267,26 @@ window.showNotification = showNotification;
             } catch (e) { console.error(e); }
         }
         // --- NOTIFICAÇÃO DE AGENDAMENTOS EM TEMPO REAL ---
+// --- NOTIFICAÇÃO DE AGENDAMENTOS EM TEMPO REAL COM SOM ---
 function listenForNewBookings() {
     const bookingsRef = collection(db, "businesses", businessId, "bookings");
     const q = query(bookingsRef, where("status", "==", "pendente"));
 
-    // onSnapshot avisa o site assim que algo muda no banco de dados
     onSnapshot(q, (snapshot) => {
         const count = snapshot.size;
         const alertBox = document.getElementById('alert-pending-booking');
         
         if (count > 0) {
+            // --- NOVO: TOCA O SOM SE UM NOVO AGENDAMENTO FOR ADICIONADO ---
+            snapshot.docChanges().forEach((change) => {
+                if (change.type === "added" && synth) {
+                    // Toca um som diferente (Duas notas rápidas)
+                    synth.triggerAttackRelease("E5", "8n", Tone.now());
+                    synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.1);
+                }
+            });
+
             document.getElementById('alerts-container').classList.remove('hidden');
-            // Cria o banner de agendamento se ele não existir no seu HTML
             if (!alertBox) {
                 const newAlert = document.createElement('div');
                 newAlert.id = 'alert-pending-booking';
@@ -774,6 +782,7 @@ function renderRecoveryItems(clients, lastVisits) {
     </script>
 </body>
 </html>
+
 
 
 
