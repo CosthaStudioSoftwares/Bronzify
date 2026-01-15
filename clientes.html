@@ -491,7 +491,7 @@ window.handleBooking = handleBooking;
             }
         }
 
-        function renderClientItems(clientsToRender) {
+       function renderClientItems(clientsToRender) {
             clientsListEl.innerHTML = '';
             const currentMonth = new Date().getMonth() + 1;
 
@@ -500,6 +500,25 @@ window.handleBooking = handleBooking;
                 const isBirthdayMonth = birthMonth === currentMonth;
                 const birthFormatted = client.birthdate ? new Date(client.birthdate + 'T00:00:00').toLocaleDateString('pt-BR') : '---';
                 
+                // --- LÓGICA DE PACOTES ATIVOS ---
+                let packageHtml = '';
+                if (client.packages) {
+                    // Filtra apenas pacotes que tenham saldo maior que 0
+                    const activePackages = Object.entries(client.packages)
+                        .filter(([name, count]) => count > 0);
+                    
+                    if (activePackages.length > 0) {
+                        packageHtml = activePackages.map(([name, count]) => `
+                            <div class="mt-1 flex items-center gap-1">
+                                <span class="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-200 uppercase flex items-center gap-1">
+                                    <i data-lucide="package" class="w-3 h-3"></i> ${name}: ${count} sessões
+                                </span>
+                            </div>
+                        `).join('');
+                    }
+                }
+                // --------------------------------
+
                 const clientElement = document.createElement('div');
                 clientElement.className = 'client-item flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-gray-50 rounded-xl gap-4 border border-transparent hover:border-[#B76E79] transition-all';
                 clientElement.innerHTML = `
@@ -509,6 +528,7 @@ window.handleBooking = handleBooking;
                             <div>
                                 <p class="font-bold text-gray-700">${client.name || ''}</p>
                                 <p class="text-sm text-gray-500">${client.phone || ''} | Nasc: ${birthFormatted}</p>
+                                ${packageHtml}
                             </div>
                         </div>
                     </div>
@@ -754,6 +774,7 @@ function renderRecoveryItems(clients, lastVisits) {
     </script>
 </body>
 </html>
+
 
 
 
