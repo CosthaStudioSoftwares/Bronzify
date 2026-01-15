@@ -247,9 +247,7 @@
                 sessionStorage.setItem('acessoLiberado', 'true');
                 initializePage();
 
-                // --- ADICIONE ESTA LINHA AQUI ---
-                listenForHelpRequests(); 
-
+                
                 // Libera o áudio após o primeiro clique na página
                 document.body.addEventListener('click', async () => { 
                     if (!synth && typeof Tone !== 'undefined') { 
@@ -619,6 +617,7 @@
     </script>
 </body>
 </html>
+
 
 
 
