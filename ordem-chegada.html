@@ -173,24 +173,39 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        let patioFlowActive = true; 
+        // --- LÓGICA COM MEMÓRIA (LOCALSTORAGE) ---
+// Tenta ler o que foi salvo antes. Se não encontrar nada, começa como 'true' (Ativado).
+let patioFlowActive = localStorage.getItem('patioFlowStatus') !== 'false'; 
+
 const toggleBtn = document.getElementById('toggle-patio-flow');
+
+// Função para atualizar a aparência do botão na tela
+function updateToggleUI() {
+    if (patioFlowActive) {
+        toggleBtn.className = "px-6 py-2 rounded-full text-xs font-black uppercase bg-green-100 text-green-700 border border-green-200 shadow-sm";
+        toggleBtn.textContent = "Ativado";
+    } else {
+        toggleBtn.className = "px-6 py-2 rounded-full text-xs font-black uppercase bg-gray-100 text-gray-500 border border-gray-300 shadow-sm";
+        toggleBtn.textContent = "Desativado";
+    }
+}
+
+// Roda a função assim que a página abre para o botão nascer na cor certa
+updateToggleUI();
 
 toggleBtn.addEventListener('click', () => {
     const acao = patioFlowActive ? "DESATIVAR" : "ATIVAR";
     const explicacao = patioFlowActive 
         ? "Ao chamar a cliente, ela ouvirá o aviso no celular, mas NÃO aparecerá na lista do Pátio." 
-        : "As clientes chamadas voltarão a aparecer normalmente para as meninas do Pátio.";
+        : "As clientes chamadas voltarão a aparecer normalmente para as profissionais.";
 
     if (confirm(`Deseja ${acao} o envio automático?\n\n${explicacao}`)) {
         patioFlowActive = !patioFlowActive;
-        if (patioFlowActive) {
-            toggleBtn.className = "px-6 py-2 rounded-full text-xs font-black uppercase bg-green-100 text-green-700 border border-green-200 shadow-sm";
-            toggleBtn.textContent = "Ativado";
-        } else {
-            toggleBtn.className = "px-6 py-2 rounded-full text-xs font-black uppercase bg-gray-100 text-gray-500 border border-gray-300 shadow-sm";
-            toggleBtn.textContent = "Desativado";
-        }
+        
+        // SALVA A ESCOLHA NA MEMÓRIA DO NAVEGADOR
+        localStorage.setItem('patioFlowStatus', patioFlowActive);
+        
+        updateToggleUI();
     }
 });
 
@@ -362,6 +377,7 @@ toggleBtn.addEventListener('click', () => {
     </script>
 </body>
 </html>
+
 
 
 
