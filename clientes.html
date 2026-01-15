@@ -687,22 +687,48 @@ function renderRecoveryItems(clients, lastVisits) {
     lucide.createIcons();
 }
 
-        // --- 7. MODAL E OPERAÇÕES CRUD ---
+        // --- 7. MODAL E OPERAÇÕES CRUD (COM VALIDAÇÃO DE TELEFONE) ---
         const modal = document.getElementById('client-modal'), clientForm = document.getElementById('client-form');
         document.getElementById('add-client-btn').addEventListener('click', () => { clientForm.reset(); document.getElementById('client-id').value = ''; modal.classList.remove('hidden'); });
         document.getElementById('cancel-btn').addEventListener('click', () => modal.classList.add('hidden'));
 
         clientForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const id = document.getElementById('client-id').value;
-            const data = { name: document.getElementById('client-name').value, phone: document.getElementById('client-phone').value, birthdate: document.getElementById('client-birthdate').value };
-            const ref = collection(db, "businesses", businessId, "clients");
-            try {
-                if (id) await updateDoc(doc(ref, id), data); else await addDoc(ref, { ...data, createdAt: new Date() });
-                modal.classList.add('hidden'); initializePage();
-            } catch (e) { alert("Erro ao salvar!"); }
-        });
+            const id = document.getElementById('client-id').value; // Se tiver ID, é edição
+            const name = document.getElementById('client-name').value.trim();
+            const phone = document.getElementById('client-phone').value.trim();
+            const birthdate = document.getElementById('client-birthdate').value;
 
+            // --- VALIDAÇÃO DE TELEFONE DUPLICADO ---
+            // Só validamos se for um cadastro NOVO (sem ID) ou se o telefone mudou na edição
+            const phoneExists = allClientsData.some(c => c.phone === phone && c.id !== id);
+
+            if (phoneExists) {
+                showNotification("Erro: Este número de telefone já está cadastrado para outro cliente!");
+                // Opcional: focar no campo de telefone
+                document.getElementById('client-phone').focus();
+                return; // Para o código aqui e não salva no banco
+            }
+            // ---------------------------------------
+
+            const data = { name, phone, birthdate };
+            const ref = collection(db, "businesses", businessId, "clients");
+            
+            try {
+                if (id) {
+                    await updateDoc(doc(ref, id), data);
+                    showNotification("Cadastro atualizado!");
+                } else {
+                    await addDoc(ref, { ...data, createdAt: new Date() });
+                    showNotification("Cliente cadastrado com sucesso!");
+                }
+                modal.classList.add('hidden'); 
+                initializePage(); // Recarrega a lista para atualizar os dados locais
+            } catch (e) { 
+                console.error(e);
+                alert("Erro ao salvar!"); 
+            }
+        });
         clientsListEl.addEventListener('click', async (e) => {
             const editBtn = e.target.closest('.edit-btn'), deleteBtn = e.target.closest('.delete-btn');
             if (editBtn) {
@@ -796,6 +822,7 @@ function renderRecoveryItems(clients, lastVisits) {
     </script>
 </body>
 </html>
+
 
 
 
