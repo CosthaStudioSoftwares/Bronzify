@@ -252,7 +252,9 @@ window.showNotification = showNotification;
                     if (!synth && typeof Tone !== 'undefined') { 
                         await Tone.start(); 
                         synth = new Tone.Synth().toDestination(); 
-                        console.log("Som de agendamentos ativado!");
+                        // Faz um barulhinho discreto de confirmação ao clicar
+                        synth.triggerAttackRelease("C6", "32n", Tone.now());
+                        console.log("Sistema de som Bronzify ativado!");
                     } 
                 }, { once: true });
             } else {
@@ -285,12 +287,16 @@ function listenForNewBookings() {
         const alertBox = document.getElementById('alert-pending-booking');
         
         if (count > 0) {
-            // TOCA O SOM SE UM NOVO AGENDAMENTO APARECER
+            // VIGIA AS MUDANÇAS
             snapshot.docChanges().forEach((change) => {
-                if (change.type === "added" && synth) {
-                    // Toca duas notas para avisar o agendamento
-                    synth.triggerAttackRelease("E5", "8n", Tone.now());
-                    synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.1);
+                // SÓ TOCA SE FOR NOVO E SE O USUÁRIO JÁ CLICOU NA TELA (SYNTH ATIVO)
+                if (change.type === "added") {
+                    if (synth) {
+                        synth.triggerAttackRelease("E5", "8n", Tone.now());
+                        synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.1);
+                    } else {
+                        console.log("Agendamento chegou, mas o clique inicial ainda não foi feito.");
+                    }
                 }
             });
 
@@ -790,6 +796,7 @@ function renderRecoveryItems(clients, lastVisits) {
     </script>
 </body>
 </html>
+
 
 
 
