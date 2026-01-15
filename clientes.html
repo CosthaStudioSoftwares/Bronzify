@@ -692,24 +692,26 @@ function renderRecoveryItems(clients, lastVisits) {
         document.getElementById('add-client-btn').addEventListener('click', () => { clientForm.reset(); document.getElementById('client-id').value = ''; modal.classList.remove('hidden'); });
         document.getElementById('cancel-btn').addEventListener('click', () => modal.classList.add('hidden'));
 
-        clientForm.addEventListener('submit', async (e) => {
+       clientForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const id = document.getElementById('client-id').value; // Se tiver ID, é edição
+            const id = document.getElementById('client-id').value;
             const name = document.getElementById('client-name').value.trim();
             const phone = document.getElementById('client-phone').value.trim();
             const birthdate = document.getElementById('client-birthdate').value;
 
-            // --- VALIDAÇÃO DE TELEFONE DUPLICADO ---
-            // Só validamos se for um cadastro NOVO (sem ID) ou se o telefone mudou na edição
-            const phoneExists = allClientsData.some(c => c.phone === phone && c.id !== id);
+            // --- VALIDAÇÃO ÚNICA DE TELEFONE (CORRIGIDA) ---
+            const phoneInputLimpo = phone.replace(/\D/g, '');
+            const jaExiste = allClientsData.some(c => {
+                const phoneDBLimpo = (c.phone || '').replace(/\D/g, '');
+                return phoneDBLimpo === phoneInputLimpo && c.id !== id;
+            });
 
-            // Validação que ignora parênteses e traços para não dar erro se um estiver com máscara e outro não
-const phoneExists = allClientsData.some(c => {
-    const phoneDB = (c.phone || '').replace(/\D/g, '');
-    const phoneInput = phone.replace(/\D/g, '');
-    return phoneDB === phoneInput && c.id !== id;
-});
-            // ---------------------------------------
+            if (jaExiste) {
+                showNotification("Erro: Este número de telefone já está cadastrado!");
+                document.getElementById('client-phone').focus();
+                return; 
+            }
+            // ----------------------------------------------
 
             const data = { name, phone, birthdate };
             const ref = collection(db, "businesses", businessId, "clients");
@@ -723,12 +725,13 @@ const phoneExists = allClientsData.some(c => {
                     showNotification("Cliente cadastrado com sucesso!");
                 }
                 modal.classList.add('hidden'); 
-                initializePage(); // Recarrega a lista para atualizar os dados locais
+                initializePage(); 
             } catch (e) { 
                 console.error(e);
                 alert("Erro ao salvar!"); 
             }
         });
+        
         clientsListEl.addEventListener('click', async (e) => {
             const editBtn = e.target.closest('.edit-btn'), deleteBtn = e.target.closest('.delete-btn');
             if (editBtn) {
@@ -829,6 +832,7 @@ document.getElementById('client-phone').addEventListener('input', (e) => {
     </script>
 </body>
 </html>
+
 
 
 
